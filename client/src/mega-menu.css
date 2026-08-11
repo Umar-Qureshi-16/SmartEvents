@@ -1,0 +1,145 @@
+/* Mega Menu CSS */
+
+.navbar {
+    background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.nav-links {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.menu-item {
+    position: relative;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.menu-item:hover {
+    background: var(--bg-color);
+    color: var(--primary-dark);
+}
+
+/* Base Dropdown */
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+    width: 280px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Hover activates dropdown */
+.menu-item:hover .dropdown {
+    opacity: 1;
+    transform: translateX(-50%) translateY(10px);
+    pointer-events: auto;
+}
+
+/* Mega Menu Variations */
+.mega-menu {
+    width: 500px;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px;
+}
+
+.mega-col {
+    flex: 1;
+}
+
+.mega-col h4 {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 5px;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-main);
+}
+
+.dropdown-item:hover {
+    background: #f1f5f9;
+    transform: translateX(5px);
+}
+
+.dropdown-icon {
+    font-size: 1.5rem;
+    background: #e0f2fe;
+    padding: 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dropdown-item div {
+    display: flex;
+    flex-direction: column;
+}
+
+.dropdown-item div strong {
+    font-size: 0.95rem;
+    color: #0f172a;
+}
+
+.dropdown-item div span {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+/* Custom indicator triangle */
+.dropdown::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-left: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+}
+
+/* For Buttons inside nav-links */
+.nav-buttons {
+    display: flex;
+    gap: 10px;
+    margin-left: 15px;
+    border-left: 1px solid var(--border);
+    padding-left: 15px;
+}

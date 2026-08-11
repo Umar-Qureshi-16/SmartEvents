@@ -1,0 +1,27 @@
+node_modules/
+client/node_modules/
+server/node_modules/
+client/dist/
+
+# Environment
+.env
+.env.local
+server/.env
+client/.env
+
+# Logs
+*.log
+server/logs/
+output.txt
+
+# Media / recordings (keep large binaries out of git)
+*.mp4
+*.mov
+
+# Uploads
+server/public/uploads/*
+!server/public/uploads/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

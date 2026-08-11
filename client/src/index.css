@@ -1,0 +1,45 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+:root {
+  --color-ink: #14171F;
+  --color-paper: #FAF9F6;
+  --color-emerald: #10B981;   /* emerald */
+  --color-gold: #F59E0B;      /* gold */
+  --color-coral: #F87171;     /* coral */
+  --color-slate: #64748B;    /* slate */
+  --font-primary: 'Fraunces', serif;
+  --font-secondary: 'Instrument Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-[#FAFAFC] text-[#0F172A] antialiased selection:bg-[#4F46E5] selection:text-white font-sans;
+    font-family: var(--font-primary);
+  }
+}
+
+
+
+
+/* Modern Luxury Palette Utilities */
+.btn-adyen-primary {
+  @apply bg-[#4F46E5] hover:bg-[#4338CA] text-white font-extrabold rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 shadow-[0_8px_25px_-5px_rgba(79,70,229,0.4)];
+}
+
+.btn-adyen-outline {
+  @apply border border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2;
+}
+
+.adyen-card {
+  @apply bg-white border border-[#E2E8F0] rounded-3xl shadow-[0_4px_20px_-2px_rgba(15,23,42,0.04)] transition-all duration-300;
+}
+
+.adyen-badge {
+  @apply inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold font-mono tracking-wider bg-[#4F46E5]/10 text-[#4F46E5] border border-[#4F46E5]/20;
+}
