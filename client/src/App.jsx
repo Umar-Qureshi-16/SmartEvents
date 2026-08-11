@@ -37,8 +37,6 @@ import ProviderReviews from './pages/Reviews/ProviderReviews';
 import './feature-styles.css';
 import './gallery-styles.css';
 import './mega-menu.css';
-import Topbar from './components/Topbar';
-import ThemeToggle from './components/ThemeToggle';
 
 import { WebSocketProvider } from './context/WebSocketContext';
 import { ThemeProvider } from './context/ThemeContext';

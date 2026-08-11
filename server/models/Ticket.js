@@ -1,35 +1,28 @@
 const mongoose = require('mongoose');
 
 const ticketSchema = new mongoose.Schema({
-    bookingId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Booking',
-        required: true
-    },
-    event: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Event',
-        required: true
-    },
-    attendee: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    ticketNumber: {
+    event: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true },
+    attendee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+    ticketType: {
         type: String,
-        required: true,
-        unique: true
+        enum: ['Free', 'General', 'VIP', 'Student', 'Early Bird'],
+        default: 'General'
     },
-    qrCode: {
-        type: String // Base64 representation of QR code
-    },
+    ticketNumber: { type: String, required: true, unique: true },
+    qrCodeData: { type: String, required: true },
+    price: { type: Number, default: 0 },
+    currency: { type: String, default: 'USD' },
     status: {
         type: String,
-        enum: ['valid', 'used', 'cancelled'],
-        default: 'valid'
+        enum: ['active', 'checked_in', 'refunded', 'cancelled'],
+        default: 'active'
     },
-    scannedAt: Date
+    checkInTime: { type: Date, default: null },
+    checkedInBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
 }, { timestamps: true });
+
+ticketSchema.index({ attendee: 1, createdAt: -1 });
+ticketSchema.index({ event: 1 });
 
 module.exports = mongoose.models.Ticket || mongoose.model('Ticket', ticketSchema);

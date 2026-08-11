@@ -1,12 +1,15 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "SmartEvents API — event marketplace with real-time price negotiation",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "seed": "node scripts/seedData.js",
+    "seed:superadmin": "node scripts/seedSuperAdmin.js",
+    "test:e2e": "node tests/e2e.js",
+    "test": "echo \"No unit tests yet — see IMPROVEMENT_PLAN.md Phase 4\" && exit 1"
   },
   "keywords": [],
   "author": "",
@@ -20,14 +23,12 @@
     "express-rate-limit": "^8.5.2",
     "groq-sdk": "^1.2.0",
     "helmet": "^8.1.0",
-    "joi": "^18.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.6.2",
     "morgan": "^1.10.1",
     "multer": "^2.2.0",
     "node-cache": "^5.1.2",
     "nodemailer": "^9.0.3",
-    "openai": "^6.38.0",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.3",
     "zod": "^4.4.3"

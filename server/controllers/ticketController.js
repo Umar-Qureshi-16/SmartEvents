@@ -1,6 +1,6 @@
 const Ticket = require('../models/Ticket');
 const Event = require('../models/Event');
-const Notification = require('../models/Notification');
+const notificationService = require('../services/notificationService');
 
 exports.purchaseTicket = async (req, res) => {
     try {
@@ -32,13 +32,17 @@ exports.purchaseTicket = async (req, res) => {
 
         await newTicket.save();
 
-        // Send notification
-        await Notification.create({
-            user: req.user.id,
-            title: 'Ticket Confirmed!',
-            message: `Your ${ticketType || 'General'} ticket for "${event.title}" is ready. Ticket #: ${ticketNumber}`,
-            type: 'system'
-        });
+        // Notification must never fail the purchase it is announcing.
+        try {
+            await notificationService.createNotification({
+                recipient: req.user.id,
+                title: 'Ticket Confirmed!',
+                message: `Your ${ticketType || 'General'} ticket for "${event.title}" is ready. Ticket #: ${ticketNumber}`,
+                type: 'system'
+            });
+        } catch (notifyErr) {
+            console.error('Ticket notification failed (non-fatal):', notifyErr);
+        }
 
         res.status(201).json({
             success: true,
@@ -59,6 +63,7 @@ exports.getMyTickets = async (req, res) => {
 
         res.json({ success: true, data: tickets });
     } catch (err) {
+        console.error('Fetch Tickets Error:', err);
         res.status(500).json({ success: false, message: 'Server error fetching tickets' });
     }
 };
@@ -66,7 +71,9 @@ exports.getMyTickets = async (req, res) => {
 exports.scanCheckInTicket = async (req, res) => {
     try {
         const { ticketNumber } = req.body;
-        const ticket = await Ticket.findOne({ ticketNumber }).populate('event').populate('attendee', 'name email');
+        const ticket = await Ticket.findOne({ ticketNumber })
+            .populate('event')
+            .populate('attendee', 'name email');
 
         if (!ticket) {
             return res.status(404).json({ success: false, message: 'Invalid ticket code' });
