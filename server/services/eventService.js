@@ -1,5 +1,6 @@
 const Event = require('../models/Event');
 const { generateUserEmbeddings } = require('./aiService');
+const { NotFoundError, ForbiddenError } = require('../utils/AppError');
 
 class EventService {
     async getAllEvents(filters) {
@@ -60,7 +61,7 @@ class EventService {
 
     async getEventById(id) {
         const event = await Event.findById(id).populate('createdBy', 'name email');
-        if (!event) throw new Error('Event not found.');
+        if (!event) throw new NotFoundError('Event not found.');
         return event;
     }
 
@@ -74,11 +75,11 @@ class EventService {
 
     async updateEvent(id, updateData, userId) {
         const event = await Event.findById(id);
-        if (!event) throw new Error('Event not found.');
+        if (!event) throw new NotFoundError('Event not found.');
 
         // Ensure user is the owner or admin
         if (event.createdBy.toString() !== userId) {
-            throw new Error('Access denied. You do not own this event.');
+            throw new ForbiddenError('Access denied. You do not own this event.');
         }
 
         Object.assign(event, updateData);
@@ -87,10 +88,10 @@ class EventService {
 
     async deleteEvent(id, userId, role) {
         const event = await Event.findById(id);
-        if (!event) throw new Error('Event not found.');
+        if (!event) throw new NotFoundError('Event not found.');
 
         if (role !== 'admin' && event.createdBy.toString() !== userId) {
-            throw new Error('Access denied. Insufficient permissions.');
+            throw new ForbiddenError('Access denied. Insufficient permissions.');
         }
 
         return await Event.findByIdAndDelete(id);

@@ -39,22 +39,43 @@ function cosineSimilarity(vecA, vecB) {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-// 3. Retrieval System (Refactored to Full Data Fetch)
-async function retrieveContext(queryEmbedding, userId, topK = 3) {
+/**
+ * 3. Context assembly (full-context injection, not vector retrieval).
+ *
+ * At this data scale, fetching the user's records fresh on every query is
+ * cheaper, faster and more accurate than embedding-based retrieval — there is
+ * no corpus large enough to need ranking. Named honestly so the architecture
+ * is not mistaken for RAG.
+ */
+async function retrieveContext(userId) {
     try {
-        const services = await Event.find({ createdBy: userId });
-        const bookingsData = await Booking.find({ userId }).populate('eventId');
+        const services = await Event.find({ createdBy: userId }).lean();
+        const serviceIds = services.map(s => s._id);
 
-        const context = [];
-        context.push({ type: 'aggregate', content: `The user has ${services.length} services and ${bookingsData.length} bookings.` });
+        // Booking has customerId / vendorId — there is no `userId` field.
+        const bookingsData = await Booking.find({
+            $or: [
+                { eventId: { $in: serviceIds } },
+                { vendorId: userId },
+                { customerId: userId }
+            ]
+        }).select('status offerPrice eventId').lean();
+
+        const context = [{
+            type: 'aggregate',
+            content: `The user has ${services.length} services and ${bookingsData.length} bookings.`
+        }];
 
         services.forEach(s => {
-            context.push({ type: 'service', content: `Service: ${s.title}, Price: $${s.price}, Category: ${s.type}` });
+            context.push({
+                type: 'service',
+                content: `Service: ${s.title}, Price: $${s.price}, Category: ${s.category}`
+            });
         });
 
         return context;
     } catch (err) {
-        console.error('Error retrieving context:', err);
+        console.error('Error assembling context:', err);
         return [];
     }
 }
@@ -88,18 +109,31 @@ async function generateResponse(query, contextDocuments, userId) {
         const user = await User.findById(userId);
         if (!user) return "User account not isolated in the AI data map.";
 
-        const services = await Event.find({ createdBy: userId });
-        const recentBookings = await Booking.find().populate('eventId');
-        const myBookings = recentBookings.filter(b => b.eventId && b.eventId.createdBy.toString() === userId.toString());
+        const services = await Event.find({ createdBy: userId }).lean();
+
+        // Filter in the database, not in JavaScript. This previously ran
+        // Booking.find() with no filter at all, pulling every booking on the
+        // platform into memory on every single AI query.
+        const myEventIds = services.map(s => s._id);
+        const myBookings = await Booking.find({
+            $or: [
+                { eventId: { $in: myEventIds } },
+                { vendorId: userId }
+            ],
+            status: { $in: ['confirmed', 'completed'] }
+        })
+            .populate('eventId', 'title price')
+            .lean();
 
         // 1. Calculate Detailed Metrics
-        const totalRevenue = myBookings.reduce((sum, b) => sum + (b.eventId.price || 0), 0);
+        const totalRevenue = myBookings.reduce((sum, b) => sum + (b.offerPrice || b.eventId?.price || 0), 0);
         const avgBookingValue = myBookings.length > 0 ? (totalRevenue / myBookings.length).toFixed(2) : 0;
 
         // Find top performing service
         const serviceCounts = {};
         myBookings.forEach(b => {
-            const title = b.eventId.title;
+            const title = b.eventId?.title;
+            if (!title) return;
             serviceCounts[title] = (serviceCounts[title] || 0) + 1;
         });
         const topService = Object.entries(serviceCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "None yet";

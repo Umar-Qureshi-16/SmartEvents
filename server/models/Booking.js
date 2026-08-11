@@ -24,9 +24,17 @@ const bookingSchema = new mongoose.Schema({
     negotiationHistory: [{
         price: Number,
         message: String,
+        action: {
+            type: String,
+            enum: ['offer', 'counter', 'accepted', 'rejected'],
+            default: 'counter'
+        },
         offeredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         timestamp: { type: Date, default: Date.now }
     }]
 }, { timestamps: true, optimisticConcurrency: true });
+
+bookingSchema.index({ vendorId: 1, status: 1, updatedAt: -1 });
+bookingSchema.index({ customerId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Booking', bookingSchema);

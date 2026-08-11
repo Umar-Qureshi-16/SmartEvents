@@ -18,19 +18,51 @@ exports.login = asyncHandler(async (req, res, next) => {
 
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
     const { email } = req.body;
-    const resetToken = await authService.generateResetToken(email);
-    console.log(`[FYP EMAIL SIMULATION] To: ${email}, Link: http://localhost:5173/reset-password/${resetToken}`);
-    res.json({ 
-        success: true, 
-        message: 'Identity recovery link generated. Check system logs.', 
-        token: resetToken 
-    });
+
+    // Always answer the same way, whether or not the address is registered —
+    // a differing response lets an attacker enumerate accounts.
+    const genericResponse = {
+        success: true,
+        message: 'If an account exists for that email, a password reset link has been sent.'
+    };
+
+    let resetToken;
+    try {
+        resetToken = await authService.generateResetToken(email);
+    } catch (err) {
+        return res.json(genericResponse);
+    }
+
+    const resetLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+
+    try {
+        const { sendEmail } = require('../services/mailService');
+        await sendEmail(
+            email,
+            'Reset your SmartEvents password',
+            `<h3>Password reset requested</h3>
+             <p>Click the link below to choose a new password. It expires in 15 minutes.</p>
+             <p><a href="${resetLink}">${resetLink}</a></p>
+             <p>If you did not request this, you can safely ignore this email.</p>`
+        );
+    } catch (err) {
+        console.error('Password reset email failed to send:', err.message);
+    }
+
+    // Development convenience only. The token must never leave the server in
+    // the response body — anyone could then reset any account they can name.
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`[DEV] Password reset link for ${email}: ${resetLink}`);
+    }
+
+    res.json(genericResponse);
 });
 
 exports.resetPassword = asyncHandler(async (req, res, next) => {
-    const { token, newPassword } = req.body;
-    await authService.resetPassword(token, newPassword);
-    res.json({ success: true, message: 'Identity access token updated successfully.' });
+    const { token } = req.body;
+    const password = req.body.password || req.body.newPassword;
+    await authService.resetPassword(token, password);
+    res.json({ success: true, message: 'Your password has been updated. You can now sign in.' });
 });
 
 exports.me = asyncHandler(async (req, res, next) => {

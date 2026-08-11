@@ -62,9 +62,14 @@ exports.getDashboard = async (req, res) => {
         const profile = await VendorProfile.findOne({ userId: req.user.id });
 
         const totalEarnings = profile?.earnings || 0;
-        const totalBookingsCount = await Booking.countDocuments({ vendorId: req.user.id, status: 'cancelled' });
+        // Previously counted status 'cancelled', which reported the opposite
+        // of what the label claims.
+        const totalBookingsCount = await Booking.countDocuments({
+            vendorId: req.user.id,
+            status: { $in: ['confirmed', 'completed'] }
+        });
 
-        res.json({ leads, activeBookings, analytics: { totalEarnings, totalBookingsCount, profileViews: Math.floor(Math.random() * 500) } }); // mock profile views
+        res.json({ leads, activeBookings, analytics: { totalEarnings, totalBookingsCount } });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching dashboard data', error: error.message });
     }
@@ -160,27 +165,12 @@ exports.getPublicProfile = async (req, res) => {
             }).populate('userId', 'name email trustScore');
         }
         
+        // Previously this fabricated a vendor ("Grand Hyatt Ballroom", stock
+        // images, a 4.9 rating with 142 invented reviews) whenever a profile
+        // was missing. Demo data belongs in scripts/seedData.js, not in a
+        // production response path.
         if (!profile) {
-            return res.json({
-                success: true,
-                isMock: true,
-                profile: {
-                    businessName: id === 'fv-1' ? 'Grand Hyatt Ballroom' : id === 'fv-2' ? 'Gourmet Royale Catering' : id === 'fv-3' ? 'Aura Light & Sound AV' : 'Premium Vendor Co.',
-                    category: id === 'fv-1' ? 'venue' : id === 'fv-2' ? 'catering' : id === 'fv-3' ? 'music' : 'photography',
-                    location: 'Chicago, IL',
-                    rating: 4.9,
-                    reviewsCount: 142,
-                    description: 'A premium provider of high-quality services with a solid track record of successful events.',
-                    portfolioImages: [
-                        'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80',
-                        'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=600&q=80'
-                    ],
-                    userId: { name: 'Verified Vendor Owner', email: 'owner@smartevents.com', trustScore: 98 }
-                },
-                services: [
-                    { _id: 'mock-s1', title: 'Premium Service Package', price: 1500, description: 'Complete end-to-end setup including professional crew, logistics, and premium deliverables.' }
-                ]
-            });
+            return res.status(404).json({ success: false, message: 'Vendor profile not found' });
         }
 
         const services = await Service.find({ vendorId: profile._id });

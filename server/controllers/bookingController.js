@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const bookingService = require('../services/bookingService');
 const { asyncHandler } = require('../middleware/errors');
@@ -19,23 +20,29 @@ exports.getOrganizerBookings = asyncHandler(async (req, res, next) => {
 
 exports.getVendorDashboard = asyncHandler(async (req, res, next) => {
     const vendorId = req.user.id;
-    const leads = await Booking.find({ vendorId, status: { $in: ['pending', 'negotiating', 'counter_offered'] } })
-        .populate('customerId', 'name email trustScore')
-        .populate('eventId', 'title')
-        .sort({ updatedAt: -1 });
 
-    const activeBookings = await Booking.find({ vendorId, status: 'confirmed' })
-        .populate('customerId', 'name')
-        .populate('eventId', 'title')
-        .limit(5);
+    // $match in an aggregation pipeline does NOT auto-cast strings to
+    // ObjectIds the way find() does, so this has to be cast explicitly.
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
 
-    // Aggregate earnings
-    const totalEarnings = await Booking.aggregate([
-        { $match: { vendorId: req.user._id, status: 'confirmed' } },
-        { $group: { _id: null, total: { $sum: '$offerPrice' } } }
+    const [leads, activeBookings, totalEarnings, totalBookingsCount] = await Promise.all([
+        Booking.find({ vendorId, status: { $in: ['pending', 'negotiating'] } })
+            .populate('customerId', 'name email trustScore')
+            .populate('eventId', 'title')
+            .sort({ updatedAt: -1 }),
+
+        Booking.find({ vendorId, status: 'confirmed' })
+            .populate('customerId', 'name')
+            .populate('eventId', 'title')
+            .limit(5),
+
+        Booking.aggregate([
+            { $match: { vendorId: vendorObjectId, status: { $in: ['confirmed', 'completed'] } } },
+            { $group: { _id: null, total: { $sum: '$offerPrice' } } }
+        ]),
+
+        Booking.countDocuments({ vendorId, status: { $in: ['confirmed', 'completed'] } })
     ]);
-
-    const totalBookingsCount = await Booking.countDocuments({ vendorId, status: 'confirmed' });
 
     res.json({
         success: true,
@@ -44,8 +51,7 @@ exports.getVendorDashboard = asyncHandler(async (req, res, next) => {
             activeBookings,
             analytics: {
                 totalEarnings: totalEarnings[0]?.total || 0,
-                totalBookingsCount,
-                profileViews: 1200
+                totalBookingsCount
             }
         }
     });

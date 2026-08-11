@@ -3,13 +3,14 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fyp-secret-key';
+const { JWT_SECRET } = require('../middleware/authMiddleware');
+const { BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError, ConflictError } = require('../utils/AppError');
 
 class AuthService {
     async signup(userData) {
         const { name, email, password, role } = userData;
         const existingUser = await User.findOne({ email });
-        if (existingUser) throw new Error('Identity already registered in ecosystem.');
+        if (existingUser) throw new ConflictError('An account with this email already exists.');
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new User({ name, email, password: hashedPassword, role });
@@ -22,10 +23,21 @@ class AuthService {
 
     async login(email, password) {
         const user = await User.findOne({ email }).select('+password');
-        if (!user) throw new Error('Identity not found in the global registry.');
+
+        // Identical message and comparable timing for both failure modes, so
+        // an attacker cannot use this endpoint to discover which emails are
+        // registered on the platform.
+        if (!user) {
+            await bcrypt.compare(password, '$2b$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidiu');
+            throw new UnauthorizedError('Invalid email or password.');
+        }
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) throw new Error('Security token mismatch.');
+        if (!isMatch) throw new UnauthorizedError('Invalid email or password.');
+
+        if (user.status === 'banned') {
+            throw new ForbiddenError('This account has been suspended. Please contact support.');
+        }
 
         const token = this.generateToken({ id: user._id, role: user.role });
         const refreshToken = this.generateToken({ id: user._id, role: user.role }, '7d');
@@ -46,24 +58,24 @@ class AuthService {
         try {
             const decoded = jwt.verify(refreshToken, JWT_SECRET);
             const user = await User.findById(decoded.id);
-            if (!user) throw new Error('Identity node no longer active.');
+            if (!user) throw new UnauthorizedError('This account no longer exists.');
 
             const newToken = this.generateToken({ id: user._id, role: user.role });
             return { token: newToken };
         } catch (error) {
-            throw new Error('Invalid or expired refresh token.');
+            throw new UnauthorizedError('Invalid or expired refresh token.');
         }
     }
 
     async getUserProfile(userId) {
         const user = await User.findById(userId).select('-password');
-        if (!user) throw new Error('Identity node not found.');
+        if (!user) throw new NotFoundError('User not found.');
         return user;
     }
 
     async generateResetToken(email) {
         const user = await User.findOne({ email });
-        if (!user) throw new Error('No node associated with this interface link.');
+        if (!user) throw new NotFoundError('No account is registered with that email.');
 
         const resetToken = crypto.randomBytes(20).toString('hex');
         user.resetPasswordToken = resetToken;
@@ -79,7 +91,7 @@ class AuthService {
             resetPasswordExpires: { $gt: Date.now() }
         });
 
-        if (!user) throw new Error('Reset token is invalid or has expired.');
+        if (!user) throw new BadRequestError('Reset token is invalid or has expired.');
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashedPassword;

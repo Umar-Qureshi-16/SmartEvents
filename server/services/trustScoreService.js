@@ -3,45 +3,82 @@ const Booking = require('../models/Booking');
 const Review = require('../models/Review');
 const Event = require('../models/Event');
 
+// Neutral starting score for providers without enough history to judge.
+const BASELINE_SCORE = 70;
+const MIN_BOOKINGS_FOR_RATING = 3;
+
+// Weights sum to 1.0 across the three positive signals.
+const W_COMPLETION = 0.55;
+const W_RATING = 0.35;
+const W_BASE = 0.10;
+
+// Penalties applied after the weighted score.
+const PENALTY_LOST_DISPUTE = 8;
+const PENALTY_NO_SHOW = 5;
+
+/**
+ * Recalculates a provider's trust score as a weighted ratio rather than a
+ * running tally.
+ *
+ * The previous implementation started at 100 and mostly added points, then
+ * clamped at 100 — so a provider with 40 completed bookings and one with zero
+ * both scored 100, and the metric could not discriminate between them.
+ *
+ * Score = 100 x (0.55 x completionRate + 0.35 x ratingScore + 0.10)
+ *         - 8 per dispute lost
+ *         - 5 per no-show
+ * clamped to 0..100.
+ */
 exports.recalculateTrustScore = async (vendorId) => {
     try {
-        let score = 100; // Baseline
+        const [completed, cancelled, noShows, lostDisputes] = await Promise.all([
+            Booking.countDocuments({ vendorId, status: 'completed' }),
+            Booking.countDocuments({ vendorId, status: 'cancelled', cancelledBy: vendorId }),
+            Booking.countDocuments({ vendorId, status: 'no_show' }),
+            Booking.countDocuments({ vendorId, disputeOutcome: 'refunded_customer' })
+        ]);
 
-        // 1. Completed bookings: +3 points
-        const completedCount = await Booking.countDocuments({ vendorId, status: 'completed' });
-        score += completedCount * 3;
+        const totalConcluded = completed + cancelled + noShows;
 
-        // 2. Cancellation by provider after confirmation: -5 points
-        const cancellationCount = await Booking.countDocuments({ vendorId, status: 'cancelled', cancelledBy: vendorId });
-        score -= cancellationCount * 5;
+        // Not enough history to draw a conclusion — stay neutral rather than
+        // implying either excellence or risk.
+        if (totalConcluded < MIN_BOOKINGS_FOR_RATING) {
+            await User.findByIdAndUpdate(vendorId, { trustScore: BASELINE_SCORE });
+            return BASELINE_SCORE;
+        }
 
-        // 3. Dispute resolved against provider: -10 points
-        const disputeLostCount = await Booking.countDocuments({ vendorId, disputeOutcome: 'refunded_customer' });
-        score -= disputeLostCount * 10;
+        const completionRate = completed / totalConcluded;
 
-        // 4. No-show: -8 points
-        const noShowCount = await Booking.countDocuments({ vendorId, status: 'no_show' });
-        score -= noShowCount * 8;
+        // Average review rating across every event this provider owns.
+        const eventIds = await Event.find({ createdBy: vendorId }).distinct('_id');
+        const reviews = await Review.find({ event: { $in: eventIds } }).select('rating').lean();
 
-        // 5. Reviews: 5-star is +2, 4-star is +1
-        const events = await Event.find({ createdBy: vendorId });
-        const eventIds = events.map(e => e._id);
-        
-        const reviews = await Review.find({ event: { $in: eventIds } });
-        reviews.forEach(review => {
-            if (review.rating === 5) {
-                score += 2;
-            } else if (review.rating === 4) {
-                score += 1;
-            }
+        const avgRating = reviews.length
+            ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+            : 0;
+
+        // Map 1..5 onto 0..1; unrated providers sit neutral at 0.5 rather than
+        // being punished for having no reviews yet.
+        const ratingScore = reviews.length ? (avgRating - 1) / 4 : 0.5;
+
+        let score = 100 * (W_COMPLETION * completionRate + W_RATING * ratingScore + W_BASE);
+        score -= lostDisputes * PENALTY_LOST_DISPUTE;
+        score -= noShows * PENALTY_NO_SHOW;
+
+        score = Math.round(Math.max(0, Math.min(100, score)));
+
+        await User.findByIdAndUpdate(vendorId, {
+            trustScore: score,
+            'analytics.completedEvents': completed,
+            'analytics.averageRating': reviews.length ? Number(avgRating.toFixed(2)) : 0,
+            'analytics.cancellationRate': totalConcluded
+                ? Number((cancelled / totalConcluded).toFixed(3))
+                : 0
         });
 
-        // Clamp 0-100
-        score = Math.max(0, Math.min(100, score));
-
-        await User.findByIdAndUpdate(vendorId, { trustScore: score });
         return score;
     } catch (err) {
         console.error('Error recalculating trust score:', err);
+        return null;
     }
 };

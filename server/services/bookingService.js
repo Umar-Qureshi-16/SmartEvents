@@ -5,6 +5,7 @@ const notificationService = require('./notificationService');
 const socketManager = require('./socketManager');
 const User = require('../models/User');
 const { sendEmail } = require('./mailService');
+const { NotFoundError, ForbiddenError, ConflictError } = require('../utils/AppError');
 
 class BookingService {
     async createBooking(bookingData, customerId) {
@@ -13,7 +14,7 @@ class BookingService {
         // If eventId is provided, pull event details and vendorId dynamically
         if (eventId) {
             const event = await Event.findById(eventId);
-            if (!event) throw new Error('Event not found.');
+            if (!event) throw new NotFoundError('Event not found.');
             vendorId = event.createdBy;
             if (!eventDetails) {
                 eventDetails = {
@@ -42,7 +43,7 @@ class BookingService {
                 const checkDate = new Date(eventDetails.date).toDateString();
                 const isBlocked = profile.blockedDates.some(bd => new Date(bd).toDateString() === checkDate);
                 if (isBlocked) {
-                    throw new Error('The provider has marked this date as unavailable.');
+                    throw new ConflictError('The provider has marked this date as unavailable.');
                 }
             }
         }
@@ -57,6 +58,7 @@ class BookingService {
             negotiationHistory: [{
                 price: offerPrice,
                 message: noteMessage,
+                action: 'offer',
                 offeredBy: customerId
             }]
         });
@@ -111,20 +113,20 @@ class BookingService {
 
     async getBookingById(id, userId) {
         const booking = await Booking.findById(id).populate('eventId customerId vendorId');
-        if (!booking) throw new Error('Booking not found.');
+        if (!booking) throw new NotFoundError('Booking not found.');
 
         if (booking.customerId._id.toString() !== userId && booking.vendorId._id.toString() !== userId) {
-            throw new Error('Access denied to this booking.');
+            throw new ForbiddenError('Access denied to this booking.');
         }
         return booking;
     }
 
     async negotiate(bookingId, price, message, userId) {
         const booking = await Booking.findById(bookingId);
-        if (!booking) throw new Error('Booking not found.');
+        if (!booking) throw new NotFoundError('Booking not found.');
 
         if (booking.status === 'confirmed' || booking.status === 'rejected') {
-            throw new Error(`Cannot negotiate on a ${booking.status} booking.`);
+            throw new ConflictError(`Cannot negotiate on a ${booking.status} booking.`);
         }
 
         booking.status = 'negotiating';
@@ -133,6 +135,7 @@ class BookingService {
         booking.negotiationHistory.push({
             price,
             message,
+            action: 'counter',
             offeredBy: userId
         });
 
@@ -140,7 +143,7 @@ class BookingService {
             await booking.save();
         } catch (err) {
             if (err.name === 'VersionError') {
-                throw new Error('This booking negotiation status was modified by another request. Please refresh and try again.');
+                throw new ConflictError('This booking negotiation status was modified by another request. Please refresh and try again.');
             }
             throw err;
         }
@@ -186,7 +189,7 @@ class BookingService {
 
     async updateStatus(bookingId, status, userId) {
         const booking = await Booking.findById(bookingId);
-        if (!booking) throw new Error('Booking not found.');
+        if (!booking) throw new NotFoundError('Booking not found.');
 
         if (status === 'confirmed') {
             booking.status = 'confirmed';
@@ -207,7 +210,7 @@ class BookingService {
             await booking.save();
         } catch (err) {
             if (err.name === 'VersionError') {
-                throw new Error('This booking status was updated by another process. Please refresh.');
+                throw new ConflictError('This booking status was updated by another process. Please refresh.');
             }
             throw err;
         }

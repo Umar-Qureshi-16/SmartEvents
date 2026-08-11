@@ -4,7 +4,10 @@ const signupSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters").max(50),
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
-    role: z.enum(['customer', 'provider', 'admin', 'superadmin']).default('customer')
+    // Public signup may ONLY create customer or provider accounts.
+    // Elevated roles are granted via scripts/seedSuperAdmin.js or by an
+    // existing admin through PUT /api/v1/admin/users/:id/role.
+    role: z.enum(['customer', 'provider']).default('customer')
 });
 
 const loginSchema = z.object({
@@ -68,25 +71,41 @@ const reviewCreateSchema = z.object({
 });
 
 const validate = (schema) => (req, res, next) => {
-    try {
-        schema.parse(req.body);
-        next();
-    } catch (err) {
+    const result = schema.safeParse(req.body);
+
+    if (!result.success) {
+        // Zod v4 exposes `issues`; v3 exposed `errors`. Support both so this
+        // keeps working across a dependency bump.
+        const issues = result.error.issues ?? result.error.errors ?? [];
         return res.status(400).json({
             success: false,
             message: "Validation Error",
-            errors: err.errors.map(e => ({ path: e.path.join('.'), message: e.message }))
+            errors: issues.map(e => ({
+                path: Array.isArray(e.path) ? e.path.join('.') : String(e.path ?? ''),
+                message: e.message
+            }))
         });
     }
+
+    // Replace the body with the parsed output so controllers receive coerced
+    // types and schema defaults rather than raw strings.
+    req.body = result.data;
+    next();
 };
 
 const forgotPasswordSchema = z.object({
     email: z.string().email("Invalid email address")
 });
 
+// Accepts either field name so an older client build keeps working, then
+// normalises to `password` for the controller.
 const resetPasswordSchema = z.object({
     token: z.string().min(1, "Token is required"),
-    password: z.string().min(8, "Password must be at least 8 characters")
+    password: z.string().min(8, "Password must be at least 8 characters").optional(),
+    newPassword: z.string().min(8, "Password must be at least 8 characters").optional()
+}).refine(d => d.password || d.newPassword, {
+    message: "Password must be at least 8 characters",
+    path: ["password"]
 });
 
 module.exports = {

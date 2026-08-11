@@ -1,4 +1,4 @@
-const { createEmbedding, retrieveContext, generateResponse } = require('../services/aiService');
+const { retrieveContext, generateResponse } = require('../services/aiService');
 
 exports.queryAI = async (req, res) => {
     try {
@@ -9,18 +9,12 @@ exports.queryAI = async (req, res) => {
             return res.status(400).json({ success: false, message: "Valid query string is required" });
         }
 
-        // 1. Create embedding for the user's incoming query
-        let queryEmbedding;
-        try {
-            queryEmbedding = await createEmbedding(query);
-        } catch (err) {
-            return res.status(502).json({ success: false, message: "Failed to generate query embedding via Gemini" });
-        }
+        // 1. Assemble the user's live business context straight from MongoDB.
+        //    An embedding used to be generated here and then discarded without
+        //    ever being compared against anything — a paid API call for nothing.
+        const relevantContexts = await retrieveContext(userId);
 
-        // 2. Retrieve the top 3 most mathematically relevant database context chunks
-        const relevantContexts = await retrieveContext(queryEmbedding, userId, 3);
-
-        // 3. Pass the query and fetched constraints to the primary Gemini LLM node
+        // 2. Pass the query plus that context to the LLM.
         const aiResponse = await generateResponse(query, relevantContexts, userId);
 
         return res.status(200).json({

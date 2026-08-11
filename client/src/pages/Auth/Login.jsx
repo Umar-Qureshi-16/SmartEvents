@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
 import { ArrowRight, Lock, Mail, ShieldCheck, UserCheck, Building2, QrCode } from 'lucide-react';
@@ -7,40 +7,39 @@ import EventManagerLogo from '../../components/EventManagerLogo';
 
 function Login({ onLoginSuccess }) {
     const navigate = useNavigate();
+    const location = useLocation();
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
 
-    // PRE-CONFIGURED TEST ACCOUNTS FOR INSTANT TESTING
+    // Seeded demo accounts. These must match server/scripts/seedData.js —
+    // run `npm run seed` in server/ before using them. Each button signs in
+    // through the real /auth/login endpoint; none of them fake a session.
     const testAccounts = [
         {
             role: 'Super Admin',
-            email: 'admin@smartie.io',
-            password: 'admin123',
-            userObj: { _id: 'usr-admin', name: 'Super Admin Governance', email: 'admin@smartie.io', role: 'admin' },
+            email: 'superadmin@smartevents.com',
+            password: 'password123',
             icon: ShieldCheck,
             color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
         },
         {
-            role: 'Event Organizer',
-            email: 'organizer@smartie.io',
-            password: 'org123',
-            userObj: { _id: 'usr-org', name: 'Global Events Organizer', email: 'organizer@smartie.io', role: 'organizer' },
+            role: 'Admin',
+            email: 'admin@smartevents.com',
+            password: 'password123',
             icon: Building2,
-            color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+            color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
         },
         {
-            role: 'Vendor Partner',
-            email: 'vendor@smartie.io',
-            password: 'vendor123',
-            userObj: { _id: 'usr-ven', name: 'Apex Stage & Catering', email: 'vendor@smartie.io', role: 'vendor' },
+            role: 'Provider',
+            email: 'umar_provider@example.com',
+            password: 'password123',
             icon: UserCheck,
             color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
         },
         {
-            role: 'Staff Gate Scanner',
-            email: 'attendee@smartie.io',
-            password: 'attendee123',
-            userObj: { _id: 'usr-[#0ABF53]', name: 'Sarah Jenkins (Staff Gate)', email: 'attendee@smartie.io', role: 'organizer' },
+            role: 'Customer',
+            email: 'ali@example.com',
+            password: 'password123',
             icon: QrCode,
             color: 'bg-amber-500/20 text-amber-400 border-amber-500/30'
         }
@@ -50,52 +49,51 @@ function Login({ onLoginSuccess }) {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const executeLoginSuccess = (userObj, token = 'demo-test-token-12345') => {
+    const executeLoginSuccess = (userObj, token, refreshToken) => {
         toast.success(`Welcome back, ${userObj.name}!`);
         localStorage.setItem('token', token);
+        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
         localStorage.setItem('user', JSON.stringify(userObj));
         if (onLoginSuccess) onLoginSuccess(userObj);
-        
-        if (userObj.role === 'admin') navigate('/admin/users');
-        else if (userObj.role === 'vendor') navigate('/dashboard');
-        else navigate('/dashboard');
+
+        // Return them to wherever the route guard intercepted them, if any.
+        const destination = location.state?.from?.pathname
+            || (userObj.role === 'admin' || userObj.role === 'superadmin' ? '/admin/users' : '/dashboard');
+        navigate(destination, { replace: true });
     };
 
-    const handleQuickLogin = (acc) => {
-        setFormData({ email: acc.email, password: acc.password });
-        executeLoginSuccess(acc.userObj);
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const login = async (email, password) => {
         setLoading(true);
-
-        // Check if entered email matches one of our test accounts for instant fallback
-        const matchedTest = testAccounts.find(a => a.email.toLowerCase() === formData.email.toLowerCase());
-
         try {
-            const res = await axios.post('/auth/login', formData);
+            const res = await axios.post('/auth/login', { email, password });
             if (res.data.success) {
-                executeLoginSuccess(res.data.user, res.data.token);
-                return;
+                executeLoginSuccess(res.data.user, res.data.token, res.data.refreshToken);
+            } else {
+                toast.error(res.data.message || 'Sign in failed.');
             }
         } catch (err) {
-            console.warn('API login error, using client authentication fallback for user testing:', err);
-            if (matchedTest) {
-                executeLoginSuccess(matchedTest.userObj);
-                return;
-            }
-            // Generic fallback user if custom credentials entered
-            const customUser = {
-                _id: `usr-${Date.now()}`,
-                name: formData.email.split('@')[0],
-                email: formData.email,
-                role: 'organizer'
-            };
-            executeLoginSuccess(customUser);
+            // Authentication must fail closed. This previously fell back to
+            // fabricating a user object with a fake token, which let ANY
+            // email and password combination sign in whenever the API was
+            // unreachable — and left every subsequent request 401ing.
+            const message = err.response?.data?.message
+                || (err.response ? 'Invalid email or password.' : 'Cannot reach the server. Is the backend running?');
+            toast.error(message);
         } finally {
             setLoading(false);
         }
+    };
+
+    // Fills the form with a seeded demo account and signs in through the real
+    // API. Run `npm run seed` in server/ to create these accounts.
+    const handleQuickLogin = (acc) => {
+        setFormData({ email: acc.email, password: acc.password });
+        login(acc.email, acc.password);
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        login(formData.email, formData.password);
     };
 
     return (

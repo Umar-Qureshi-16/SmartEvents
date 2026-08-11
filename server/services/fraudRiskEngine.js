@@ -19,25 +19,41 @@ class FraudRiskEngine {
         // In production, we'd check against an IP blacklist or velocity tracking.
 
         // Pattern 2: Cancellation Velocity
+        // The Booking schema uses customerId / vendorId — querying `userId`
+        // or `providerId` matched nothing, so every score used to come back 0.
+        const partyFilter = user.role === 'provider'
+            ? { vendorId: userId }
+            : { customerId: userId };
+
         const recentCancellations = await Booking.countDocuments({
-            userId,
+            ...partyFilter,
             status: 'cancelled',
             createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
         });
         if (recentCancellations > 5) score += 30;
-        if (recentCancellations > 10) score += 60;
+        if (recentCancellations > 10) score += 30;
 
         // Pattern 3: Dispute Frequency (Provider perspective)
         if (user.role === 'provider') {
             const disputes = await Booking.countDocuments({
-                providerId: userId,
+                vendorId: userId,
                 status: 'disputed'
             });
             if (disputes > 3) score += 20;
-            if (disputes > 10) score += 50;
+            if (disputes > 10) score += 30;
+
+            const lostDisputes = await Booking.countDocuments({
+                vendorId: userId,
+                disputeOutcome: 'refunded_customer'
+            });
+            if (lostDisputes > 2) score += 20;
         }
 
-        // Pattern 4: Account Flags
+        // Pattern 4: No-show history
+        const noShows = await Booking.countDocuments({ ...partyFilter, status: 'no_show' });
+        if (noShows > 2) score += 15;
+
+        // Pattern 5: Account Flags
         if (user.status === 'restricted') score += 40;
 
         return Math.min(score, 100);

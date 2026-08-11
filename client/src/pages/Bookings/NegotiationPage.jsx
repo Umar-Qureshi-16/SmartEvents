@@ -102,10 +102,12 @@ const NegotiationPage = () => {
             optimisticBooking.status = 'negotiating';
             optimisticBooking.offerPrice = Number(counterPrice);
             
-            // Add optimistic history item
+            // Add optimistic history item. The field must be `message` to
+            // match what the server stores, otherwise the note vanishes the
+            // moment the real booking is refetched.
             const newHistoryItem = {
                 price: Number(counterPrice),
-                note: note,
+                message: note,
                 offeredBy: user?._id || user?.id,
                 timestamp: new Date().toISOString()
             };
@@ -291,9 +293,9 @@ const NegotiationPage = () => {
                                                     {item.action || 'proposed'}
                                                 </span>
                                             </div>
-                                            {item.note && (
+                                            {(item.message || item.note) && (
                                                 <p className="text-sm font-medium text-slate-300 leading-relaxed">
-                                                    {item.note}
+                                                    {item.message || item.note}
                                                 </p>
                                             )}
                                         </div>

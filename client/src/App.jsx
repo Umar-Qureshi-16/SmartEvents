@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Toaster } from 'react-hot-toast';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import DynamicNavbar from './components/layout/DynamicNavbar';
 import Home from './pages/Home';
@@ -47,6 +48,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setCredentials, logout } from './store/slices/authSlice';
 import axios from './api/axios';
 import ErrorBoundary from './components/ErrorBoundary';
+import ProtectedRoute from './components/ProtectedRoute';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -87,6 +89,22 @@ function App() {
 
   return (
     <ThemeProvider>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1e2130',
+            color: '#f1f5f9',
+            borderRadius: '12px',
+            border: '1px solid rgba(255,255,255,0.08)',
+            fontSize: '14px',
+            fontWeight: 500,
+          },
+          success: { iconTheme: { primary: '#10B981', secondary: '#fff' } },
+          error: { duration: 5000, iconTheme: { primary: '#F87171', secondary: '#fff' } },
+        }}
+      />
       <ErrorBoundary>
         {loading && <CustomLoader />}
         <ParticleBackground />
@@ -98,6 +116,7 @@ function App() {
               <main className="relative z-10 h-full">
                 <AnimatePresence mode="wait">
                   <Routes location={location} key={location.pathname}>
+                    {/* ---------- Public ---------- */}
                     <Route path="/" element={user ? <Dashboard user={user} /> : <Home user={user} />} />
                     <Route path="/home" element={<Home user={user} />} />
                     <Route path="/inspiration" element={<Inspiration />} />
@@ -106,12 +125,6 @@ function App() {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password/:token" element={<ResetPassword />} />
                     <Route path="/contact" element={<Contact />} />
-                    <Route path="/dashboard" element={user ? <Dashboard user={user} /> : <Home user={user} />} />
-                    <Route path="/revenue" element={user ? <Revenue user={user} /> : <Home user={user} />} />
-                    <Route path="/bookings" element={user ? <Bookings user={user} /> : <Home user={user} />} />
-                    <Route path="/services" element={user ? <Services user={user} /> : <Home user={user} />} />
-                    <Route path="/leads" element={user ? <Leads user={user} /> : <Home user={user} />} />
-                    <Route path="/negotiate/:bookingId" element={user ? <NegotiationPage /> : <Home user={user} />} />
                     <Route path="/events" element={<ExploreEvents user={user} />} />
                     <Route path="/events/:id" element={<EventDetail user={user} />} />
                     <Route path="/vendors" element={<VendorMarketplace user={user} />} />
@@ -119,18 +132,37 @@ function App() {
                     <Route path="/how-it-works" element={<HowItWorks />} />
                     <Route path="/pricing" element={<PricingPasses />} />
                     <Route path="/about" element={<About />} />
-                    <Route path="/admin/users" element={user ? <AdminPanel user={user} /> : <Home user={user} />} />
-                    <Route path="/admin/events" element={user ? <AdminPanel user={user} /> : <Home user={user} />} />
-                    <Route path="/tickets" element={user ? <TicketWallet user={user} /> : <Home user={user} />} />
-                    <Route path="/staff/scanner" element={user ? <StaffScanner user={user} /> : <Home user={user} />} />
-                    <Route path="/settings" element={user ? <Settings user={user} /> : <Home user={user} />} />
-                    <Route path="/calendar" element={user ? <AvailabilityCalendar /> : <Home user={user} />} />
-                    <Route path="/notifications" element={user ? <Notifications /> : <Home user={user} />} />
-                    <Route path="/budget-tracker" element={user ? <BudgetTracker /> : <Home user={user} />} />
-                    <Route path="/ai-concierge" element={user ? <AIConcierge /> : <Home user={user} />} />
-                    <Route path="/favorites" element={user ? <Favorites /> : <Home user={user} />} />
-                    <Route path="/portfolio" element={user ? <PortfolioManager /> : <Home user={user} />} />
-                    <Route path="/reviews" element={user ? <ProviderReviews /> : <Home user={user} />} />
+
+                    {/* ---------- Any authenticated user ---------- */}
+                    <Route element={<ProtectedRoute />}>
+                      <Route path="/dashboard" element={<Dashboard user={user} />} />
+                      <Route path="/bookings" element={<Bookings user={user} />} />
+                      <Route path="/negotiate/:bookingId" element={<NegotiationPage />} />
+                      <Route path="/tickets" element={<TicketWallet user={user} />} />
+                      <Route path="/settings" element={<Settings user={user} />} />
+                      <Route path="/notifications" element={<Notifications />} />
+                      <Route path="/favorites" element={<Favorites />} />
+                      <Route path="/budget-tracker" element={<BudgetTracker />} />
+                      <Route path="/ai-concierge" element={<AIConcierge />} />
+                    </Route>
+
+                    {/* ---------- Providers (and admins, for support) ---------- */}
+                    <Route element={<ProtectedRoute roles={['provider', 'admin', 'superadmin']} />}>
+                      <Route path="/revenue" element={<Revenue user={user} />} />
+                      <Route path="/services" element={<Services user={user} />} />
+                      <Route path="/leads" element={<Leads user={user} />} />
+                      <Route path="/calendar" element={<AvailabilityCalendar />} />
+                      <Route path="/portfolio" element={<PortfolioManager />} />
+                      <Route path="/reviews" element={<ProviderReviews />} />
+                      <Route path="/staff/scanner" element={<StaffScanner user={user} />} />
+                    </Route>
+
+                    {/* ---------- Admin only ---------- */}
+                    <Route element={<ProtectedRoute roles={['admin', 'superadmin']} />}>
+                      <Route path="/admin/users" element={<AdminPanel user={user} />} />
+                      <Route path="/admin/events" element={<AdminPanel user={user} />} />
+                    </Route>
+
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </AnimatePresence>

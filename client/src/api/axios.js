@@ -2,8 +2,10 @@ import axios from 'axios';
 import { store } from '../store';
 import { logout, updateToken } from '../store/slices/authSlice';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+
 const instance = axios.create({
-    baseURL: 'http://localhost:5000/api/v1',
+    baseURL: API_URL,
 });
 
 // Request Interceptor
@@ -60,7 +62,7 @@ instance.interceptors.response.use(
             }
 
             try {
-                const response = await axios.post('http://localhost:5000/api/v1/auth/refresh', { refreshToken });
+                const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
                 const { token } = response.data;
 
                 store.dispatch(updateToken(token));

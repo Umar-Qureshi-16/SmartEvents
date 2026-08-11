@@ -7,7 +7,7 @@ import EventManagerLogo from '../../components/EventManagerLogo';
 
 function Signup({ onLoginSuccess }) {
     const navigate = useNavigate();
-    const [role, setRole] = useState('organizer');
+    const [role, setRole] = useState('customer');
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -23,37 +23,46 @@ function Signup({ onLoginSuccess }) {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const executeSignupSuccess = (userObj, token = 'demo-test-token-12345') => {
-        toast.success(`Welcome to Smartie, ${userObj.name}!`);
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(userObj));
-        if (onLoginSuccess) onLoginSuccess(userObj);
-
-        if (userObj.role === 'admin') navigate('/admin/users');
-        else if (userObj.role === 'vendor') navigate('/dashboard');
-        else navigate('/dashboard');
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
-        const newUserObj = {
-            _id: `usr-${Date.now()}`,
-            name: formData.name || 'New Member',
-            email: formData.email,
-            role: role
-        };
-
         try {
-            const res = await axios.post('/auth/register', { ...formData, role });
-            if (res.data.success) {
-                executeSignupSuccess(res.data.user, res.data.token);
-                return;
-            }
+            // The API only accepts these four fields, and role must be one of
+            // the schema's enum values. The selector's labels ("Organizer" /
+            // "Vendor") map onto 'customer' / 'provider'.
+            await axios.post('/auth/register', {
+                name: formData.name,
+                email: formData.email,
+                password: formData.password,
+                role
+            });
+
+            // /auth/register does not issue tokens, so sign in immediately to
+            // obtain a real session rather than fabricating one.
+            const loginRes = await axios.post('/auth/login', {
+                email: formData.email,
+                password: formData.password
+            });
+
+            const { user, token, refreshToken } = loginRes.data;
+            toast.success(`Welcome to SmartEvents, ${user.name}!`);
+            localStorage.setItem('token', token);
+            if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+            localStorage.setItem('user', JSON.stringify(user));
+            if (onLoginSuccess) onLoginSuccess(user);
+            navigate('/dashboard', { replace: true });
         } catch (err) {
-            console.warn('API registration warning, using client registration fallback:', err);
-            executeSignupSuccess(newUserObj);
+            // Registration must fail closed. This previously fell back to
+            // creating a fake local session whenever the API rejected the
+            // request — which it always did, because the role values sent
+            // ('organizer' / 'vendor') are not in the User schema enum.
+            const data = err.response?.data;
+            const message = data?.errors?.length
+                ? data.errors.map(e => e.message).join('. ')
+                : data?.message
+                || (err.response ? 'Could not create your account.' : 'Cannot reach the server. Is the backend running?');
+            toast.error(message);
         } finally {
             setLoading(false);
         }
@@ -73,8 +82,8 @@ function Signup({ onLoginSuccess }) {
                 {/* Role Selector Cards */}
                 <div className="grid grid-cols-2 gap-4">
                     <div
-                        onClick={() => setRole('organizer')}
-                        className={`p-4 rounded-2xl cursor-pointer border transition-all flex flex-col items-center text-center space-y-2 ${role === 'organizer' ? 'bg-white border-[#0ABF53] text-[#0ABF53] shadow-md font-bold' : 'bg-slate-100 border-transparent text-slate-500 hover:text-[#111827]'}`}
+                        onClick={() => setRole('customer')}
+                        className={`p-4 rounded-2xl cursor-pointer border transition-all flex flex-col items-center text-center space-y-2 ${role === 'customer' ? 'bg-white border-[#0ABF53] text-[#0ABF53] shadow-md font-bold' : 'bg-slate-100 border-transparent text-slate-500 hover:text-[#111827]'}`}
                     >
                         <UserCheck size={24} />
                         <div>
@@ -84,8 +93,8 @@ function Signup({ onLoginSuccess }) {
                     </div>
 
                     <div
-                        onClick={() => setRole('vendor')}
-                        className={`p-4 rounded-2xl cursor-pointer border transition-all flex flex-col items-center text-center space-y-2 ${role === 'vendor' ? 'bg-white border-[#0ABF53] text-[#0ABF53] shadow-md font-bold' : 'bg-slate-100 border-transparent text-slate-500 hover:text-[#111827]'}`}
+                        onClick={() => setRole('provider')}
+                        className={`p-4 rounded-2xl cursor-pointer border transition-all flex flex-col items-center text-center space-y-2 ${role === 'provider' ? 'bg-white border-[#0ABF53] text-[#0ABF53] shadow-md font-bold' : 'bg-slate-100 border-transparent text-slate-500 hover:text-[#111827]'}`}
                     >
                         <Store size={24} />
                         <div>
@@ -128,14 +137,16 @@ function Signup({ onLoginSuccess }) {
                             type="password"
                             name="password"
                             required
+                            minLength={8}
                             value={formData.password}
                             onChange={handleChange}
                             placeholder="••••••••"
                             className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl px-4 py-3 text-xs text-[#111827] outline-none focus:border-[#0ABF53]"
                         />
+                        <p className="text-[10px] text-slate-400">At least 8 characters.</p>
                     </div>
 
-                    {role === 'vendor' && (
+                    {role === 'provider' && (
                         <div className="space-y-1 pt-1">
                             <label className="text-xs font-semibold text-slate-700">Primary Service Category</label>
                             <select
