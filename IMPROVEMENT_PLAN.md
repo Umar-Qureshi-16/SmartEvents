@@ -10,19 +10,45 @@
 
 The architecture here is genuinely good. Layered backend, service extraction, optimistic concurrency on the negotiation model, Zod validation middleware, an append-only offer history, refresh-token rotation with a request queue, WebSocket rooms, and a real LLM integration — this is well above the median FYP.
 
-The problem is **not architecture. It is finishing.** The gap between what the project claims and what a user can actually do is where marks get lost. Specifically:
+The problem was **not architecture. It was finishing.** The gap between what the project claimed and what a user could actually do is where marks get lost.
 
-- **Six user-facing features are silently broken** by small, one-line-class defects (a wrong field name, a wrong property, a status code mismatch). None are hard to fix. All of them will be found in a viva by an examiner who clicks around.
-- **Every toast in the application is invisible** because `<Toaster />` was never mounted. Thirty files call `toast.success(...)` into the void. This makes the whole app feel unresponsive.
-- **Three security holes** are severe enough to fail a security-conscious examiner: public superadmin self-registration, a default JWT secret, and unauthenticated WebSocket rooms.
-- **~2,000 lines of finished UI are orphaned** — including all seven SuperAdmin governance widgets, whose backends already work. Wiring them is the single highest value-per-hour work available.
-- **~~Zero git commits exist.~~** ✅ Now baselined at `3bd9f8b`, with cleanup at `e61bd33`.
+### Status as of 2026-08-12
 
-**Already completed on 2026-08-12:** all of Phase 0 (baseline commit, dead-code removal, duplicate-backend migration, dependency cleanup, deployment config fix) plus §1.5. Verified afterwards: all 13 API routers load, single Mongoose registration per model, client production build passes. **One item needs you personally: rotate the leaked Atlas password (§0.2).**
+**Phases 0 and 1 are complete** (commits `3bd9f8b` → `2f35be6`). What that closed:
 
-**The plan below is sequenced so that if you run out of time, you stop at any phase boundary and still have a coherent, working, defensible project.** Phase 0 and 1 alone take the project from "demo breaks under clicking" to "solid." Phases 2–3 are what make it look professional. Phases 4–6 are the industry-standard polish.
+| Was | Now |
+|---|---|
+| Any email + any password signed in — both auth pages fabricated a session when the API call failed | Authentication fails closed |
+| Signup never created a real account (it sent roles not in the schema enum, so it always fell into that fallback) | Registration works, then auto-signs-in for a real session |
+| Anyone could register as `superadmin` | Public signup limited to `customer` / `provider` |
+| Every validation failure returned 500 with no field messages (Zod 4 removed `err.errors`) | Proper 400s with per-field messages |
+| Any client could join any negotiation room and watch strangers' prices | Sockets authenticated; room joins verify booking membership |
+| `forgot-password` returned the reset token in the response body | Emailed only |
+| Every toast in the app was invisible | `<Toaster />` mounted; ~120 calls across 30 files now render |
+| A customer could open `/admin/users` and see it render | `ProtectedRoute` with role checks |
+| Negotiation notes never displayed — in the flagship feature | Visible, with an `action` badge that reflects reality |
+| Ticket purchase returned 500 on every success | Returns 201 |
+| Provider earnings always read $0; booking count showed cancellations | Both correct |
+| Fraud scores always 0; trust scores always 100 | Both discriminate |
+| Password reset always failed | Works end to end |
+| Authorization failures surfaced as 500 | Typed errors → correct 403 |
+| A duplicate abandoned backend broke ticket writes, and `vercel.json` deployed it | Removed; deployment repointed |
+| Zero git commits | Four, with a recoverable baseline |
 
-**Estimated total: 60–80 focused hours.** Phase 0+1 is ~14 hours and is non-negotiable.
+**Verified:** 23 end-to-end API assertions against a live server and database, 3 WebSocket-auth assertions, all 13 routers loading, and a passing client production build.
+
+⚠️ **One item still needs you personally: rotate the leaked MongoDB Atlas password (§0.2).**
+
+### What remains
+
+- **~2,000 lines of finished UI are still orphaned** — including all seven SuperAdmin governance widgets, whose backends already work. **This is now the single highest value-per-hour work available** (Phase 2).
+- Dark mode is visibly broken and three design systems compete (Phase 3).
+- There are still **zero automated tests** (Phase 4).
+- No payment integration exists (documented as future work).
+
+**The plan is sequenced so you can stop at any phase boundary and still have a coherent, defensible project.** Phase 2 is what turns claims in your report into screens you can demo. Phase 3 is what makes it look professional. Phases 4–6 are the industry-standard polish.
+
+**Remaining estimate: ~45–60 focused hours.**
 
 ---
 
@@ -114,11 +140,15 @@ Deleted: `server/debug_gemini.js`, `server/test-gemini.js`, `server/test-gemini-
 
 ---
 
-## Phase 1 — Fix What's Broken (~10 hours) 🔴 **Highest priority**
+## Phase 1 — Fix What's Broken ✅ **DONE (2026-08-12)** — commit `2f35be6`
 
-Each item is a real defect that a user or examiner will hit. Fix in this order.
+*All fifteen defects are fixed and verified. §1.13 (booking schema mismatch) is the one item left open — see its entry. The subsections are kept as a record of each defect and its fix, which is exactly the material a report's "testing and debugging" chapter needs.*
 
-### 1.1 🔴 Mount the toast renderer — *fixes feedback across the entire app*
+**Verification performed:** 23 end-to-end API assertions against a live server and MongoDB, plus 3 WebSocket-authentication assertions — all passing. Client production build succeeds.
+
+Two additional defects were found during this work and are recorded below as §1.16 and §1.17.
+
+### 1.1 ✅ **DONE** — Mount the toast renderer
 
 **Impact:** every one of the ~120 `toast.success()` / `toast.error()` calls across 30 files currently does nothing. Users click Accept Offer and see no confirmation. This is the single most damaging UX defect in the project, and it is a three-line fix.
 
@@ -144,7 +174,7 @@ Then remove `<ToastProvider>` from `main.jsx` and delete `context/ToastContext.j
 
 **Acceptance:** submit a counter-offer → a toast appears. Trigger a failing request → an error toast appears.
 
-### 1.2 🔴 Close the privilege-escalation hole in signup
+### 1.2 ✅ **DONE** — Close the privilege-escalation hole in signup
 
 `server/utils/validation.js`:
 ```js
@@ -159,7 +189,7 @@ Admin and superadmin accounts must only be creatable by `scripts/seedSuperAdmin.
 
 **Acceptance:** registering with `role: "superadmin"` returns 400.
 
-### 1.3 🔴 Remove the default JWT secret
+### 1.3 ✅ **DONE** — Remove the default JWT secret
 
 `server/middleware/authMiddleware.js` and `server/services/authService.js` both do:
 ```js
@@ -175,7 +205,7 @@ if (!JWT_SECRET) {
 ```
 Extract this into a single `server/config/env.js` that validates all required environment variables at startup (a Zod schema over `process.env` works nicely here) — that is the industry-standard pattern, and it kills the duplicate-constant problem at the same time.
 
-### 1.4 🔴 Authenticate WebSocket connections and rooms
+### 1.4 ✅ **DONE** — Authenticate WebSocket connections and rooms
 
 `server/services/socketManager.js` accepts any connection and lets any client join any room:
 ```js
@@ -243,7 +273,7 @@ try { await notificationService.createNotification({...}); }
 catch (e) { console.error('Notification failed (non-fatal):', e); }
 ```
 
-### 1.6 🔴 Fix password reset (currently always fails)
+### 1.6 ✅ **DONE** — Fix password reset (always failed)
 
 `authController.resetPassword` destructures `{ token, newPassword }`; `resetPasswordSchema` requires `{ token, password }`. The field never arrives, so `bcrypt.hash(undefined)` throws.
 
@@ -251,7 +281,7 @@ Pick one name — `password` — and align the controller, the schema, and `clie
 
 **Acceptance:** full forgot → reset → login-with-new-password cycle works end to end.
 
-### 1.7 🔴 Fix the token-refresh status-code mismatch
+### 1.7 ✅ **DONE** — Fix the token-refresh status-code mismatch
 
 `verifyToken` returns **403** for an expired token. The Axios interceptor only attempts a refresh on **401**. Result: the entire refresh-token mechanism you built never runs, and every session dies abruptly after 24 hours with an unexplained failure.
 
@@ -274,7 +304,7 @@ Keep 403 for `authorize()` and `verifySuperAdmin` — that is the semantically c
 
 **Acceptance:** set token expiry to `10s`, wait, make a request → it transparently refreshes and succeeds.
 
-### 1.8 🔴 Make negotiation notes visible
+### 1.8 ✅ **DONE** — Make negotiation notes visible
 
 The backend writes `negotiationHistory[].message`. `NegotiationPage.jsx` renders `{item.note}`. **Every note a user has ever written is invisible** — in the flagship feature of the project.
 
@@ -288,7 +318,7 @@ Also fix the optimistic-update object in `handleAction`, which builds `{ price, 
 
 While you're in this file: `item.action` is read for the status badge but no schema ever writes it, so it always renders "proposed". Either add an `action` field to the `negotiationHistory` subdocument (`'offer' | 'counter' | 'accept' | 'reject'`) and set it in `bookingService`, or remove the badge.
 
-### 1.9 🔴 Fix provider earnings (always shows $0)
+### 1.9 ✅ **DONE** — Fix provider earnings (always showed $0)
 
 `bookingController.getVendorDashboard`:
 ```js
@@ -309,7 +339,7 @@ Audit every other use of `req.user._id` — the same bug is in `reviewController
 req.user = { ...decoded, _id: decoded.id };
 ```
 
-### 1.10 🟠 Fix the fraud risk engine (all scores are 0)
+### 1.10 ✅ **DONE** — Fix the fraud risk engine (all scores were 0)
 
 `fraudRiskEngine.js` queries `Booking.countDocuments({ userId, ... })` and `{ providerId: userId }`. The `Booking` schema has **`customerId`** and **`vendorId`** — neither queried field exists, so every count is 0 and every provider scores LOW regardless of behaviour.
 
@@ -323,7 +353,7 @@ const recentCancellations = await Booking.countDocuments({
 const disputes = await Booking.countDocuments({ vendorId: userId, status: 'disputed' });
 ```
 
-### 1.11 🟠 Make the trust score actually discriminate
+### 1.11 ✅ **DONE** — Make the trust score actually discriminate
 
 Current formula starts at 100 and is mostly additive, then clamps at 100 — so a provider with 40 completed bookings and one with zero both score 100. The metric carries no information, yet it is displayed prominently as a trust signal.
 
@@ -349,7 +379,7 @@ return Math.round(Math.max(0, Math.min(100, score)));
 ```
 Document the formula in your report — a defensible, explainable scoring model is exactly the kind of thing an FYP examiner probes.
 
-### 1.12 🟠 Remove fabricated data from API responses
+### 1.12 ✅ **DONE** — Remove fabricated data from API responses
 
 `vendorController.getPublicProfile` returns invented vendors ("Grand Hyatt Ballroom", stock Unsplash photos, a fake 4.9 rating, `reviewsCount: 142`) whenever a profile isn't found. `getVendorDashboard` hardcodes `profileViews: 1200`; `vendorController.getDashboard` returns `Math.random() * 500` for the same metric.
 
@@ -380,7 +410,7 @@ const bookingCreateSchema = z.object({
 });
 ```
 
-### 1.14 🟠 Verify the Zod v4 error shape
+### 1.14 ✅ **DONE** — Zod v4 error shape (confirmed broken, now fixed)
 
 `validate()` in `server/utils/validation.js` does `err.errors.map(...)`. In **Zod 4** (which is what's installed: `^4.4.3`), the canonical property on `ZodError` is `issues`, and `.errors` was removed. If so, every validation failure throws a `TypeError` inside the error handler and returns a 500 instead of a helpful 400.
 
@@ -397,7 +427,7 @@ const bookingCreateSchema = z.object({
 ```
 Use `??` so it works under either version.
 
-### 1.15 🟠 Stop loading the entire Booking collection on every AI query
+### 1.15 ✅ **DONE** — Stop loading the entire Booking collection on every AI query
 
 `aiService.generateResponse` runs:
 ```js
@@ -415,6 +445,35 @@ const myBookings = await Booking.find({
 ```
 
 Also drop the wasted Gemini embedding call in `aiController.queryAI` — the vector is computed and then ignored by `retrieveContext`. Either **(a)** remove `createEmbedding` from the request path and rename the feature honestly to "full-context injection" (recommended — it's faster, cheaper, and more accurate at this scale), or **(b)** implement real RAG: populate `ContextVector` on write, then cosine-rank chunks at query time. Option (b) is more impressive in a report *if* you have time; option (a) is defensible and takes ten minutes. **Do not leave it as-is**, where you pay for an embedding you throw away — that is the version an examiner will call out.
+
+### 1.16 ✅ **DONE** — Login and Signup authenticated everyone
+
+Found while fixing the above. Both auth pages wrapped their API call in a `try/catch` whose `catch` block **fabricated a local session**:
+
+```js
+} catch (err) {
+  console.warn('API login error, using client authentication fallback...');
+  const customUser = { _id: `usr-${Date.now()}`, name: formData.email.split('@')[0],
+                       email: formData.email, role: 'organizer' };
+  executeLoginSuccess(customUser);   // token defaults to 'demo-test-token-12345'
+}
+```
+
+Consequences:
+
+- **Any email and any password signed in** whenever the API was unreachable or rejected the credentials. There was no real authentication gate on the frontend at all.
+- **Signup hit this path every single time**, because the role selector sent `'organizer'` / `'vendor'` — values not in the `User` schema enum — so the API always returned a validation error. No account was ever actually created through the UI.
+- The fabricated token `'demo-test-token-12345'` fails every backend check, so the "logged in" user then got 401s from every subsequent request.
+
+Both now fail closed with a real error toast. The signup role selector maps its labels onto `customer` / `provider`, and since `/auth/register` issues no tokens, signup now calls `/auth/login` immediately afterwards to obtain a real session.
+
+The quick-login demo buttons had the same problem plus credentials (`admin@smartie.io` / `admin123`) that **exist nowhere in the seed data**. They now sign in through the real API using the accounts `scripts/seedData.js` actually creates.
+
+### 1.17 ✅ **DONE** — Authorization failures returned 500
+
+Services threw bare `new Error('Access denied to this booking.')`. The global handler reads `err.statusCode`, which a plain `Error` does not have, so it fell through to **500**. A client could not distinguish "you are not allowed" from "the server crashed", and the negotiation access check looked like a bug.
+
+Added `server/utils/AppError.js` with `BadRequestError` / `UnauthorizedError` / `ForbiddenError` / `NotFoundError` / `ConflictError`, and converted every throw in `authService`, `bookingService`, and `eventService`. Verified: an outsider reading someone else's booking now gets **403**, not 500.
 
 ---
 
@@ -574,7 +633,7 @@ Then extract shared primitives instead of repeating utility strings — you have
 client/src/components/ui/{Button,Card,Input,Badge,Modal,Skeleton,EmptyState}.jsx
 ```
 
-### 3.3 🔴 Add real route guards — currently a customer can open the admin panel
+### 3.3 ✅ **DONE** — Add real route guards
 
 Every protected route is written `user ? <Page/> : <Home/>`. Two problems:
 1. An unauthenticated visitor at `/bookings` silently lands on the marketing homepage — no explanation, no login prompt, no return-to-destination.
@@ -781,7 +840,7 @@ Cover `ProtectedRoute` (redirects), `NegotiationPage` (turn-taking logic, optimi
 
 ## Phase 5 — Production Readiness (~10 hours) 🚀
 
-### 5.1 Externalise all configuration
+### 5.1 ✅ **DONE (client)** — Externalise configuration
 
 The client hardcodes `http://localhost:5000` in four places. **The app cannot be deployed without editing source files** — a hard blocker and an obvious finding.
 

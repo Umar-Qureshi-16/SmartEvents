@@ -3,7 +3,7 @@
 > **Project type:** Final Year Project (FYP-2), BS Software Engineering
 > **Stack:** MongoDB · Express.js · React 19 (Vite) · Node.js (MERN) + Socket.IO + LLM services
 > **Core differentiator:** InDrive-style two-sided real-time price negotiation for event services, plus an AI business concierge ("Smartie").
-> **Document status:** Written from a full read of the source on 2026-08-12. Feature statuses below reflect what the code *actually does*, not what earlier docs claimed.
+> **Document status:** Written from a full read of the source on 2026-08-12, and updated after the Phase 0/1 repair work. Feature statuses in §11 reflect what the code *actually does*, not what earlier docs claimed. Entries marked *(fixed)* record a defect that existed and has since been repaired — useful material for a report's testing chapter.
 
 ---
 
@@ -56,7 +56,7 @@ Supporting these are: an event marketplace with filtering/pagination, a vendor m
 │                                                                       │
 │  Redux Toolkit (auth, settings)   React Router v7   Framer Motion     │
 │  ┌─────────────┐  ┌──────────────┐  ┌───────────────────────────────┐ │
-│  │ Axios inst. │  │ WebSocket    │  │ Theme / Toast Contexts        │ │
+│  │ Axios inst. │  │ WebSocket    │  │ ThemeContext / Toaster        │ │
 │  │ + JWT       │  │ Context      │  │                               │ │
 │  │ interceptor │  │ (socket.io)  │  │                               │ │
 │  └──────┬──────┘  └──────┬───────┘  └───────────────────────────────┘ │
@@ -110,8 +110,8 @@ Controllers only handle HTTP request/response shape; all business logic belongs 
 | Animation | Framer Motion, GSAP | 12.38 / 3.15 |
 | Charts | Recharts | 3.8 |
 | Icons | lucide-react, react-icons | — |
-| Forms | React Hook Form + Zod resolvers | 7.80 |
-| Toasts | react-hot-toast *(imported in 30 files, never mounted — see §11)* | 2.6 |
+| Forms | React Hook Form + Zod resolvers *(installed but unused — see §15.5)* | 7.80 |
+| Toasts | react-hot-toast | 2.6 |
 
 ### Backend (`server/`)
 
@@ -121,7 +121,7 @@ Controllers only handle HTTP request/response shape; all business logic belongs 
 | ODM | Mongoose | 9.6 |
 | Real-time | socket.io | 4.8 |
 | Auth | jsonwebtoken + bcrypt | 9.0 / 6.0 |
-| Validation | Zod (+ Joi installed, unused) | 4.4 |
+| Validation | Zod | 4.4 |
 | Security | helmet, express-rate-limit | 8.1 / 8.5 |
 | Logging | morgan | 1.10 |
 | Uploads | multer | 2.2 |
@@ -489,7 +489,7 @@ Server module: `server/services/socketManager.js`. Initialised after the Mongo c
 
 **Client:** `WebSocketContext.jsx` creates one socket per authenticated session, joins the dashboard room on connect, and accumulates incoming notifications in context state. Components subscribing to negotiation events register handlers in `useEffect` and unregister them in the cleanup function.
 
-> ⚠️ **Security note:** neither `join_dashboard` nor `join-negotiation` authenticates the socket. Any connected client can join any user's notification room or any booking's negotiation room by guessing an ID, and will then receive live price offers. See the improvement plan.
+> ✅ **Fixed 2026-08-12.** Previously neither `join_dashboard` nor `join-negotiation` authenticated the socket — any connected client could join any user's notification room or any booking's negotiation room by guessing an ID and receive live price offers. Now every connection must present a valid JWT (`io.use` handshake check), the personal room is derived from the verified token rather than client input, and `join-negotiation` confirms the caller is the booking's customer or vendor before joining.
 
 ---
 
@@ -555,9 +555,9 @@ Legend: ✅ working · ⚠️ partially working / has a defect · 🔌 built but
 | Feature | Status | Note |
 |---|---|---|
 | Register / login with JWT | ✅ | bcrypt 10 rounds, Zod-validated |
-| Access + refresh token rotation | ⚠️ | Refresh logic is correct, but the server returns **403** on expired tokens while the client interceptor only retries on **401** — so refresh never fires. Sessions hard-expire at 1 day. |
-| Password reset | ❌ | Controller destructures `newPassword`; the Zod schema requires `password`. The field never arrives, so the reset always fails. |
-| Role selection at signup | ❌ **security** | `signupSchema` accepts `role: 'admin' \| 'superadmin'` from the public register endpoint. Anyone can self-register as superadmin. |
+| Access + refresh token rotation | ✅ *(fixed)* | Previously the server returned **403** on expired tokens while the interceptor only retries on **401**, so refresh never fired and sessions hard-expired at 1 day. Expiry is now 401; 403 is reserved for insufficient role. |
+| Password reset | ✅ *(fixed)* | The controller read `newPassword` while the schema required `password`, so the reset always failed. Both names are now accepted. The token is also no longer returned in the HTTP response. |
+| Role selection at signup | ✅ *(fixed)* | `signupSchema` accepted `role: 'admin' \| 'superadmin'` from the public register endpoint — anyone could self-register as superadmin. Now limited to `customer` \| `provider`. |
 | Wishlist / favorites | ✅ | |
 
 ### Marketplace
@@ -567,23 +567,23 @@ Legend: ✅ working · ⚠️ partially working / has a defect · 🔌 built but
 | Event detail page | ✅ | |
 | Event CRUD with image upload | ✅ | multer, owner-scoped |
 | Event readiness score | ⚠️ | Score is computed but ignores `title`; the `checks[]` array reports on fields the score doesn't use consistently |
-| Vendor marketplace + public profile | ⚠️ | If no profile is found, the API returns **fabricated mock vendor data** ("Grand Hyatt Ballroom", stock Unsplash images, fake 4.9 rating). Dangerous in a viva demo. |
+| Vendor marketplace + public profile | ✅ *(fixed)* | When no profile was found the API returned **fabricated vendor data** ("Grand Hyatt Ballroom", stock Unsplash images, a fake 4.9 rating with 142 invented reviews). Now returns 404; demo data belongs in `seedData.js`. |
 | Service package CRUD | ✅ | |
 | Availability calendar (block/unblock dates) | ✅ | Enforced at booking creation |
 
 ### Negotiation (flagship)
 | Feature | Status | Note |
 |---|---|---|
-| Create booking with initial offer | ⚠️ | `bookingCreateSchema` **requires** `eventId`, but the service also supports direct vendor/service bookings — that path is unreachable through the API |
+| Create booking with initial offer | ⚠️ **open** | `bookingCreateSchema` still **requires** `eventId`, but the service also supports direct vendor/service bookings — that path remains unreachable through the API. See improvement plan §1.13. |
 | Counter-offer / accept / reject | ✅ | |
 | Append-only negotiation history | ✅ | |
 | Live WebSocket sync between parties | ✅ | |
 | Turn-taking indicator | ✅ | |
 | Optimistic UI with rollback | ✅ | |
 | Concurrency protection | ✅ | Optimistic concurrency + friendly VersionError message |
-| **Negotiation notes display** | ❌ | Backend stores the note as `message`; the UI renders `item.note`. **Every note is invisible.** |
-| Per-offer action badge | ⚠️ | UI reads `item.action`, which no schema writes — always renders "proposed" |
-| Room authorisation | ❌ **security** | Any client can join any `bookingId` room and watch other people's prices |
+| **Negotiation notes display** | ✅ *(fixed)* | The backend stored the note as `message` while the UI rendered `item.note`, so every note was invisible. |
+| Per-offer action badge | ✅ *(fixed)* | The UI read `item.action`, which no schema wrote, so it always rendered "proposed". The field is now on the schema and set by `bookingService`. |
+| Room authorisation | ✅ *(fixed)* | Any client could join any `bookingId` room and watch other people's prices. Sockets now require a valid JWT, and `join-negotiation` verifies the caller is a party to the booking. |
 
 ### Notifications & email
 | Feature | Status | Note |
@@ -592,7 +592,7 @@ Legend: ✅ working · ⚠️ partially working / has a defect · 🔌 built but
 | Live socket push | ✅ | |
 | Notification inbox + mark read | ✅ | |
 | Nodemailer transactional emails | ⚠️ | Wired on create/counter/status-change, but failures are only `console.error`'d |
-| **Toast feedback across the whole app** | ❌ | 30 files import `react-hot-toast`, but `<Toaster />` is **never mounted**. Every success and error toast in the application is silently discarded. The custom `ToastContext` *is* mounted but zero components consume it. |
+| **Toast feedback across the whole app** | ✅ *(fixed)* | 30 files imported `react-hot-toast` but `<Toaster />` was **never mounted**, so every success and error toast was silently discarded. Now mounted in `App.jsx`; the unused `ToastContext` was removed. |
 
 ### Ticketing
 | Feature | Status | Note |
@@ -600,13 +600,13 @@ Legend: ✅ working · ⚠️ partially working / has a defect · 🔌 built but
 | Purchase ticket + QR generation | ✅ *(fixed 2026-08-12)* | Previously: the ticket saved, then `Notification.create({ user: … })` violated the live schema (which requires `recipient`), throwing inside the try block → **500** on every successful purchase. Now routed through `notificationService` with the correct field, and made non-fatal so a notification failure can never fail the purchase. |
 | Digital pass wallet | ✅ | |
 | QR scanner check-in with duplicate detection | ✅ | Good UX messaging |
-| Ticket routes role-restricted | ❌ | Anyone logged in can call `/tickets/scan` |
+| Ticket routes role-restricted | ⚠️ **open** | Any logged-in user can still call `/tickets/scan`. The client route is now provider/admin-only, but the API is not. |
 
 ### Trust, fraud & governance
 | Feature | Status | Note |
 |---|---|---|
-| Trust score computation | ⚠️ | Baseline is 100 and increments are additive, so almost every provider clamps at 100 — the score has no discriminating power |
-| Fraud risk engine | ❌ | Queries `Booking.countDocuments({ userId })` and `{ providerId }`; neither field exists on `Booking` (they're `customerId` / `vendorId`). Every score is 0 unless the account is already restricted. |
+| Trust score computation | ✅ *(fixed)* | Baseline was 100 with additive increments, so nearly every provider clamped at 100 and the score carried no information. Now a weighted completion-rate + rating ratio with dispute/no-show penalties. |
+| Fraud risk engine | ✅ *(fixed)* | Queried `userId` / `providerId`, neither of which exists on `Booking` (they are `customerId` / `vendorId`), so every score was 0. Now queries the real fields and adds a no-show signal. |
 | Audit logging | ⚠️ | Written only on superadmin governance actions — not on bans, role changes, or dispute resolutions from `/admin` |
 | Dispute resolution endpoint | 🔌 | Endpoint works; no UI reaches it |
 | Admin user management panel | ✅ | |
@@ -619,17 +619,17 @@ Legend: ✅ working · ⚠️ partially working / has a defect · 🔌 built but
 | RFP generator | ✅ | With static fallback |
 | Timeline generator | ✅ | With static fallback |
 | Budget analyzer | ✅ | With static fallback |
-| RAG retrieval | ❌ | Embedding computed then discarded; `ContextVector` never used (see §10) |
-| Full-collection scan in AI path | ⚠️ **perf** | `generateResponse` runs `Booking.find()` with **no filter**, loads every booking in the database into memory, then filters in JavaScript. Will not survive a populated database. |
+| RAG retrieval | ✅ *(resolved honestly)* | The embedding was computed then discarded and `ContextVector` was never used. The wasted Gemini call is removed and the function renamed to reflect what it does: full-context injection, not retrieval. |
+| Full-collection scan in AI path | ✅ *(fixed)* | `generateResponse` ran `Booking.find()` with **no filter**, loading every booking on the platform into memory and filtering in JavaScript. Now filtered in MongoDB. |
 | `[ACTION_*]` protocol parsing | 🔌 | Prompt defines it; frontend never parses it |
 
 ### Provider analytics
 | Feature | Status | Note |
 |---|---|---|
 | Revenue charts (Recharts) | ✅ | |
-| Vendor dashboard earnings | ❌ | `$match: { vendorId: req.user._id }` — the JWT payload has `id`, not `_id`, so `_id` is `undefined` and total earnings is always **$0** |
-| Booking count metric | ❌ | `vendorController.getDashboard` counts bookings with status `'cancelled'` and labels it `totalBookingsCount` |
-| Profile views | ❌ | Hardcoded `1200` in one controller, `Math.random() * 500` in the other |
+| Vendor dashboard earnings | ✅ *(fixed)* | `$match: { vendorId: req.user._id }` used a field the JWT payload does not carry, and `$match` does not auto-cast ObjectIds — earnings were always **$0**. |
+| Booking count metric | ✅ *(fixed)* | `vendorController.getDashboard` counted `'cancelled'` bookings and labelled the result `totalBookingsCount` — the opposite of what it claimed. |
+| Profile views | ✅ *(removed)* | Was hardcoded `1200` in one controller and `Math.random() * 500` in the other. Removed rather than faked; implement a real counter or leave it out. |
 
 ### Payments
 | Feature | Status |
@@ -656,9 +656,9 @@ Legend: ✅ working · ⚠️ partially working / has a defect · 🔌 built but
 | `/admin/users`, `/admin/events` | AdminPanel | auth |
 | `*` | NotFound | public |
 
-> ⚠️ **There is no route guard component.** Protection is inline: `user ? <Page/> : <Home/>`. Consequences:
-> 1. An unauthenticated visitor hitting `/bookings` silently lands on the marketing homepage with no explanation and no redirect back after login.
-> 2. **There is no role check on any route.** A logged-in `customer` can navigate to `/admin/users` and the admin panel renders; only the API calls fail. Same for `/revenue`, `/leads`, `/portfolio`.
+> ✅ **Fixed 2026-08-12.** Protection was previously inline — `user ? <Page/> : <Home/>` — which meant an unauthenticated visitor hitting `/bookings` silently landed on the marketing homepage with no explanation and no return path, and **no route had a role check at all** (a logged-in `customer` could open `/admin/users` and watch the admin panel render, with only the API calls failing).
+>
+> `client/src/components/ProtectedRoute.jsx` now wraps route groups: unauthenticated users are redirected to `/login` with their intended destination preserved in router state, and `roles` gates provider-only and admin-only sections.
 
 ---
 
@@ -712,19 +712,27 @@ Set in `server/.env` (git-ignored; a template lives at `server/.env.example`).
 |---|---|---|
 | `PORT` | no | API port (default `5000`) |
 | `MONGODB_URI` | **yes** | Mongo connection string |
-| `JWT_SECRET` | **yes** | Token signing key. ⚠️ Falls back to the literal string `'fyp-secret-key'` if unset — anyone can forge a superadmin token against a default deployment. |
+| `JWT_SECRET` | **yes** | Token signing key. The server now refuses to start if this is unset; it previously fell back to the literal string `'fyp-secret-key'`, letting anyone forge a superadmin token against a default deployment. |
 | `ALLOWED_ORIGINS` | recommended | Comma-separated CORS whitelist (default `http://localhost:5173`) |
+| `CLIENT_URL` | for email | Base URL used in password-reset links (default `http://localhost:5173`) |
 | `GROQ_API_KEY` | for AI | Groq chat completions |
 | `GEMINI_API_KEY` | for AI | Gemini embeddings |
 | SMTP settings | for email | Consumed by `services/mailService.js` |
 
-**Client-side:** no environment variables exist. `http://localhost:5000` is hardcoded in three places (`api/axios.js` ×2, `apiConfig.js`, `context/WebSocketContext.jsx`). The app cannot be deployed without editing source.
+**Client-side:** set in `client/.env` (template at `client/.env.example`).
+
+| Variable | Purpose |
+|---|---|
+| `VITE_API_URL` | REST base, default `http://localhost:5000/api/v1` |
+| `VITE_SOCKET_URL` | Socket.IO origin, default `http://localhost:5000` |
+
+*Previously `http://localhost:5000` was hardcoded in four places and the app could not be deployed without editing source.*
 
 ---
 
 ## 15. Dead / Removable Code Manifest
 
-> ✅ **This cleanup has been executed** (2026-08-12, commit `e61bd33`). The tree went from 207 to 162 tracked files. Everything listed here is recoverable from the baseline commit: `git show 3bd9f8b:<path>`.
+> ✅ **This cleanup has been executed** (2026-08-12, commit `e61bd33`), and the defects in §11 were fixed in commit `2f35be6`. The tree went from 207 to 162 tracked files. Everything removed is recoverable from the baseline commit: `git show 3bd9f8b:<path>`.
 >
 > The section is retained as a record of what was removed and why — useful material for the "refactoring and code quality" part of your report.
 
