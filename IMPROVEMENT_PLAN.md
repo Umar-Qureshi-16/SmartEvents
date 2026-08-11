@@ -16,7 +16,9 @@ The problem is **not architecture. It is finishing.** The gap between what the p
 - **Every toast in the application is invisible** because `<Toaster />` was never mounted. Thirty files call `toast.success(...)` into the void. This makes the whole app feel unresponsive.
 - **Three security holes** are severe enough to fail a security-conscious examiner: public superadmin self-registration, a default JWT secret, and unauthenticated WebSocket rooms.
 - **~2,000 lines of finished UI are orphaned** — including all seven SuperAdmin governance widgets, whose backends already work. Wiring them is the single highest value-per-hour work available.
-- **Zero git commits exist.** There is no undo for anything, and no development history to show.
+- **~~Zero git commits exist.~~** ✅ Now baselined at `3bd9f8b`, with cleanup at `e61bd33`.
+
+**Already completed on 2026-08-12:** all of Phase 0 (baseline commit, dead-code removal, duplicate-backend migration, dependency cleanup, deployment config fix) plus §1.5. Verified afterwards: all 13 API routers load, single Mongoose registration per model, client production build passes. **One item needs you personally: rotate the leaked Atlas password (§0.2).**
 
 **The plan below is sequenced so that if you run out of time, you stop at any phase boundary and still have a coherent, working, defensible project.** Phase 0 and 1 alone take the project from "demo breaks under clicking" to "solid." Phases 2–3 are what make it look professional. Phases 4–6 are the industry-standard polish.
 
@@ -24,44 +26,49 @@ The problem is **not architecture. It is finishing.** The gap between what the p
 
 ---
 
-## Phase 0 — Safety Net & Cleanup (~4 hours)
+## Phase 0 — Safety Net & Cleanup ✅ **DONE (2026-08-12)**
 
-### 0.1 Get everything under version control — do this first, before touching anything
+*This phase has been completed. Two commits exist: `3bd9f8b` (baseline snapshot of everything as it was) and `e61bd33` (the cleanup). Anything deleted is recoverable with `git show 3bd9f8b:<path>`. The subsections below are kept as a record of what was done and why.*
 
-The repo has zero commits. Every fix below is currently unrecoverable if it goes wrong.
+### 0.1 Version control ✅
+
+The repo had zero commits — no undo for anything. Now baselined:
 
 ```bash
-git add -A
-git commit -m "chore: baseline snapshot of SmartEvents before refactor"
-git branch cleanup/dead-code
+git show 3bd9f8b            # everything exactly as it was, pre-cleanup
+git show e61bd33 --stat     # what the cleanup changed
 ```
 
-Push to a private GitHub repo. From here on, commit per logical change with conventional-commit messages (`fix:`, `feat:`, `refactor:`, `docs:`). A clean, readable commit history is itself a marked deliverable in most FYP rubrics — and right now you have none.
+**Still to do:** push to a private GitHub repo. From here on, commit per logical change with conventional-commit messages (`fix:`, `feat:`, `refactor:`, `docs:`). A clean, readable commit history is itself a marked deliverable in most FYP rubrics.
 
-### 0.2 🔴 Rotate the leaked database credential
+### 0.2 🔴 Rotate the leaked database credential — ⚠️ **YOUR ACTION REQUIRED**
 
-`server.js` in the project root hardcodes a live MongoDB Atlas connection string **including the password**. Even after deleting the file, that credential is compromised — the file has existed on disk and may have been shared, screenshotted, or backed up.
+The root `server.js` hardcoded a live MongoDB Atlas connection string **including the password**. The file is now deleted, **but the credential is still compromised** — it existed on disk and may have been shared, screenshotted, or backed up.
 
-1. Log into MongoDB Atlas → Database Access → change that user's password.
+Deleting the file does not rotate the password. You must:
+
+1. Log into MongoDB Atlas → **Database Access** → change that user's password.
 2. Update `server/.env` with the new URI.
-3. Delete the root `server.js`.
-4. Confirm `.gitignore` covers `.env` (it does).
+3. ~~Delete the root `server.js`.~~ ✅ done
+4. ~~Confirm `.gitignore` covers `.env`.~~ ✅ done
 
-**Never commit the new credential.**
+**This is the one item in Phase 0 I could not do for you. Do it before you deploy or share the repo.**
 
-### 0.3 Resolve the duplicate backend
+### 0.3 Resolve the duplicate backend ✅
 
-`server/src/` is an abandoned earlier version of the project ("EventFlow") that is actively causing bugs through duplicate Mongoose model registration.
+`server/src/` was an abandoned earlier version of the project ("EventFlow") that was actively causing bugs through duplicate Mongoose model registration.
 
-**Step 1 — migrate the two live files:**
-- Move `server/src/controllers/ticket.controller.js` → `server/controllers/ticketController.js`
-- Move `server/src/models/Ticket.js` → `server/models/Ticket.js` (overwrite the old one — the `src` version is the schema the running app actually uses: `qrCodeData`, `ticketType`, `checkInTime`, `status: active|checked_in|refunded|cancelled`)
-- In the migrated controller, change `require('../models/Notification')` so it resolves to `server/models/Notification.js`, and **fix the field name** (see §1.5)
-- Update `server/routes/ticketRoutes.js` to require `../controllers/ticketController`
+**Step 1 — migrated the two live files:** ✅
+- `server/src/controllers/ticket.controller.js` → `server/controllers/ticketController.js`
+- `server/src/models/Ticket.js` → `server/models/Ticket.js` (the `src` version was the schema the running app actually used: `qrCodeData`, `ticketType`, `checkInTime`, `status: active|checked_in|refunded|cancelled`). Added indexes on `attendee` and `event`.
+- Fixed the notification field name in the migrated controller (§1.5) and routed it through `notificationService`
+- `server/routes/ticketRoutes.js` repointed at `../controllers/ticketController`
 
-**Step 2 — delete the rest:** all remaining files under `server/src/`, plus `server/server.js`.
+**Step 2 — deleted:** ✅ all remaining files under `server/src/`, plus `server/server.js`.
 
-**Step 3 — fix the deployment config.** `vercel.json` currently builds `server/server.js`, the dead backend. Repoint it:
+**Verified:** all 13 routers load cleanly, and `mongoose.models` now contains exactly one of each — `AuditLog, Booking, ContextVector, Event, Notification, Review, Service, Ticket, User, VendorProfile`. The duplicate-registration hazard is gone.
+
+**Step 3 — fixed the deployment config.** ✅ `vercel.json` was building `server/server.js`, the dead backend. Now repointed:
 
 ```json
 {
@@ -81,37 +88,29 @@ Push to a private GitHub repo. From here on, commit per logical change with conv
 
 **Acceptance:** `node server/index.js` boots, `POST /api/v1/tickets/purchase` returns 201, and `grep -r "server/src" .` returns nothing.
 
-### 0.4 Delete scratch and dead files
+### 0.4 Delete scratch and dead files ✅
 
-```
-server/debug_gemini.js          server/test-gemini.js
-server/test-gemini-v2.js        server/test-chatbot.js
-server/output.txt               server/models_list.json
-server/logs/error.log           client/refactor.js
-client/refactor.cjs             client/README.md
-ensure_test_users.js            20260730-2035-14.7026751.mp4   ← 12.7 MB, move it out of the repo
-```
+Deleted: `server/debug_gemini.js`, `server/test-gemini.js`, `server/test-gemini-v2.js`, `server/test-chatbot.js`, `server/output.txt`, `server/models_list.json`, `server/logs/`, `client/refactor.js`, `client/refactor.cjs`, `client/README.md` (untouched Vite boilerplate), `ensure_test_users.js`.
 
-**Keep `e2e_test.js`** — move it to `server/tests/e2e.js` and add `"test:e2e": "node tests/e2e.js"` to `server/package.json`. It is your only test asset.
+`e2e_test.js` was **kept** — moved to `server/tests/e2e.js` with `npm run test:e2e` wired up. It is your only test asset. Also added `npm run seed` and `npm run seed:superadmin`.
 
-Add to `.gitignore`: `*.mp4`, `server/logs/`, `output.txt`.
+`.gitignore` expanded to cover media, logs, uploads, and all `.env` variants.
 
-### 0.5 Remove unused dependencies
+> **`20260730-2035-14.7026751.mp4` (12.7 MB) was left on disk** — I couldn't tell whether it's your FYP demo recording. It's now git-ignored so it won't bloat the repo. Move it somewhere outside the project folder when you're sure you don't need it there.
 
-```bash
-npm uninstall joi openai --prefix server
-```
-`joi` and `openai` are installed but imported nowhere — Zod and Groq are used instead. Unused dependencies in a submitted `package.json` invite the question "did you actually write this?"
+### 0.5 Remove unused dependencies ✅ (server) / ⚠️ (client)
 
-On the client, `react-hook-form`, `@hookform/resolvers`, and `zod` are installed but **never used** (`useForm` appears in zero files). Either use them (Phase 3.4 recommends you do) or remove them. Do not leave them sitting there unused.
+`joi` and `openai` were installed on the server but imported nowhere — Zod and Groq are used instead. **Removed.** Unused dependencies in a submitted `package.json` invite the question "did you actually write this?"
 
-### 0.6 Triage the 21 orphaned components
+**Still outstanding:** on the client, `react-hook-form`, `@hookform/resolvers`, and `zod` are installed but **never used** (`useForm` appears in zero files). Either use them (Phase 3.8 recommends you do) or remove them. Do not leave them sitting there unused.
 
-**Wire these up in Phase 2 — do not delete:**
+### 0.6 Triage the orphaned components ✅
+
+**Deleted (12 files, superseded by newer equivalents):**
+`Navbar.jsx` (→ `layout/DynamicNavbar.jsx`), `Topbar.jsx` (imported in App.jsx but never rendered), `AIAssistant.jsx` (→ `pages/AI/AIConcierge.jsx`), `NegotiationEngine.jsx` (→ `pages/Bookings/NegotiationPage.jsx`), `NotificationBell.jsx` (→ `pages/Notifications`), `LiveNotifications.jsx`, `ChatButton.jsx`, `ChatModal.jsx`, `ChatModal.css`, `common/ChatWindow.jsx`, `MagneticWrapper.jsx`, `ScrollReveal.jsx`, `pages/Events/EventList.jsx` (→ `ExploreEvents.jsx`). The dangling `Topbar` import in `App.jsx` was removed. **Client build verified passing afterwards.**
+
+**Kept for wiring up in Phase 2 — these are finished features, not dead code:**
 `SuperAdmin/*` (all 7), `Dashboard/TrustScoreWidget`, `Dashboard/EventReadiness`, `Dashboard/BudgetAnalyzer`, `Dashboard/TimelineBoard`, `Dashboard/HeroAIMatchmaker`
-
-**Delete now:**
-`pages/Events/EventList.jsx`, `components/MagneticWrapper.jsx`, `components/ScrollReveal.jsx`, `components/ChatButton.jsx`, `components/common/ChatWindow.jsx`, `components/LiveNotifications.jsx`, `components/NotificationBell.jsx`, `components/AIAssistant.jsx`, `components/NegotiationEngine.jsx`, `components/Navbar.jsx` *(superseded by `layout/DynamicNavbar.jsx` — verify before deleting)*
 
 ---
 
@@ -220,9 +219,11 @@ and delete the `join_dashboard` emit — the server now derives it from the toke
 
 **Acceptance:** connecting without a token is rejected; joining a booking room you are not party to is silently ignored.
 
-### 1.5 🔴 Fix ticket purchase (returns 500 on every success)
+### 1.5 ✅ **DONE** — Fix ticket purchase (returned 500 on every success)
 
-`ticket.controller.js` saves the ticket, then calls:
+*Fixed during Phase 0 as part of the ticket-module migration. Recorded here for your report.*
+
+`ticket.controller.js` saved the ticket, then called:
 ```js
 await Notification.create({ user: req.user.id, title, message, type: 'system' });
 ```
@@ -855,7 +856,36 @@ The unique compound index on `Review` is important: the current duplicate check 
 - **Harden uploads** — `multer` needs MIME-type allow-listing, a file-size cap, and randomised filenames.
 - **Move tokens out of `localStorage`** — an XSS anywhere in the app steals the session. `httpOnly` cookies with a CSRF token is the correct pattern. *(Time-box this — it touches auth end to end. If time is short, document it as a known limitation with the mitigation you'd apply; examiners respect a stated, understood trade-off far more than a silent one.)*
 
-### 5.6 Deployment
+### 5.6 🟠 Code-split the frontend bundle
+
+The production build currently emits **a single 1.18 MB JavaScript chunk** (342 KB gzipped) and Vite warns about it:
+
+```
+dist/assets/index-D2Ht3yrP.js   1,179.78 kB │ gzip: 342.51 kB
+(!) Some chunks are larger than 500 kB after minification.
+```
+
+Every visitor downloads the admin panel, the SuperAdmin console, Recharts, GSAP, and Framer Motion before they can read the homepage. On a slow campus connection during your demo, that is several seconds of blank screen.
+
+Route-level lazy loading fixes most of it for very little effort:
+
+```jsx
+import { lazy, Suspense } from 'react';
+
+const AdminPanel        = lazy(() => import('./pages/Admin/AdminPanel'));
+const SuperAdminDashboard = lazy(() => import('./pages/Dashboard/SuperAdminDashboard'));
+const Revenue           = lazy(() => import('./pages/Revenue/Revenue'));   // pulls in Recharts
+const BudgetTracker     = lazy(() => import('./pages/AI/BudgetTracker'));
+
+// wrap <Routes> once:
+<Suspense fallback={<CustomLoader />}>
+  <Routes>{/* ... */}</Routes>
+</Suspense>
+```
+
+Prioritise the heaviest leaf routes: anything importing **Recharts** (`Revenue`, `BudgetTracker`), the admin/superadmin tree, and **GSAP** if only a few pages use it. Target: initial chunk under 300 KB gzipped. Re-run `npm run build` to confirm the warning clears.
+
+### 5.7 Deployment
 
 - Backend → **Render / Railway / Fly.io** (Socket.IO needs persistent connections; Vercel serverless cannot provide them)
 - Frontend → **Vercel / Netlify**, with `VITE_API_URL` set for the environment
@@ -907,18 +937,18 @@ Name what isn't there: no payment gateway, no escrow, no email deliverability in
 
 | Task | Impact | Effort | Do it? |
 |---|---|---|---|
+| ~~Git baseline commit (§0.1)~~ | 🔥🔥🔥 | — | ✅ **done** |
+| ~~Remove duplicate backend (§0.3)~~ | 🔥🔥 | — | ✅ **done** |
+| ~~Fix ticket purchase 500 (§1.5)~~ | 🔥🔥🔥 | — | ✅ **done** |
+| **Rotate the Atlas password (§0.2)** | 🔥🔥🔥 | 5 min | ⚠️ **only you can do this** |
 | Mount `<Toaster />` (§1.1) | 🔥🔥🔥 | 10 min | **Right now** |
 | Block superadmin self-signup (§1.2) | 🔥🔥🔥 | 5 min | **Right now** |
-| Delete leaked credential + rotate (§0.2) | 🔥🔥🔥 | 15 min | **Right now** |
-| Git baseline commit (§0.1) | 🔥🔥🔥 | 10 min | **Right now** |
 | Fix negotiation notes (§1.8) | 🔥🔥🔥 | 20 min | **Today** |
-| Fix ticket purchase 500 (§1.5) | 🔥🔥🔥 | 20 min | **Today** |
 | Fix password reset (§1.6) | 🔥🔥🔥 | 20 min | **Today** |
 | Fix 401/403 refresh mismatch (§1.7) | 🔥🔥🔥 | 30 min | **Today** |
 | Fix provider earnings $0 (§1.9) | 🔥🔥 | 30 min | **Today** |
 | Socket authentication (§1.4) | 🔥🔥🔥 | 2 h | Week 1 |
 | Route guards + role checks (§3.3) | 🔥🔥🔥 | 2 h | Week 1 |
-| Remove duplicate backend (§0.3) | 🔥🔥 | 2 h | Week 1 |
 | Wire SuperAdmin dashboard (§2.1) | 🔥🔥🔥 | 4 h | Week 1 |
 | Fix dark mode / design tokens (§3.1) | 🔥🔥 | 4 h | Week 2 |
 | Loading / empty / error states (§3.6) | 🔥🔥 | 4 h | Week 2 |

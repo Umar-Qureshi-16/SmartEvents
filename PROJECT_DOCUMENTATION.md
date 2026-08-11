@@ -161,10 +161,14 @@ SmartEvents/
 │   ├── services/                    # 11 service modules
 │   ├── utils/validation.js          # Zod schemas + validate() middleware factory
 │   ├── scripts/                     # seedData.js, seedSuperAdmin.js
-│   └── src/                         # ⚠️ Legacy duplicate backend ("EventFlow") — see §15
+│   └── tests/e2e.js                 # End-to-end API test harness (npm run test:e2e)
 │
-└── docs/                            # PRD + SFS academic documents
+├── docs/                            # PRD + SFS academic documents
+├── PROJECT_DOCUMENTATION.md         # This file
+└── IMPROVEMENT_PLAN.md              # Prioritised roadmap to industry standard
 ```
+
+> A legacy duplicate backend previously sat at `server/src/` ("EventFlow"). It was removed on 2026-08-12 — see §15.1.
 
 ---
 
@@ -243,7 +247,7 @@ Provider's sellable package, owned by a `VendorProfile` (`vendorId` refs **Vendo
 ### `Ticket`
 `event` · `attendee` · `ticketType` · `ticketNumber` (unique) · `qrCodeData` · `price` · `status` (`active`|`checked_in`|`refunded`|`cancelled`) · `checkInTime` · `checkedInBy`
 
-> ⚠️ **Two conflicting `Ticket` schemas exist** — `server/models/Ticket.js` and `server/src/models/Ticket.js` — both registering the Mongoose model name `Ticket`. See §15.
+> ✅ Two conflicting `Ticket` schemas previously existed — `server/models/Ticket.js` and `server/src/models/Ticket.js` — both registering the Mongoose model name `Ticket`, with the winner decided by `require` order. Consolidated into a single schema on 2026-08-12. See §15.1.
 
 ### `Notification`
 `recipient` · `title` · `message` · `type` (`booking`|`chat`|`counter_offer`|`system`|`payment`|`info`) · `relatedId` · `isRead` · `priority`
@@ -593,7 +597,7 @@ Legend: ✅ working · ⚠️ partially working / has a defect · 🔌 built but
 ### Ticketing
 | Feature | Status | Note |
 |---|---|---|
-| Purchase ticket + QR generation | ❌ | The ticket saves, then the follow-up `Notification.create({ user: … })` violates the live schema (which requires `recipient`), throwing inside the try block → the endpoint returns **500** on every successful purchase |
+| Purchase ticket + QR generation | ✅ *(fixed 2026-08-12)* | Previously: the ticket saved, then `Notification.create({ user: … })` violated the live schema (which requires `recipient`), throwing inside the try block → **500** on every successful purchase. Now routed through `notificationService` with the correct field, and made non-fatal so a notification failure can never fail the purchase. |
 | Digital pass wallet | ✅ | |
 | QR scanner check-in with duplicate detection | ✅ | Good UX messaging |
 | Ticket routes role-restricted | ❌ | Anyone logged in can call `/tickets/scan` |
@@ -720,7 +724,11 @@ Set in `server/.env` (git-ignored; a template lives at `server/.env.example`).
 
 ## 15. Dead / Removable Code Manifest
 
-### 15.1 Duplicate abandoned backend — `server/src/` + `server/server.js`
+> ✅ **This cleanup has been executed** (2026-08-12, commit `e61bd33`). The tree went from 207 to 162 tracked files. Everything listed here is recoverable from the baseline commit: `git show 3bd9f8b:<path>`.
+>
+> The section is retained as a record of what was removed and why — useful material for the "refactoring and code quality" part of your report.
+
+### 15.1 Duplicate abandoned backend — `server/src/` + `server/server.js` — ✅ removed
 
 This is an **entire earlier version of the project** ("EventFlow") with its own entry point, routes, controllers, models, and middleware. It is not the running application — `server/index.js` is. It is dangerous rather than merely untidy:
 
@@ -728,33 +736,35 @@ This is an **entire earlier version of the project** ("EventFlow") with its own 
 - **Duplicate Mongoose model registration.** `server/src/models/` and `server/models/` both define `Event`, `Notification`, `Review`, `Ticket`, and `User` under the same model names, guarded by `mongoose.models.X || mongoose.model('X', schema)`. Whichever module is required first wins, silently, based on `require` order in `index.js`. This is the direct cause of the broken ticket purchase (§11).
 - **One file is genuinely live:** `server/routes/ticketRoutes.js` requires `server/src/controllers/ticket.controller.js`, which pulls in `server/src/models/{Ticket,Event,Notification}`. This file must be **migrated**, not deleted.
 
-| Path | Verdict |
+| Path | Action taken |
 |---|---|
-| `server/src/controllers/ticket.controller.js` | **Migrate** to `server/controllers/ticketController.js`, repointed at `server/models/` |
-| `server/src/models/Ticket.js` | **Migrate** to `server/models/Ticket.js` (it is the schema the app actually uses) |
-| `server/src/` (everything else — 5 controllers, 6 routes, 8 models, 2 middleware) | **Delete** |
-| `server/server.js` | **Delete**, and repoint `vercel.json` at `server/index.js` |
+| `server/src/controllers/ticket.controller.js` | ✅ **Migrated** to `server/controllers/ticketController.js`, repointed at `server/models/`, notification bug fixed |
+| `server/src/models/Ticket.js` | ✅ **Migrated** to `server/models/Ticket.js` (it is the schema the app actually uses); indexes added |
+| `server/src/` (everything else — 5 controllers, 6 routes, 8 models, 2 middleware) | ✅ **Deleted** |
+| `server/server.js` | ✅ **Deleted**; `vercel.json` repointed at `server/index.js` |
 
-### 15.2 Root `server.js` — 🔴 credential leak
+**Verified after removal:** all 13 routers load cleanly and `mongoose.models` contains exactly one registration per model name. The duplicate-registration hazard that broke ticket purchase is gone.
 
-A 14-line throwaway file that hardcodes a **live MongoDB Atlas connection string including username and password**. It is not referenced by any npm script. Delete it, and rotate that Atlas password — the credential should be considered compromised.
+### 15.2 Root `server.js` — 🔴 credential leak — ✅ file removed, ⚠️ **password still needs rotating**
 
-### 15.3 Development scratch files
+A 14-line throwaway file that hardcoded a **live MongoDB Atlas connection string including username and password**, referenced by no npm script. The file is deleted — but **deleting it does not rotate the credential**. It has existed on disk and must be treated as compromised: change that user's password in Atlas → Database Access, then update `server/.env`.
 
-| Path | What it is |
+### 15.3 Development scratch files — ✅ removed
+
+| Path | What it was |
 |---|---|
 | `server/debug_gemini.js`, `server/test-gemini.js`, `server/test-gemini-v2.js`, `server/test-chatbot.js` | Ad-hoc API probes |
 | `server/output.txt`, `server/models_list.json` | Captured command output |
 | `server/logs/error.log` | Runtime log committed into the tree |
 | `client/refactor.js`, `client/refactor.cjs` | One-off codemod scripts, already applied |
 | `client/README.md` | Untouched Vite starter boilerplate |
-| `20260730-2035-14.7026751.mp4` | 12.7 MB screen recording in the repo root |
 | `ensure_test_users.js` | Superseded by `server/scripts/seedData.js` |
-| `client/dist/` | Build output (already git-ignored, but present on disk) |
 
-`e2e_test.js` is **worth keeping** — it is a real end-to-end API test harness and the closest thing this project has to a test suite. It should be moved to `server/tests/` and given an npm script.
+`e2e_test.js` was **kept** — it is a real end-to-end API test harness and the closest thing this project has to a test suite. Moved to `server/tests/e2e.js` and wired to `npm run test:e2e`.
 
-### 15.4 Orphaned frontend components — 21 files, never imported anywhere
+`20260730-2035-14.7026751.mp4` (12.7 MB) was **left on disk but git-ignored** — it may be your demo recording. Move it outside the project folder when you're sure.
+
+### 15.4 Orphaned frontend components — 21 files were imported by nothing
 
 ```
 components/AIAssistant.jsx              components/LiveNotifications.jsx
@@ -771,18 +781,29 @@ components/SuperAdmin/SystemHealthMonitor.jsx
 pages/Events/EventList.jsx
 ```
 
-**Do not blindly delete these.** They fall into two groups:
+They fell into two groups, and were treated differently:
 
-- **Wire up (~13 files):** the 7 SuperAdmin widgets and the Dashboard widgets (TrustScoreWidget, EventReadiness, BudgetAnalyzer, TimelineBoard, HeroAIMatchmaker) are *implemented features* whose backends already exist. They're the difference between "SuperAdmin dashboard is a stub" and "SuperAdmin dashboard is a real governance console." Wiring them is the single highest-value-per-hour task in this project.
-- **Delete (~8 files):** `EventList.jsx` (superseded by `ExploreEvents`), `MagneticWrapper`, `ScrollReveal`, `ChatButton`, `ChatWindow`, `LiveNotifications`, `NotificationBell`, `AIAssistant`, `NegotiationEngine` — superseded by newer equivalents.
+- ✅ **Kept for wiring up (13 files):** the 7 SuperAdmin widgets and the Dashboard widgets (TrustScoreWidget, EventReadiness, BudgetAnalyzer, TimelineBoard, HeroAIMatchmaker) are *implemented features* whose backends already exist. They're the difference between "SuperAdmin dashboard is a stub" and "SuperAdmin dashboard is a real governance console." Wiring them is the single highest-value-per-hour task in this project — see improvement plan Phase 2.
+- ✅ **Deleted (12 files, superseded by newer equivalents):** `EventList.jsx` (→ `ExploreEvents`), `Navbar.jsx` (→ `layout/DynamicNavbar`), `Topbar.jsx` (imported but never rendered), `AIAssistant.jsx` (→ `pages/AI/AIConcierge`), `NegotiationEngine.jsx` (→ `pages/Bookings/NegotiationPage`), `NotificationBell.jsx` (→ `pages/Notifications`), `LiveNotifications.jsx`, `ChatButton.jsx`, `ChatModal.jsx` + `.css`, `ChatWindow.jsx`, `MagneticWrapper.jsx`, `ScrollReveal.jsx`. The client build was verified passing afterwards.
 
 ### 15.5 Unused dependencies
 
-`joi` and `openai` are installed in `server/package.json` but imported nowhere (Zod and Groq are used instead). Remove them.
+✅ `joi` and `openai` were installed in `server/package.json` but imported nowhere (Zod and Groq are used instead) — **removed**.
+
+⚠️ **Still outstanding:** on the client, `react-hook-form`, `@hookform/resolvers`, and `zod` are installed but never used — `useForm` appears in zero files. Either adopt them (recommended — see improvement plan §3.8) or uninstall them.
 
 ### 15.6 Version control
 
-The repository has **zero commits** — everything is untracked on branch `master`. There is no undo for anything. Committing the current state before any cleanup is step zero of the improvement plan.
+✅ The repository previously had **zero commits** — everything untracked on `master`, with no undo for anything. It is now baselined:
+
+| Commit | Contents |
+|---|---|
+| `3bd9f8b` | Baseline snapshot — the full tree exactly as it was before any cleanup |
+| `e61bd33` | The cleanup itself, plus these two documents |
+
+Recover anything removed with `git show 3bd9f8b:<path>`.
+
+**Still to do:** push to a private GitHub remote, and commit per logical change from here on.
 
 ---
 
