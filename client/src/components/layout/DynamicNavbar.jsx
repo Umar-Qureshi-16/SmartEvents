@@ -1,526 +1,534 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    ArrowRight, Bell, Menu as MenuIcon, X, ChevronDown, User, LogOut,
+    Bell, Menu as MenuIcon, X, ChevronDown, User, LogOut,
     LayoutDashboard, Package, CalendarDays, DollarSign, QrCode,
-    Settings, ShieldCheck, Sparkles, PlusCircle, Layers, ChevronRight, Store, Compass,
-    Camera, Music, Building, Award, FileText, CheckCircle2, Ticket
+    Settings, Sparkles, Layers, Store, Compass, Ticket, ShieldCheck,
+    MessageSquare, Heart, Star, Images
 } from 'lucide-react';
+
+import axios from '../../api/axios';
+import { useWebSockets } from '../../context/WebSocketContext';
 import EventManagerLogo from '../EventManagerLogo';
+import ThemeToggle from '../ThemeToggle';
+import { formatRelative } from '../ui';
+
+/**
+ * Navigation links per role.
+ *
+ * Previously branched on 'vendor' and 'organizer', which are not values in the
+ * User schema enum ('customer' | 'provider' | 'admin' | 'superadmin'), so
+ * providers silently fell through to the customer menu and were shown links to
+ * customer-only routes.
+ */
+const NAV_BY_ROLE = {
+    guest: [
+        {
+            label: 'Discover Events', path: '/events', icon: Compass,
+            subOptions: [
+                { label: 'Corporate', desc: 'Conferences and company events', path: '/events?category=Corporate' },
+                { label: 'Concerts', desc: 'Live music and festivals', path: '/events?category=Concert' },
+                { label: 'Weddings', desc: 'Catering, decor and venues', path: '/events?category=Wedding' },
+                { label: 'All events', desc: 'Browse everything on offer', path: '/events' },
+            ],
+        },
+        {
+            label: 'Vendors', path: '/vendors', icon: Store,
+            subOptions: [
+                { label: 'Catering', desc: 'Food and beverage partners', path: '/vendors?category=catering' },
+                { label: 'Photography', desc: 'Photographers and videographers', path: '/vendors?category=photography' },
+                { label: 'Venues', desc: 'Halls, gardens and ballrooms', path: '/vendors?category=venue' },
+                { label: 'Music', desc: 'DJs, bands and sound crews', path: '/vendors?category=music' },
+            ],
+        },
+        {
+            label: 'How It Works', path: '/how-it-works', icon: Layers,
+            subOptions: [
+                { label: 'Make an offer', desc: 'Propose your budget to a provider', path: '/how-it-works' },
+                { label: 'Negotiate live', desc: 'Counter-offer in real time', path: '/how-it-works' },
+                { label: 'Confirm and attend', desc: 'Agree a price and get your pass', path: '/how-it-works' },
+            ],
+        },
+        { label: 'Pricing', path: '/pricing', icon: QrCode },
+    ],
+
+    customer: [
+        { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+        {
+            label: 'My Bookings', path: '/bookings', icon: CalendarDays,
+            subOptions: [
+                { label: 'All bookings', desc: 'Offers, negotiations and confirmations', path: '/bookings' },
+                { label: 'Favourites', desc: 'Providers you have shortlisted', path: '/favorites' },
+            ],
+        },
+        {
+            label: 'Explore', path: '/events', icon: Compass,
+            subOptions: [
+                { label: 'Events', desc: 'Browse and make an offer', path: '/events' },
+                { label: 'Vendors', desc: 'Find a provider directly', path: '/vendors' },
+            ],
+        },
+        {
+            label: 'Planning', path: '/ai-concierge', icon: Sparkles,
+            subOptions: [
+                { label: 'AI Concierge', desc: 'Ask Smartie about your event', path: '/ai-concierge' },
+                { label: 'Budget tracker', desc: 'Break down and check your spend', path: '/budget-tracker' },
+                { label: 'My tickets', desc: 'QR passes for confirmed events', path: '/tickets' },
+            ],
+        },
+    ],
+
+    provider: [
+        { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+        {
+            label: 'Leads', path: '/leads', icon: MessageSquare,
+            subOptions: [
+                { label: 'Incoming offers', desc: 'Requests awaiting your response', path: '/leads' },
+                { label: 'Reviews', desc: 'Feedback across your events', path: '/reviews' },
+            ],
+        },
+        {
+            label: 'My Services', path: '/services', icon: Package,
+            subOptions: [
+                { label: 'Service packages', desc: 'Manage your offerings and prices', path: '/services' },
+                { label: 'Portfolio', desc: 'Showcase your past work', path: '/portfolio' },
+                { label: 'Availability', desc: 'Block dates you cannot take', path: '/calendar' },
+            ],
+        },
+        {
+            label: 'Business', path: '/revenue', icon: DollarSign,
+            subOptions: [
+                { label: 'Revenue', desc: 'Confirmed and completed bookings', path: '/revenue' },
+                { label: 'Ticket scanner', desc: 'Check guests in at the gate', path: '/staff/scanner' },
+                { label: 'AI Concierge', desc: 'Ask Smartie about your business', path: '/ai-concierge' },
+            ],
+        },
+    ],
+
+    admin: [
+        { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+        { label: 'Users', path: '/admin/users', icon: User },
+        { label: 'Revenue', path: '/revenue', icon: DollarSign },
+    ],
+};
+
+NAV_BY_ROLE.superadmin = NAV_BY_ROLE.admin;
+
+const QUICK_LINKS = [
+    { label: 'Settings', path: '/settings', icon: Settings },
+    { label: 'Notifications', path: '/notifications', icon: Bell },
+];
 
 export default function DynamicNavbar({ user, onLogout }) {
     const navigate = useNavigate();
     const location = useLocation();
+    const { socket } = useWebSockets();
 
-    // HOVER & SUB-MENU DROPDOWN STATES
     const [isHovered, setIsHovered] = useState(false);
     const [activeSubmenu, setActiveSubmenu] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+    const [profileOpen, setProfileOpen] = useState(false);
     const [notificationOpen, setNotificationOpen] = useState(false);
+    const [notifications, setNotifications] = useState([]);
 
-    // Close dropdowns on route change
+    const containerRef = useRef(null);
+
+    const navLinks = NAV_BY_ROLE[user?.role] || NAV_BY_ROLE.guest;
+    const unreadCount = notifications.filter(n => !n.isRead).length;
+
+    // Close everything on navigation.
     useEffect(() => {
         setMobileMenuOpen(false);
-        setProfileDropdownOpen(false);
+        setProfileOpen(false);
         setNotificationOpen(false);
         setActiveSubmenu(null);
     }, [location.pathname]);
 
-    // DYNAMIC NAVIGATION LINKS WITH EXPLORATION SUB-OPTIONS
-    const getNavLinks = () => {
-        if (!user) {
-            return [
-                {
-                    label: 'Discover Events',
-                    path: '/events',
-                    icon: Compass,
-                    subOptions: [
-                        { label: 'Corporate Conferences', desc: 'Enterprise stage & AV expos', path: '/events?category=Corporate Conferences' },
-                        { label: 'Music Festivals', desc: 'High-speed QR entry pass events', path: '/events?category=Music Festivals' },
-                        { label: 'Weddings & Galas', desc: 'Catering & decor counter-bidding', path: '/events?category=Weddings %26 Galas' },
-                        { label: 'Live Bidding Events', desc: 'Open events with active quotes', path: '/events?category=Live Bidding Events' }
-                    ]
-                },
-                {
-                    label: 'Vendor Marketplace',
-                    path: '/vendors',
-                    icon: Store,
-                    subOptions: [
-                        { label: 'Catering & Dining', desc: 'Verified gourmet food partners', path: '/vendors?category=Catering %26 Dining' },
-                        { label: 'Stage & Lighting AV', desc: 'Professional audio-visual crews', path: '/vendors?category=Stage %26 Lighting AV' },
-                        { label: 'Photography & Cinema', desc: 'Event videographers & drones', path: '/vendors?category=Photography %26 Cinema' },
-                        { label: 'Venues & Ballrooms', desc: 'Indoor & outdoor capacity venues', path: '/vendors?category=Venues %26 Ballrooms' }
-                    ]
-                },
-                {
-                    label: 'How Bidding Works',
-                    path: '/how-it-works',
-                    icon: Layers,
-                    subOptions: [
-                        { label: 'Host Budget Posting', desc: 'Post min/max target range', path: '/how-it-works' },
-                        { label: 'Vendor Proposals', desc: 'Submit quotes & deliverables', path: '/how-it-works' },
-                        { label: 'Counter-Offer Engine', desc: 'Negotiate price in 2-way loop', path: '/how-it-works' },
-                        { label: 'Escrow Protection', desc: 'Stripe escrow budget holding', path: '/how-it-works' }
-                    ]
-                },
-                {
-                    label: 'Pricing & Passes',
-                    path: '/pricing',
-                    icon: QrCode,
-                    subOptions: [
-                        { label: 'Free General Tickets', desc: 'Free RSVP attendee passes', path: '/pricing' },
-                        { label: 'VIP Pass Tier', desc: 'Premium perks & lounge access', path: '/pricing' },
-                        { label: 'Student Discount Pass', desc: 'Verified institutional passes', path: '/pricing' },
-                        { label: 'Staff Entry Gate Scanner', desc: 'QR code validation terminal', path: '/staff/scanner' }
-                    ]
-                }
-            ];
+    // Real notifications, replacing the hardcoded mock array this used to show.
+    const loadNotifications = useCallback(async () => {
+        if (!user) return;
+        try {
+            const res = await axios.get('/notifications');
+            setNotifications((res.data.data || []).slice(0, 8));
+        } catch {
+            /* the bell is non-critical — stay silent */
         }
+    }, [user]);
 
-        if (user.role === 'admin' || user.role === 'superadmin') {
-            return [
-                {
-                    label: 'Command Center',
-                    path: '/dashboard',
-                    icon: LayoutDashboard,
-                    subOptions: [
-                        { label: 'System Health', desc: 'Real-time server & DB metrics', path: '/dashboard' },
-                        { label: 'Live Bids Log', desc: 'Monitor active negotiations', path: '/dashboard' }
-                    ]
-                },
-                {
-                    label: 'User Governance',
-                    path: '/admin/users',
-                    icon: User,
-                    subOptions: [
-                        { label: 'Organizers Roster', desc: 'Manage verified event hosts', path: '/admin/users' },
-                        { label: 'Vendor Verifications', desc: 'Approve category credentials', path: '/admin/users' }
-                    ]
-                },
-                {
-                    label: 'Platform Revenue',
-                    path: '/revenue',
-                    icon: DollarSign,
-                    subOptions: [
-                        { label: 'Escrow Volume', desc: 'Total dollar volume in escrow', path: '/revenue' },
-                        { label: 'Platform Fees', desc: 'Commission revenue ledger', path: '/revenue' }
-                    ]
-                }
-            ];
-        }
+    useEffect(() => { loadNotifications(); }, [loadNotifications]);
 
-        if (user.role === 'vendor') {
-            return [
-                {
-                    label: 'Vendor Hub',
-                    path: '/dashboard',
-                    icon: LayoutDashboard,
-                    subOptions: [
-                        { label: 'Active Proposals', desc: 'Submitted bids awaiting review', path: '/dashboard' },
-                        { label: 'Performance Stats', desc: 'Rating & win-rate metrics', path: '/dashboard' }
-                    ]
-                },
-                {
-                    label: 'Browse Events & Bid',
-                    path: '/bookings',
-                    icon: CalendarDays,
-                    subOptions: [
-                        { label: 'Corporate Events', desc: 'High-budget corporate RFPs', path: '/bookings' },
-                        { label: 'Concerts & Festivals', desc: 'Stage & sound opportunities', path: '/bookings' },
-                        { label: 'Filter by Budget', desc: 'Search high-margin events', path: '/bookings' }
-                    ]
-                },
-                {
-                    label: 'Service Portfolio',
-                    path: '/services',
-                    icon: Package,
-                    subOptions: [
-                        { label: 'Manage Offerings', desc: 'Update packages & pricing', path: '/services' },
-                        { label: 'Upload Showcase Photos', desc: 'Add work samples to profile', path: '/services' }
-                    ]
-                },
-                {
-                    label: 'Payout Ledger',
-                    path: '/revenue',
-                    icon: DollarSign,
-                    subOptions: [
-                        { label: 'Escrow Funds Pending', desc: 'Funds ready upon event completion', path: '/revenue' },
-                        { label: 'Completed Earnings', desc: 'Bank payouts history', path: '/revenue' }
-                    ]
-                }
-            ];
-        }
+    useEffect(() => {
+        if (!socket) return;
+        const onNotification = (data) => {
+            setNotifications(prev => [{ ...data, _id: data.id || Date.now(), isRead: false }, ...prev].slice(0, 8));
+        };
+        socket.on('notification', onNotification);
+        return () => socket.off('notification', onNotification);
+    }, [socket]);
 
-        // Default: Organizer
-        return [
-            {
-                label: 'Dashboard',
-                path: '/dashboard',
-                icon: LayoutDashboard,
-                subOptions: [
-                    { label: 'Overview Metrics', desc: 'Registrations & budget stats', path: '/dashboard' },
-                    { label: 'Live Matchmaker', desc: 'AI vendor recommendations', path: '/dashboard' }
-                ]
-            },
-            {
-                label: 'Manage Events',
-                path: '/bookings',
-                icon: CalendarDays,
-                subOptions: [
-                    { label: 'Post New Event Wizard', desc: 'Set budget & service requirements', path: '/bookings' },
-                    { label: 'Bid Counter-Offer Inbox', desc: 'Evaluate & negotiate quotes', path: '/bookings' },
-                    { label: 'Confirmed Events', desc: 'Contracts ready for execution', path: '/bookings' }
-                ]
-            },
-            {
-                label: 'Pass Wallet & Gate',
-                path: '/tickets',
-                icon: QrCode,
-                subOptions: [
-                    { label: 'Digital Ticket Passes', desc: 'QR passes with PDF download', path: '/tickets' },
-                    { label: 'Staff Entry Gate Scanner', desc: 'Mobile terminal for gate staff', path: '/staff/scanner' }
-                ]
-            },
-            {
-                label: 'Revenue & Escrow',
-                path: '/revenue',
-                icon: DollarSign,
-                subOptions: [
-                    { label: 'Escrow Budget Ledger', desc: 'Track committed vendor funds', path: '/revenue' },
-                    { label: 'Ticket Revenue', desc: 'Sales analytics & payouts', path: '/revenue' }
-                ]
-            }
-        ];
+    const markAllRead = async () => {
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        try { await axios.put('/notifications/read-all'); } catch { loadNotifications(); }
     };
 
-    const navLinks = getNavLinks();
+    // Close dropdowns when focus or a click leaves the navbar.
+    useEffect(() => {
+        const onDocClick = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setProfileOpen(false);
+                setNotificationOpen(false);
+                setActiveSubmenu(null);
+            }
+        };
+        const onEscape = (e) => {
+            if (e.key !== 'Escape') return;
+            setProfileOpen(false);
+            setNotificationOpen(false);
+            setActiveSubmenu(null);
+            setMobileMenuOpen(false);
+        };
+        document.addEventListener('mousedown', onDocClick);
+        document.addEventListener('keydown', onEscape);
+        return () => {
+            document.removeEventListener('mousedown', onDocClick);
+            document.removeEventListener('keydown', onEscape);
+        };
+    }, []);
 
-    const mockNotifications = [
-        { id: 1, title: 'Counter-Offer Received', desc: 'Apex Catering proposed $4,200 for Gala Event', time: '10m ago', unread: true },
-        { id: 2, title: 'Bid Accepted!', desc: 'Your bid of $3,500 was accepted by Organizers Inc.', time: '1h ago', unread: true },
-        { id: 3, title: 'Escrow Settlement', desc: 'Payment of $5,000 received in escrow', time: '3h ago', unread: false },
-    ];
-
-    const unreadCount = mockNotifications.filter(n => n.unread).length;
+    const expanded = isHovered || mobileMenuOpen;
 
     return (
-        <>
-            {/* FLOATING HOVER-EXPAND PURE BLACK NAVBAR */}
-            <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 pointer-events-auto">
-                <motion.div
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => {
-                        setIsHovered(false);
-                        setProfileDropdownOpen(false);
-                        setNotificationOpen(false);
-                        setActiveSubmenu(null);
-                    }}
-                    animate={{
-                        width: isHovered || mobileMenuOpen ? 'min(1150px, 94vw)' : '140px',
-                        borderRadius: '9999px',
-                    }}
-                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                    className="bg-[#000000] border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.95)] py-2.5 px-4 text-white overflow-visible relative"
-                >
-                    <div className="flex items-center justify-between gap-3">
-                        {/* BRAND EMBLEM: Smartie */}
-                        <div onClick={() => navigate('/')} className="cursor-pointer shrink-0">
-                            <EventManagerLogo collapsed={!isHovered && !mobileMenuOpen} />
-                        </div>
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full px-4 flex justify-center pointer-events-none">
+            <motion.div
+                ref={containerRef}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => {
+                    setIsHovered(false);
+                    setProfileOpen(false);
+                    setNotificationOpen(false);
+                    setActiveSubmenu(null);
+                }}
+                // Keyboard users never trigger mouseenter, so expand on focus too.
+                onFocusCapture={() => setIsHovered(true)}
+                animate={{
+                    width: expanded ? 'min(1150px, 94vw)' : '150px',
+                    borderRadius: mobileMenuOpen ? '28px' : '9999px',
+                }}
+                transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                className="pointer-events-auto bg-[#0b0d12] border border-white/15 shadow-[0_20px_60px_rgba(0,0,0,0.55)] py-2.5 px-4 text-white relative"
+            >
+                <div className="flex items-center justify-between gap-3">
+                    <Link to="/" className="shrink-0" aria-label="SmartEvents home">
+                        <EventManagerLogo collapsed={!expanded} />
+                    </Link>
 
-                        {/* COLLAPSED PILL: ONLY GREEN DOT + COMPLETE WORD "MENU" */}
-                        {!isHovered && !mobileMenuOpen && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="flex items-center gap-2 cursor-pointer select-none"
-                            >
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-pulse shrink-0" />
-                                <span className="text-white font-black text-xs uppercase tracking-widest font-sans">MENU</span>
-                            </motion.div>
-                        )}
+                    {!expanded && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 select-none">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" aria-hidden="true" />
+                            <span className="text-white font-black text-xs uppercase tracking-widest">Menu</span>
+                        </motion.div>
+                    )}
 
-                        {/* EXPANDED DESKTOP NAVIGATION LINKS WITH HOVER SUBMENU TRIGGER */}
-                        <AnimatePresence>
-                            {(isHovered || mobileMenuOpen) && (
-                                <motion.nav
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -10 }}
-                                    className="hidden lg:flex items-center gap-2 text-xs font-bold tracking-wide text-white relative"
-                                >
-                                    {navLinks.map((link, idx) => {
-                                        const Icon = link.icon;
-                                        const isActive = location.pathname === link.path;
-                                        const isSubmenuOpen = activeSubmenu === idx;
-
-                                        return (
-                                            <div
-                                                key={idx}
-                                                className="relative"
-                                                onMouseEnter={() => setActiveSubmenu(idx)}
-                                            >
-                                                <a
-                                                    href={link.path}
-                                                    onClick={(e) => {
-                                                        if (!link.path.includes('#')) {
-                                                            e.preventDefault();
-                                                            navigate(link.path);
-                                                        }
-                                                    }}
-                                                    className={`flex items-center gap-1.5 py-1.5 px-3.5 rounded-full transition-all cursor-pointer ${isActive || isSubmenuOpen
-                                                            ? 'bg-white text-black font-black shadow-md'
-                                                            : 'text-white hover:bg-white/15'
-                                                        }`}
-                                                >
-                                                    {Icon && <Icon size={14} className={isActive || isSubmenuOpen ? 'text-black' : 'text-white'} />}
-                                                    <span>{link.label}</span>
-                                                    {link.subOptions && (
-                                                        <ChevronDown size={12} className={isActive || isSubmenuOpen ? 'text-black' : 'text-slate-400'} />
-                                                    )}
-                                                </a>
-
-                                                {/* NESTED EXPLORATION SUBMENU DROPDOWN */}
-                                                <AnimatePresence>
-                                                    {isSubmenuOpen && link.subOptions && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                            exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                                                            onMouseLeave={() => setActiveSubmenu(null)}
-                                                            className="absolute top-full left-0 mt-3 w-64 p-3 bg-black border border-white/20 rounded-2xl shadow-2xl z-50 space-y-1.5"
-                                                        >
-                                                            <div className="px-2 py-1 border-b border-white/10 text-[10px] font-mono text-[#0ABF53] uppercase font-bold tracking-wider">
-                                                                Explore {link.label}
-                                                            </div>
-                                                            {link.subOptions.map((sub, sIdx) => (
-                                                                <div
-                                                                    key={sIdx}
-                                                                    onClick={() => {
-                                                                        setActiveSubmenu(null);
-                                                                        if (sub.path.includes('#')) {
-                                                                            window.location.href = sub.path;
-                                                                        } else {
-                                                                            navigate(sub.path);
-                                                                        }
-                                                                    }}
-                                                                    className="p-2 rounded-xl hover:bg-white/15 cursor-pointer transition-colors space-y-0.5 group"
-                                                                >
-                                                                    <div className="flex items-center justify-between text-xs font-bold text-white group-hover:text-[#0ABF53]">
-                                                                        <span>{sub.label}</span>
-                                                                        <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#0ABF53]" />
-                                                                    </div>
-                                                                    <p className="text-[10px] text-slate-400 line-clamp-1">{sub.desc}</p>
-                                                                </div>
-                                                            ))}
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
-                                        );
-                                    })}
-                                </motion.nav>
-                            )}
-                        </AnimatePresence>
-
-                        {/* RIGHT ACTIONS BLOCK */}
-                        <AnimatePresence>
-                            {(isHovered || mobileMenuOpen) && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    className="flex items-center gap-3 shrink-0"
-                                >
-                                    {user ? (
-                                        <>
-                                            {user.role === 'organizer' && (
-                                                <button
-                                                    onClick={() => navigate('/bookings')}
-                                                    className="hidden sm:flex items-center gap-1.5 bg-[#0ABF53] text-black text-[11px] px-4 py-1.5 font-black rounded-full shadow-adyen-glow hover:bg-[#09aa49] transition-all"
-                                                >
-                                                    <PlusCircle size={13} />
-                                                    <span>Post Event</span>
-                                                </button>
-                                            )}
-
-                                            {/* Notification Bell */}
-                                            <div className="relative">
-                                                <button
-                                                    onClick={() => {
-                                                        setNotificationOpen(!notificationOpen);
-                                                        setProfileDropdownOpen(false);
-                                                    }}
-                                                    className="p-2 rounded-full bg-white/10 border border-white/20 hover:border-white text-white transition-colors relative"
-                                                >
-                                                    <Bell size={15} className="text-white" />
-                                                    {unreadCount > 0 && (
-                                                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#0ABF53] text-black text-[9px] font-black rounded-full flex items-center justify-center border border-black">
-                                                            {unreadCount}
-                                                        </span>
-                                                    )}
-                                                </button>
-
-                                                <AnimatePresence>
-                                                    {notificationOpen && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, y: 10 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            exit={{ opacity: 0, y: 10 }}
-                                                            className="absolute right-0 mt-3 w-80 p-4 shadow-2xl rounded-2xl border border-white/20 bg-black z-50 space-y-3 text-white"
-                                                        >
-                                                            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                                                                <span className="text-xs font-black text-white uppercase tracking-wider">Notifications</span>
-                                                                <span className="text-[10px] text-[#0ABF53] font-mono font-bold cursor-pointer hover:underline">Mark all read</span>
-                                                            </div>
-                                                            <div className="space-y-2 max-h-60 overflow-y-auto">
-                                                                {mockNotifications.map(n => (
-                                                                    <div key={n.id} className="p-2.5 rounded-xl bg-white/10 border border-white/10 space-y-1 text-white">
-                                                                        <div className="flex items-center justify-between">
-                                                                            <span className="text-xs font-bold text-white">{n.title}</span>
-                                                                            <span className="text-[9px] font-mono text-slate-300">{n.time}</span>
-                                                                        </div>
-                                                                        <p className="text-[11px] text-slate-200 leading-tight">{n.desc}</p>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
-
-                                            {/* Profile Menu Dropdown */}
-                                            <div className="relative">
-                                                <button
-                                                    onClick={() => {
-                                                        setProfileDropdownOpen(!profileDropdownOpen);
-                                                        setNotificationOpen(false);
-                                                    }}
-                                                    className="flex items-center gap-2 p-1 pl-2.5 rounded-full bg-white/10 border border-white/20 hover:border-white transition-all cursor-pointer text-white"
-                                                >
-                                                    <div className="w-6 h-6 rounded-full bg-[#0ABF53] text-black font-black text-[11px] flex items-center justify-center">
-                                                        {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                                                    </div>
-                                                    <span className="hidden md:inline text-xs font-bold text-white">{user.name}</span>
-                                                    <ChevronDown size={13} className="text-white" />
-                                                </button>
-
-                                                <AnimatePresence>
-                                                    {profileDropdownOpen && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, y: 10 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            exit={{ opacity: 0, y: 10 }}
-                                                            className="absolute right-0 mt-3 w-56 p-3 shadow-2xl rounded-2xl border border-white/20 bg-black z-50 space-y-2 text-white"
-                                                        >
-                                                            <div className="px-3 py-2 border-b border-white/10 space-y-1">
-                                                                <p className="text-xs font-bold text-white">{user.name}</p>
-                                                                <p className="text-[10px] text-slate-300 truncate">{user.email}</p>
-                                                                <span className="inline-block text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#0ABF53]/20 text-[#0ABF53] border border-[#0ABF53]/40 font-bold uppercase mt-1">
-                                                                    {user.role || 'Member'}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="space-y-1 text-xs font-bold text-white">
-                                                                <button
-                                                                    onClick={() => navigate('/settings')}
-                                                                    className="w-full text-left px-3 py-2 rounded-xl text-white hover:bg-white/15 flex items-center gap-2"
-                                                                >
-                                                                    <Settings size={14} className="text-[#0ABF53]" />
-                                                                    <span>Account Settings</span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={onLogout}
-                                                                    className="w-full text-left px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/20 flex items-center gap-2"
-                                                                >
-                                                                    <LogOut size={14} />
-                                                                    <span>Sign Out</span>
-                                                                </button>
-                                                            </div>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        /* GUEST CTAs */
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => navigate('/login')}
-                                                className="border border-white text-white hover:bg-white hover:text-black rounded-full text-[11px] px-4 py-1.5 font-bold transition-all"
-                                            >
-                                                Sign in
-                                            </button>
-                                            <button
-                                                onClick={() => navigate('/signup')}
-                                                className="bg-[#0ABF53] text-black hover:bg-[#09aa49] rounded-full text-[11px] px-4 py-1.5 font-black flex items-center gap-1 transition-all"
-                                            >
-                                                <span>Contact us</span>
-                                                <ArrowRight size={13} />
-                                            </button>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        {/* MOBILE HAMBURGER TOGGLE */}
-                        <button
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="lg:hidden p-1.5 rounded-full bg-white/10 border border-white/20 text-white shrink-0"
-                        >
-                            {mobileMenuOpen ? <X size={18} /> : <MenuIcon size={18} />}
-                        </button>
-                    </div>
-
-                    {/* MOBILE SLIDE-OUT MENU */}
+                    {/* ---------- Desktop links ---------- */}
                     <AnimatePresence>
-                        {mobileMenuOpen && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="lg:hidden pt-4 border-t border-white/10 mt-3 space-y-3 text-white"
+                        {expanded && (
+                            <motion.nav
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                aria-label="Main"
+                                className="hidden lg:flex items-center gap-1 text-xs font-bold tracking-wide relative"
                             >
-                                <div className="space-y-1.5">
-                                    {navLinks.map((link, idx) => (
-                                        <a
-                                            key={idx}
-                                            href={link.path}
-                                            onClick={() => {
-                                                setMobileMenuOpen(false);
-                                                navigate(link.path);
-                                            }}
-                                            className="block p-2.5 rounded-xl bg-white/10 border border-white/10 text-xs font-bold text-white hover:border-[#0ABF53]"
-                                        >
-                                            {link.label}
-                                        </a>
-                                    ))}
-                                </div>
+                                {navLinks.map((link, idx) => {
+                                    const Icon = link.icon;
+                                    const isActive = location.pathname === link.path;
+                                    const submenuOpen = activeSubmenu === idx;
 
-                                {!user && (
-                                    <div className="pt-2 border-t border-white/10 grid grid-cols-2 gap-2">
-                                        <button
-                                            onClick={() => navigate('/login')}
-                                            className="border border-white text-white py-2 rounded-full font-bold text-xs w-full"
-                                        >
+                                    return (
+                                        <div key={link.path} className="relative" onMouseEnter={() => setActiveSubmenu(idx)}>
+                                            <Link
+                                                to={link.path}
+                                                aria-current={isActive ? 'page' : undefined}
+                                                aria-expanded={link.subOptions ? submenuOpen : undefined}
+                                                className={`flex items-center gap-1.5 py-1.5 px-3.5 rounded-full transition-all ${
+                                                    isActive || submenuOpen
+                                                        ? 'bg-white text-black font-black shadow-md'
+                                                        : 'text-white hover:bg-white/15'
+                                                }`}
+                                            >
+                                                {Icon && <Icon size={14} aria-hidden="true" />}
+                                                <span>{link.label}</span>
+                                                {link.subOptions && <ChevronDown size={12} aria-hidden="true" />}
+                                            </Link>
+
+                                            <AnimatePresence>
+                                                {submenuOpen && link.subOptions && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                                                        onMouseLeave={() => setActiveSubmenu(null)}
+                                                        className="absolute top-full left-0 mt-3 w-64 p-3 bg-[#0b0d12] border border-white/15 rounded-2xl shadow-2xl z-50 space-y-1"
+                                                    >
+                                                        {link.subOptions.map((sub) => (
+                                                            <Link
+                                                                key={sub.path + sub.label}
+                                                                to={sub.path}
+                                                                onClick={() => setActiveSubmenu(null)}
+                                                                className="block p-2 rounded-xl hover:bg-white/15 transition-colors group"
+                                                            >
+                                                                <span className="block text-xs font-bold text-white group-hover:text-emerald-400">
+                                                                    {sub.label}
+                                                                </span>
+                                                                <span className="block text-[10px] text-slate-400">{sub.desc}</span>
+                                                            </Link>
+                                                        ))}
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    );
+                                })}
+                            </motion.nav>
+                        )}
+                    </AnimatePresence>
+
+                    {/* ---------- Right-hand actions ---------- */}
+                    <AnimatePresence>
+                        {expanded && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="flex items-center gap-2 shrink-0"
+                            >
+                                <ThemeToggle className="hidden sm:block !bg-white/10 !border-white/20" />
+
+                                {user ? (
+                                    <>
+                                        {/* Notifications */}
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setNotificationOpen(v => !v); setProfileOpen(false); }}
+                                                aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
+                                                aria-expanded={notificationOpen}
+                                                className="p-2 rounded-full bg-white/10 border border-white/20 hover:border-white transition-colors relative"
+                                            >
+                                                <Bell size={15} aria-hidden="true" />
+                                                {unreadCount > 0 && (
+                                                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-emerald-400 text-black text-[9px] font-black rounded-full flex items-center justify-center border border-black">
+                                                        {unreadCount > 9 ? '9+' : unreadCount}
+                                                    </span>
+                                                )}
+                                            </button>
+
+                                            <AnimatePresence>
+                                                {notificationOpen && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: 10 }}
+                                                        className="absolute right-0 mt-3 w-80 p-4 shadow-2xl rounded-2xl border border-white/15 bg-[#0b0d12] z-50 space-y-3"
+                                                    >
+                                                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                                                            <span className="text-xs font-black uppercase tracking-wider">Notifications</span>
+                                                            {unreadCount > 0 && (
+                                                                <button onClick={markAllRead} className="text-[10px] text-emerald-400 font-bold hover:underline">
+                                                                    Mark all read
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                            {notifications.length === 0 ? (
+                                                                <p className="text-[11px] text-slate-400 py-6 text-center">
+                                                                    You are all caught up.
+                                                                </p>
+                                                            ) : (
+                                                                notifications.map(n => (
+                                                                    <div
+                                                                        key={n._id}
+                                                                        className={`p-2.5 rounded-xl border space-y-1 ${
+                                                                            n.isRead ? 'bg-white/5 border-white/5' : 'bg-white/10 border-emerald-400/30'
+                                                                        }`}
+                                                                    >
+                                                                        <div className="flex items-center justify-between gap-2">
+                                                                            <span className="text-xs font-bold truncate">{n.title}</span>
+                                                                            <span className="text-[9px] font-mono text-slate-400 shrink-0">
+                                                                                {formatRelative(n.createdAt)}
+                                                                            </span>
+                                                                        </div>
+                                                                        <p className="text-[11px] text-slate-300 leading-tight">{n.message}</p>
+                                                                    </div>
+                                                                ))
+                                                            )}
+                                                        </div>
+                                                        <Link to="/notifications" className="block text-center text-[10px] font-bold text-emerald-400 hover:underline pt-1">
+                                                            View all
+                                                        </Link>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+
+                                        {/* Profile */}
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setProfileOpen(v => !v); setNotificationOpen(false); }}
+                                                aria-label="Account menu"
+                                                aria-expanded={profileOpen}
+                                                className="flex items-center gap-2 p-1 pl-2.5 rounded-full bg-white/10 border border-white/20 hover:border-white transition-all"
+                                            >
+                                                <span className="w-6 h-6 rounded-full bg-emerald-400 text-black font-black text-[11px] flex items-center justify-center">
+                                                    {user.name?.charAt(0).toUpperCase() || 'U'}
+                                                </span>
+                                                <span className="hidden md:inline text-xs font-bold max-w-[120px] truncate">{user.name}</span>
+                                                <ChevronDown size={13} aria-hidden="true" />
+                                            </button>
+
+                                            <AnimatePresence>
+                                                {profileOpen && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: 10 }}
+                                                        className="absolute right-0 mt-3 w-60 p-3 shadow-2xl rounded-2xl border border-white/15 bg-[#0b0d12] z-50 space-y-1"
+                                                    >
+                                                        <div className="px-3 py-2 border-b border-white/10 space-y-0.5">
+                                                            <p className="text-xs font-bold truncate">{user.name}</p>
+                                                            <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
+                                                            <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-emerald-400/15 text-emerald-400 text-[9px] font-black uppercase tracking-wider">
+                                                                {user.role}
+                                                            </span>
+                                                        </div>
+                                                        {QUICK_LINKS.map(({ label, path, icon: Icon }) => (
+                                                            <Link key={path} to={path}
+                                                                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-xs font-semibold transition-colors">
+                                                                <Icon size={14} aria-hidden="true" /> {label}
+                                                            </Link>
+                                                        ))}
+                                                        <button
+                                                            type="button"
+                                                            onClick={onLogout}
+                                                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-rose-500/15 text-xs font-semibold text-rose-400 transition-colors"
+                                                        >
+                                                            <LogOut size={14} aria-hidden="true" /> Sign out
+                                                        </button>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="hidden sm:flex items-center gap-2">
+                                        <Link to="/login" className="px-4 py-1.5 rounded-full border border-white/40 text-[11px] font-bold hover:bg-white/10 transition-all">
                                             Sign in
-                                        </button>
-                                        <button
-                                            onClick={() => navigate('/signup')}
-                                            className="bg-[#0ABF53] text-black py-2 rounded-full font-black text-xs w-full"
-                                        >
-                                            Get Started
-                                        </button>
+                                        </Link>
+                                        <Link to="/signup" className="px-4 py-1.5 rounded-full bg-emerald-400 text-black text-[11px] font-black hover:bg-emerald-300 transition-all">
+                                            Get started
+                                        </Link>
                                     </div>
                                 )}
+
+                                {/* Mobile toggle */}
+                                <button
+                                    type="button"
+                                    onClick={() => setMobileMenuOpen(v => !v)}
+                                    aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                                    aria-expanded={mobileMenuOpen}
+                                    className="lg:hidden p-1.5 rounded-full bg-white/10 border border-white/20 shrink-0"
+                                >
+                                    {mobileMenuOpen ? <X size={18} /> : <MenuIcon size={18} />}
+                                </button>
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </motion.div>
-            </div>
-        </>
+
+                    {/* Collapsed state still needs a way into the menu on mobile. */}
+                    {!expanded && (
+                        <button
+                            type="button"
+                            onClick={() => setMobileMenuOpen(true)}
+                            aria-label="Open menu"
+                            className="lg:hidden p-1.5 rounded-full bg-white/10 border border-white/20 shrink-0"
+                        >
+                            <MenuIcon size={18} />
+                        </button>
+                    )}
+                </div>
+
+                {/* ---------- Mobile menu ---------- */}
+                <AnimatePresence>
+                    {mobileMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="lg:hidden pt-4 border-t border-white/10 mt-3 space-y-3 overflow-hidden"
+                        >
+                            <nav aria-label="Mobile" className="space-y-1.5">
+                                {/* These were <a href> with an onClick that never called
+                                    preventDefault, so every tap did a FULL PAGE RELOAD. */}
+                                {navLinks.map(link => (
+                                    <React.Fragment key={link.path}>
+                                        <Link
+                                            to={link.path}
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="flex items-center gap-2 p-2.5 rounded-xl bg-white/10 border border-white/10 text-xs font-bold hover:border-emerald-400 transition-colors"
+                                        >
+                                            {link.icon && <link.icon size={14} aria-hidden="true" />}
+                                            {link.label}
+                                        </Link>
+                                        {link.subOptions?.map(sub => (
+                                            <Link
+                                                key={sub.path + sub.label}
+                                                to={sub.path}
+                                                onClick={() => setMobileMenuOpen(false)}
+                                                className="block pl-9 pr-2.5 py-2 rounded-xl text-[11px] font-semibold text-slate-300 hover:bg-white/10 transition-colors"
+                                            >
+                                                {sub.label}
+                                            </Link>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                            </nav>
+
+                            {/* Signed-in users previously got NO links here at all — the
+                                mobile menu only rendered auth buttons for guests. */}
+                            {user ? (
+                                <div className="pt-2 border-t border-white/10 space-y-1.5">
+                                    {QUICK_LINKS.map(({ label, path, icon: Icon }) => (
+                                        <Link key={path} to={path} onClick={() => setMobileMenuOpen(false)}
+                                              className="flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-white/10">
+                                            <Icon size={14} aria-hidden="true" /> {label}
+                                        </Link>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => { setMobileMenuOpen(false); onLogout?.(); }}
+                                        className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10"
+                                    >
+                                        <LogOut size={14} aria-hidden="true" /> Sign out
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="pt-2 border-t border-white/10 grid grid-cols-2 gap-2">
+                                    <Link to="/login" onClick={() => setMobileMenuOpen(false)}
+                                          className="border border-white text-center py-2 rounded-full font-bold text-xs">
+                                        Sign in
+                                    </Link>
+                                    <Link to="/signup" onClick={() => setMobileMenuOpen(false)}
+                                          className="bg-emerald-400 text-black text-center py-2 rounded-full font-black text-xs">
+                                        Get started
+                                    </Link>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.div>
+        </div>
     );
 }
