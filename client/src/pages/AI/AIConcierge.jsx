@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { Sparkles, Send, FileText, Calendar, DollarSign, ArrowRight, Bot, User, Cpu } from 'lucide-react';
+import { Sparkles, Send, FileText, Calendar, DollarSign, ArrowRight, Bot, User, Cpu, Check, X, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { parseAssistantReply, describeAction, buildEventPayload, ACTION_TYPES } from '../../utils/aiActions';
 
 export default function AIConcierge() {
     const navigate = useNavigate();
+    const { user } = useSelector((state) => state.auth);
+    const canCreateServices = ['provider', 'admin'].includes(user?.role);
     const [activeTab, setActiveTab] = useState('chat');
     const [loading, setLoading] = useState(false);
 
@@ -14,6 +18,7 @@ export default function AIConcierge() {
     const [chatHistory, setChatHistory] = useState([
         { role: 'bot', text: 'Hello! I am Smartie, your AI Concierge. How can I help you plan, structure or budget your event today?' }
     ]);
+    const [actionBusy, setActionBusy] = useState(null);
 
     // RFP state
     const [rfpQuery, setRfpQuery] = useState('');
@@ -34,15 +39,49 @@ export default function AIConcierge() {
 
         try {
             const res = await axios.post('/ai/query', { query: userMsg.text });
-            if (res.data.success) {
-                setChatHistory(prev => [...prev, { role: 'bot', text: res.data.data.reply }]);
-            }
+            // Strip the machine-readable [ACTION_*] block out of the visible
+            // text and surface it as a confirmation card instead.
+            const { text, action } = parseAssistantReply(res.data.data.reply || '');
+            // Creating a service requires the provider role; offering the
+            // button to a customer would only produce a 403.
+            const allowed = action?.type === ACTION_TYPES.EVENT_CREATE ? canCreateServices : Boolean(action);
+            setChatHistory(prev => [...prev, { role: 'bot', text, action: allowed ? action : null }]);
         } catch (err) {
-            console.error(err);
-            toast.error('Failed to query AI Concierge.');
+            toast.error(err.response?.data?.message || 'Smartie is unavailable right now.');
         } finally {
             setLoading(false);
         }
+    };
+
+    /** Carries out an action the assistant proposed, once the user confirms. */
+    const runAction = async (action, msgIndex) => {
+        setActionBusy(msgIndex);
+        try {
+            if (action.type === ACTION_TYPES.EVENT_CREATE) {
+                const res = await axios.post('/events', buildEventPayload(action.payload));
+                toast.success(`Created "${res.data.data.title}".`);
+                setChatHistory(prev => prev.map((m, i) =>
+                    i === msgIndex ? { ...m, action: null, actionResult: 'Service created.' } : m
+                ));
+            } else if (action.type === ACTION_TYPES.REPORT_GENERATE) {
+                const res = await axios.post('/ai/query', {
+                    query: `Generate a ${action.payload.timeframe || 'monthly'} performance report covering ${(action.payload.metrics || ['revenue', 'bookings']).join(', ')}.`
+                });
+                const { text } = parseAssistantReply(res.data.data.reply || '');
+                setChatHistory(prev => [
+                    ...prev.map((m, i) => (i === msgIndex ? { ...m, action: null } : m)),
+                    { role: 'bot', text },
+                ]);
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not complete that action.');
+        } finally {
+            setActionBusy(null);
+        }
+    };
+
+    const dismissAction = (msgIndex) => {
+        setChatHistory(prev => prev.map((m, i) => (i === msgIndex ? { ...m, action: null } : m)));
     };
 
     const handleRfpSubmit = async (e) => {
@@ -122,16 +161,76 @@ export default function AIConcierge() {
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs font-semibold">
-                                {chatHistory.map((msg, idx) => (
-                                    <div key={idx} className={`flex gap-3 max-w-[80%] ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}>
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-indigo-100 text-indigo-700' : 'bg-[#0ABF53]/15 text-[#0ABF53]'}`}>
-                                            {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
+                                {chatHistory.map((msg, idx) => {
+                                    const described = describeAction(msg.action);
+                                    return (
+                                        <div key={idx} className={`flex flex-col gap-2 max-w-[85%] ${msg.role === 'user' ? 'ml-auto items-end' : ''}`}>
+                                            <div className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-brand/10 text-brand' : 'bg-success/15 text-success'}`}>
+                                                    {msg.role === 'user' ? <User size={14} aria-hidden="true" /> : <Bot size={14} aria-hidden="true" />}
+                                                </div>
+                                                <div className={`p-3.5 rounded-2xl border leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-brand/5 border-brand/20 text-fg' : 'bg-surface-2 border-border text-fg'}`}>
+                                                    {msg.text}
+                                                </div>
+                                            </div>
+
+                                            {msg.actionResult && (
+                                                <p className="ml-11 text-[11px] font-bold text-success flex items-center gap-1">
+                                                    <Check size={12} aria-hidden="true" /> {msg.actionResult}
+                                                </p>
+                                            )}
+
+                                            {/* Smartie proposed a concrete action — require explicit confirmation
+                                                before it touches the user's data. */}
+                                            {described && (
+                                                <div className="ml-11 p-4 rounded-2xl bg-brand/5 border border-brand/25 space-y-3 w-full">
+                                                    <div>
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-brand">
+                                                            {described.heading}
+                                                        </p>
+                                                        <p className="text-sm font-bold text-fg mt-1">{described.summary}</p>
+                                                        {described.details.map((d) => (
+                                                            <p key={d} className="text-[11px] text-muted">{d}</p>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            type="button"
+                                                            disabled={actionBusy === idx}
+                                                            onClick={() => runAction(msg.action, idx)}
+                                                            className="px-3 py-2 rounded-lg bg-brand text-white text-[11px] font-black flex items-center gap-1.5 disabled:opacity-50"
+                                                        >
+                                                            {actionBusy === idx
+                                                                ? <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+                                                                : <Check size={12} aria-hidden="true" />}
+                                                            {described.confirmLabel}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => dismissAction(idx)}
+                                                            className="px-3 py-2 rounded-lg bg-surface-2 border border-border text-[11px] font-bold text-muted hover:text-fg flex items-center gap-1.5"
+                                                        >
+                                                            <X size={12} aria-hidden="true" /> Not now
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className={`p-3.5 rounded-2xl border leading-relaxed ${msg.role === 'user' ? 'bg-indigo-50/20 border-indigo-100 text-indigo-900' : 'bg-slate-50 border-slate-100 text-slate-700'}`}>
-                                            {msg.text}
+                                    );
+                                })}
+
+                                {loading && (
+                                    <div className="flex gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center shrink-0">
+                                            <Bot size={14} aria-hidden="true" />
+                                        </div>
+                                        <div className="p-3.5 rounded-2xl border border-border bg-surface-2 flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: '0ms' }} />
+                                            <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: '120ms' }} />
+                                            <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: '240ms' }} />
                                         </div>
                                     </div>
-                                ))}
+                                )}
                             </div>
 
                             <form onSubmit={handleChatSubmit} className="p-4 border-t border-slate-100 flex gap-2">
