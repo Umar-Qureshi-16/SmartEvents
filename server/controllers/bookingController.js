@@ -78,6 +78,12 @@ exports.rejectBooking = asyncHandler(async (req, res, next) => {
     res.json({ success: true, data: booking, message: 'Booking rejected.' });
 });
 
+exports.raiseDispute = asyncHandler(async (req, res, next) => {
+    const { reason } = req.body;
+    const booking = await bookingService.raiseDispute(req.params.id, reason, req.user.id);
+    res.json({ success: true, data: booking, message: 'Dispute raised. An administrator will review it.' });
+});
+
 exports.cancelBooking = asyncHandler(async (req, res, next) => {
     const booking = await bookingService.updateStatus(req.params.id, 'cancelled', req.user.id);
     res.json({ success: true, data: booking, message: 'Booking cancelled.' });

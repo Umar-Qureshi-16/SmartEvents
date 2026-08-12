@@ -187,6 +187,49 @@ class BookingService {
         return booking;
     }
 
+    /**
+     * Raises a dispute on a confirmed booking. The 'disputed' status and the
+     * admin resolution endpoint already existed, but nothing could ever put a
+     * booking into that state — this closes the loop.
+     */
+    async raiseDispute(bookingId, reason, userId) {
+        const booking = await Booking.findById(bookingId);
+        if (!booking) throw new NotFoundError('Booking not found.');
+
+        const isParty =
+            booking.customerId.toString() === userId ||
+            booking.vendorId.toString() === userId;
+        if (!isParty) throw new ForbiddenError('You are not a party to this booking.');
+
+        if (!['confirmed', 'completed'].includes(booking.status)) {
+            throw new ConflictError('Only a confirmed or completed booking can be disputed.');
+        }
+
+        booking.status = 'disputed';
+        booking.negotiationHistory.push({
+            price: booking.offerPrice,
+            message: `Dispute raised: ${reason}`,
+            action: 'counter',
+            offeredBy: userId
+        });
+        await booking.save();
+
+        const targetId = userId === booking.customerId.toString() ? booking.vendorId : booking.customerId;
+
+        await notificationService.createNotification({
+            recipient: targetId,
+            title: 'Dispute Raised',
+            message: `A dispute has been opened on booking #${booking._id}. An administrator will review it.`,
+            type: 'booking',
+            relatedId: booking._id,
+            priority: 'high'
+        });
+
+        socketManager.emitToRoom(bookingId.toString(), 'dispute-raised', { bookingId, reason });
+
+        return booking;
+    }
+
     async updateStatus(bookingId, status, userId) {
         const booking = await Booking.findById(bookingId);
         if (!booking) throw new NotFoundError('Booking not found.');

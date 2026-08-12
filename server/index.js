@@ -82,7 +82,35 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/tickets', ticketRoutes);
 
+// Liveness / readiness probe. Also backs the SuperAdmin health panel.
+app.get('/api/v1/health', (req, res) => {
+    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    const mem = process.memoryUsage();
+    res.json({
+        success: true,
+        data: {
+            status: mongoose.connection.readyState === 1 ? 'healthy' : 'degraded',
+            uptimeSeconds: Math.round(process.uptime()),
+            database: states[mongoose.connection.readyState] || 'unknown',
+            memory: {
+                heapUsedMb: +(mem.heapUsed / 1024 / 1024).toFixed(1),
+                heapTotalMb: +(mem.heapTotal / 1024 / 1024).toFixed(1),
+                rssMb: +(mem.rss / 1024 / 1024).toFixed(1)
+            },
+            nodeVersion: process.version,
+            environment: process.env.NODE_ENV || 'development',
+            timestamp: new Date().toISOString()
+        }
+    });
+});
+
 const { errorHandler } = require('./middleware/errors');
+
+// 404 for unmatched API routes — otherwise these fall through to the error
+// handler as an opaque failure.
+app.use('/api', (req, res) => {
+    res.status(404).json({ success: false, message: `Route not found: ${req.method} ${req.originalUrl}` });
+});
 
 // Global Error Handler
 app.use(errorHandler);

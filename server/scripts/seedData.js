@@ -118,17 +118,24 @@ async function seedData() {
 
             // If confirmed or completed, generate a ticket
             if (data.status === 'confirmed' || data.status === 'completed') {
-                const ticketNumber = `TICK-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-                const qrContent = JSON.stringify({ ticketNumber, bookingId: booking._id, role: 'ATTENDEE' });
-                const qrCode = await QRCode.toDataURL(qrContent);
+                const ticketNumber = `TKT-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+                const qrCodeData = JSON.stringify({
+                    ticketNumber,
+                    eventId: data.eventId,
+                    attendeeId: data.customerId,
+                    issuedAt: new Date().toISOString()
+                });
 
                 await Ticket.create({
                     bookingId: booking._id,
                     event: data.eventId,
                     attendee: data.customerId,
                     ticketNumber,
-                    qrCode,
-                    status: data.status === 'completed' ? 'used' : 'valid'
+                    qrCodeData,
+                    ticketType: 'General',
+                    price: data.amount,
+                    status: data.status === 'completed' ? 'checked_in' : 'active',
+                    checkInTime: data.status === 'completed' ? new Date() : null
                 });
             }
         }

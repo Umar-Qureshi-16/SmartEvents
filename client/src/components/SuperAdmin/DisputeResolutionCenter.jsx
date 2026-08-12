@@ -1,56 +1,131 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Gavel, MessageSquare, Image as ImageIcon, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Gavel, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 
-const DisputeResolutionCenter = ({ disputes = [] }) => {
+const money = (n) => `$${Number(n || 0).toLocaleString()}`;
+
+/**
+ * Mediation portal for disputed bookings.
+ * Resolves through PUT /admin/bookings/:id/resolve-dispute.
+ */
+const DisputeResolutionCenter = ({ disputes = [], onResolve, busyId }) => {
+    const [confirming, setConfirming] = useState(null); // { id, resolution }
+
+    const label = (r) => (r === 'refunded_customer' ? 'refund the customer' : 'release funds to the provider');
+
     return (
         <div className="glass p-8 rounded-3xl border-white/5 space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                        <Gavel className="text-amber-400" size={20} /> Resolution Hub
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1">Mediation portal for high-stakes service conflicts</p>
-                </div>
+            <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Gavel className="text-amber-400" size={20} /> Resolution Hub
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                    Mediation for bookings escalated by either party
+                </p>
             </div>
 
             <div className="grid grid-cols-1 gap-6">
                 {disputes.length === 0 ? (
-                    <div className="p-12 text-center rounded-3xl border border-dashed border-white/10 opacity-30">
-                        <CheckCircle size={48} className="mx-auto mb-4" />
-                        <h4 className="text-white font-bold">No Active Escalations</h4>
-                        <p className="text-xs">System entropy is minimal at this node.</p>
+                    <div className="p-12 text-center rounded-3xl border border-dashed border-white/10 text-slate-500">
+                        <CheckCircle size={48} className="mx-auto mb-4 opacity-40" />
+                        <h4 className="text-white font-bold">No open disputes</h4>
+                        <p className="text-xs mt-1">Escalated bookings will appear here for review.</p>
                     </div>
                 ) : (
-                    disputes.map((d, i) => (
-                        <div key={i} className="p-6 rounded-3xl bg-white/5 border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 group hover:border-white/10 transition-all">
-                            <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400">
-                                    <AlertTriangle size={24} />
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-white uppercase tracking-tight">{d.reason || 'Service Non-compliance'}</h4>
-                                    <p className="text-xs text-muted-foreground">Case ID: {d._id || 'D-900'} • Level: {d.severity || 'Medium'}</p>
-                                    <div className="flex gap-2 mt-3">
-                                        <button className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 text-[9px] font-bold text-slate-400 hover:text-white transition-all border border-white/5">
-                                            <MessageSquare size={10} /> Chat History
-                                        </button>
-                                        <button className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 text-[9px] font-bold text-slate-400 hover:text-white transition-all border border-white/5">
-                                            <ImageIcon size={10} /> Evidence
-                                        </button>
+                    disputes.map((d) => {
+                        const reason = [...(d.negotiationHistory || [])]
+                            .reverse()
+                            .find(h => h.message?.startsWith('Dispute raised:'))?.message
+                            ?.replace('Dispute raised:', '')
+                            .trim();
+                        const isBusy = busyId === d._id;
+                        const isConfirming = confirming?.id === d._id;
+
+                        return (
+                            <div
+                                key={d._id}
+                                className="p-6 rounded-3xl bg-white/5 border border-white/5 flex flex-col gap-5 hover:border-white/10 transition-all"
+                            >
+                                <div className="flex flex-col md:flex-row justify-between gap-6">
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-12 h-12 shrink-0 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                                            <AlertTriangle size={24} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h4 className="font-bold text-white">
+                                                {d.eventId?.title || d.eventDetails?.eventType || 'Custom booking'}
+                                            </h4>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Case <span className="font-mono">{d._id}</span> · {money(d.offerPrice)}
+                                            </p>
+                                            <p className="text-xs text-slate-400 mt-2">
+                                                <span className="text-indigo-400 font-semibold">{d.customerId?.name || 'Customer'}</span>
+                                                {' vs '}
+                                                <span className="text-emerald-400 font-semibold">{d.vendorId?.name || 'Provider'}</span>
+                                                {d.vendorId?.trustScore != null && (
+                                                    <span className="text-slate-500"> · provider trust {d.vendorId.trustScore}</span>
+                                                )}
+                                            </p>
+                                            {reason && (
+                                                <p className="text-sm text-slate-300 mt-3 p-3 rounded-xl bg-black/20 border border-white/5">
+                                                    “{reason}”
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
+
+                                    {!isConfirming && (
+                                        <div className="flex gap-3 shrink-0 h-fit">
+                                            <button
+                                                type="button"
+                                                disabled={isBusy}
+                                                onClick={() => setConfirming({ id: d._id, resolution: 'refunded_customer' })}
+                                                className="px-4 py-3 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-all border border-rose-500/20 text-xs font-bold flex items-center gap-2 disabled:opacity-40"
+                                            >
+                                                <XCircle size={16} /> Refund customer
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={isBusy}
+                                                onClick={() => setConfirming({ id: d._id, resolution: 'released_vendor' })}
+                                                className="px-4 py-3 rounded-xl bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-40"
+                                            >
+                                                <CheckCircle size={16} /> Release to provider
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {isConfirming && (
+                                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <p className="text-xs text-amber-200">
+                                            This will <strong>{label(confirming.resolution)}</strong> and cannot be undone.
+                                        </p>
+                                        <div className="flex gap-2 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfirming(null)}
+                                                className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:bg-white/10"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={isBusy}
+                                                onClick={async () => {
+                                                    await onResolve?.(d._id, confirming.resolution);
+                                                    setConfirming(null);
+                                                }}
+                                                className="px-4 py-2 rounded-lg bg-amber-500 text-black text-xs font-black flex items-center gap-2 disabled:opacity-50"
+                                            >
+                                                {isBusy && <Loader2 size={12} className="animate-spin" />}
+                                                Confirm
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <div className="flex gap-3 w-full md:w-auto">
-                                <button className="flex-1 md:flex-none p-3 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-all border border-rose-500/20">
-                                    <XCircle size={20} />
-                                </button>
-                                <button className="flex-1 md:flex-none p-3 rounded-xl bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
-                                    Resolve Case
-                                </button>
-                            </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
         </div>

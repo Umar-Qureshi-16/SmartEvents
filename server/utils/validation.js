@@ -26,16 +26,35 @@ const eventSchema = z.object({
     status: z.enum(['upcoming', 'ongoing', 'completed', 'cancelled']).default('upcoming').optional()
 });
 
+// A booking may target an event listing OR a vendor directly. The service has
+// always supported both, but this schema used to require eventId, making the
+// vendor-direct path unreachable through the API.
 const bookingCreateSchema = z.object({
-    eventId: z.string().min(24, "Invalid Event ID").max(24),
-    offerPrice: z.preprocess((val) => Number(val), z.number().min(0, "Offer price cannot be negative")),
-    message: z.string().optional(),
-    note: z.string().optional()
+    eventId: z.string().length(24, "Invalid Event ID").optional(),
+    vendorId: z.string().length(24, "Invalid Vendor ID").optional(),
+    serviceId: z.string().length(24, "Invalid Service ID").optional(),
+    offerPrice: z.preprocess((val) => Number(val), z.number().positive("Offer price must be greater than zero")),
+    message: z.string().max(500).optional(),
+    note: z.string().max(500).optional(),
+    eventDetails: z.object({
+        eventType: z.string().min(2),
+        date: z.string().or(z.date()),
+        location: z.string().min(2),
+        budget: z.preprocess((v) => (v === undefined || v === '' ? undefined : Number(v)), z.number().min(0).optional()),
+        message: z.string().max(500).optional()
+    }).optional()
+}).refine(d => d.eventId || d.vendorId, {
+    message: "Either eventId or vendorId is required",
+    path: ["eventId"]
 });
 
 const negotiateSchema = z.object({
-    price: z.preprocess((val) => Number(val), z.number().min(0, "Price cannot be negative")),
-    message: z.string().optional()
+    price: z.preprocess((val) => Number(val), z.number().positive("Price must be greater than zero")),
+    message: z.string().max(500, "Note cannot exceed 500 characters").optional()
+});
+
+const disputeSchema = z.object({
+    reason: z.string().min(10, "Please describe the issue in at least 10 characters").max(1000)
 });
 
 const requestCreateSchema = z.object({
@@ -114,6 +133,7 @@ module.exports = {
     eventSchema,
     bookingCreateSchema,
     negotiateSchema,
+    disputeSchema,
     requestCreateSchema,
     vendorProfileSchema,
     reviewCreateSchema,

@@ -2,88 +2,198 @@ const User = require('../models/User');
 const Event = require('../models/Event');
 const Booking = require('../models/Booking');
 const AuditLog = require('../models/AuditLog');
-exports.getUsers = async (req, res, next) => {
+const { asyncHandler } = require('../middleware/errors');
+const { BadRequestError, NotFoundError } = require('../utils/AppError');
+
+/**
+ * Records a governance action. Previously only superadmin actions were
+ * audited, so admin bans, role changes, and dispute rulings left no trace.
+ */
+const audit = async (req, { action, targetType, targetId, severity = 'info', metadata }) => {
     try {
-        const users = await User.find().select('-password');
-        res.json({ success: true, data: users });
-    } catch (error) {
-        next(error);
+        await AuditLog.create({
+            action,
+            actor: req.user.id,
+            targetType,
+            targetId,
+            severity,
+            metadata,
+            ipAddress: req.ip,
+            userAgent: req.get('user-agent')
+        });
+    } catch (err) {
+        // Never fail the operation because the audit write failed.
+        console.error('Audit log write failed:', err.message);
     }
 };
 
-exports.getStats = async (req, res, next) => {
-    try {
-        const totalUsers = await User.countDocuments();
-        const totalEvents = await Event.countDocuments();
-        const totalBookings = await Booking.countDocuments();
-        res.json({ success: true, data: { totalUsers, totalEvents, totalBookings } });
-    } catch (error) {
-        next(error);
+exports.getUsers = asyncHandler(async (req, res) => {
+    const { role, status, search } = req.query;
+    const query = {};
+    if (role) query.role = role;
+    if (status) query.status = status;
+    if (search) {
+        query.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } }
+        ];
     }
-};
 
-exports.updateUserRole = async (req, res, next) => {
-    try {
-        const { role } = req.body;
-        const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true });
-        res.json({ success: true, data: user, message: 'User role updated.' });
-    } catch (error) {
-        next(error);
-    }
-};
+    const users = await User.find(query).select('-password').sort({ createdAt: -1 }).lean();
+    res.json({ success: true, data: users });
+});
 
-exports.banUser = async (req, res, next) => {
-    try {
-        const { status } = req.body; // 'active', 'restricted', 'banned'
-        const user = await User.findByIdAndUpdate(req.params.id, { status }, { new: true });
-        res.json({ success: true, data: user, message: `User status set to ${status}.` });
-    } catch (error) {
-        next(error);
-    }
-};
+exports.getStats = asyncHandler(async (req, res) => {
+    const [totalUsers, totalEvents, totalBookings, confirmedBookings, revenueAgg] = await Promise.all([
+        User.countDocuments(),
+        Event.countDocuments(),
+        Booking.countDocuments(),
+        Booking.countDocuments({ status: { $in: ['confirmed', 'completed'] } }),
+        Booking.aggregate([
+            { $match: { status: { $in: ['confirmed', 'completed'] } } },
+            { $group: { _id: null, total: { $sum: '$offerPrice' } } }
+        ])
+    ]);
 
-exports.getAuditLogs = async (req, res, next) => {
-    try {
-        const logs = await AuditLog.find().populate('actor', 'name email').sort({ createdAt: -1 });
-        res.json({ success: true, data: logs });
-    } catch (error) {
-        next(error);
-    }
-};
-
-exports.verifyVendor = async (req, res, next) => {
-    try {
-        const { verified } = req.body;
-        const user = await User.findByIdAndUpdate(
-            req.params.id,
-            { 'businessDetails.verified': verified },
-            { new: true }
-        );
-        res.json({ success: true, data: user, message: verified ? 'Vendor verified successfully.' : 'Vendor verification revoked.' });
-    } catch (error) {
-        next(error);
-    }
-};
-
-exports.resolveDispute = async (req, res, next) => {
-    try {
-        const { resolution } = req.body;
-        if (!['refunded_customer', 'released_vendor'].includes(resolution)) {
-            return res.status(400).json({ success: false, message: 'Invalid resolution outcome' });
+    res.json({
+        success: true,
+        data: {
+            totalUsers,
+            totalEvents,
+            totalBookings,
+            confirmedBookings,
+            totalRevenue: revenueAgg[0]?.total || 0
         }
+    });
+});
 
-        const booking = await Booking.findById(req.params.id);
-        if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+exports.updateUserRole = asyncHandler(async (req, res) => {
+    const { role } = req.body;
 
-        booking.status = resolution === 'refunded_customer' ? 'cancelled' : 'completed';
-        booking.disputeOutcome = resolution;
-        await booking.save();
-
-        const { recalculateTrustScore } = require('../services/trustScoreService');
-        await recalculateTrustScore(booking.vendorId);
-
-        res.json({ success: true, data: booking, message: 'Dispute resolved successfully' });
-    } catch (error) {
-        next(error);
+    if (!['customer', 'provider', 'admin', 'superadmin'].includes(role)) {
+        throw new BadRequestError('Invalid role.');
     }
-};
+    // Only a superadmin may mint another superadmin.
+    if (role === 'superadmin' && req.user.role !== 'superadmin') {
+        throw new BadRequestError('Only a superadmin can grant superadmin access.');
+    }
+
+    const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
+    if (!user) throw new NotFoundError('User not found.');
+
+    await audit(req, {
+        action: 'USER_ROLE_CHANGED',
+        targetType: 'user',
+        targetId: user._id,
+        severity: 'critical',
+        metadata: { newRole: role }
+    });
+
+    res.json({ success: true, data: user, message: `${user.name} is now a ${role}.` });
+});
+
+exports.banUser = asyncHandler(async (req, res) => {
+    const { status } = req.body; // 'active' | 'restricted' | 'banned'
+
+    if (!['active', 'restricted', 'banned'].includes(status)) {
+        throw new BadRequestError("status must be one of: active, restricted, banned.");
+    }
+    if (req.params.id === req.user.id) {
+        throw new BadRequestError('You cannot change your own account status.');
+    }
+
+    const user = await User.findByIdAndUpdate(req.params.id, { status }, { new: true }).select('-password');
+    if (!user) throw new NotFoundError('User not found.');
+
+    await audit(req, {
+        action: `USER_${status.toUpperCase()}`,
+        targetType: 'user',
+        targetId: user._id,
+        severity: status === 'active' ? 'info' : 'critical'
+    });
+
+    res.json({ success: true, data: user, message: `${user.name} is now ${status}.` });
+});
+
+exports.getAuditLogs = asyncHandler(async (req, res) => {
+    const limit = Math.min(Number(req.query.limit) || 100, 500);
+    const logs = await AuditLog.find()
+        .populate('actor', 'name email')
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean();
+    res.json({ success: true, data: logs });
+});
+
+exports.verifyVendor = asyncHandler(async (req, res) => {
+    const { verified } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+        req.params.id,
+        { 'businessDetails.verified': Boolean(verified) },
+        { new: true }
+    ).select('-password');
+    if (!user) throw new NotFoundError('User not found.');
+
+    await audit(req, {
+        action: verified ? 'VENDOR_VERIFIED' : 'VENDOR_UNVERIFIED',
+        targetType: 'user',
+        targetId: user._id,
+        severity: 'warning'
+    });
+
+    res.json({
+        success: true,
+        data: user,
+        message: verified ? 'Vendor verified successfully.' : 'Vendor verification revoked.'
+    });
+});
+
+exports.resolveDispute = asyncHandler(async (req, res) => {
+    const { resolution } = req.body;
+
+    if (!['refunded_customer', 'released_vendor'].includes(resolution)) {
+        throw new BadRequestError('resolution must be refunded_customer or released_vendor.');
+    }
+
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) throw new NotFoundError('Booking not found.');
+    if (booking.status !== 'disputed') {
+        throw new BadRequestError('This booking is not under dispute.');
+    }
+
+    booking.status = resolution === 'refunded_customer' ? 'cancelled' : 'completed';
+    booking.disputeOutcome = resolution;
+    if (resolution === 'refunded_customer') booking.cancelledBy = booking.vendorId;
+    await booking.save();
+
+    const { recalculateTrustScore } = require('../services/trustScoreService');
+    await recalculateTrustScore(booking.vendorId);
+
+    // Tell both parties how it was decided.
+    const notificationService = require('../services/notificationService');
+    const outcomeText = resolution === 'refunded_customer'
+        ? 'resolved in the customer\'s favour — the booking has been cancelled and refunded.'
+        : 'resolved in the provider\'s favour — the booking has been marked complete.';
+
+    await Promise.allSettled([booking.customerId, booking.vendorId].map(recipient =>
+        notificationService.createNotification({
+            recipient,
+            title: 'Dispute Resolved',
+            message: `Your dispute has been ${outcomeText}`,
+            type: 'booking',
+            relatedId: booking._id,
+            priority: 'high'
+        })
+    ));
+
+    await audit(req, {
+        action: 'DISPUTE_RESOLVED',
+        targetType: 'booking',
+        targetId: booking._id,
+        severity: 'critical',
+        metadata: { resolution }
+    });
+
+    res.json({ success: true, data: booking, message: 'Dispute resolved successfully.' });
+});

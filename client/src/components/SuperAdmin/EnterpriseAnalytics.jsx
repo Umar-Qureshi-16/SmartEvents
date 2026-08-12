@@ -1,18 +1,17 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { BarChart3, TrendingUp, Users, DollarSign } from 'lucide-react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { BarChart3, Download } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 
-const data = [
-    { name: 'Jan', revenue: 4000, bookings: 24 },
-    { name: 'Feb', revenue: 3000, bookings: 18 },
-    { name: 'Mar', revenue: 2000, bookings: 12 },
-    { name: 'Apr', revenue: 2780, bookings: 20 },
-    { name: 'May', revenue: 1890, bookings: 15 },
-    { name: 'Jun', revenue: 2390, bookings: 17 },
-];
+const money = (n) => `$${Number(n || 0).toLocaleString()}`;
 
-const EnterpriseAnalytics = () => {
+/**
+ * Platform revenue pipeline.
+ * Previously shipped with a hardcoded six-month array; now driven by
+ * GET /super-admin/revenue-series and GET /super-admin/stats.
+ */
+const EnterpriseAnalytics = ({ series = [], stats = {}, onExport }) => {
+    const hasData = series.some(d => d.revenue > 0 || d.bookings > 0);
+
     return (
         <div className="glass p-8 rounded-3xl border-white/5 space-y-10">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -20,52 +19,68 @@ const EnterpriseAnalytics = () => {
                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
                         <BarChart3 className="text-indigo-400" size={20} /> Revenue Pipeline
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1">Consolidated monthly yield across all service clusters</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Confirmed and completed bookings over the last six months
+                    </p>
                 </div>
-                <div className="flex gap-4">
-                    <button className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-bold text-white hover:bg-white/10 transition-all uppercase tracking-widest">
-                        Export CSV
-                    </button>
-                    <button className="px-4 py-2 rounded-xl grad-primary text-[10px] font-bold text-white shadow-lg shadow-indigo-500/20 active:scale-95 transition-all uppercase tracking-widest">
-                        Download PDF
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    onClick={() => onExport?.(series)}
+                    disabled={!hasData}
+                    className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-bold text-white hover:bg-white/10 transition-all uppercase tracking-widest flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                    <Download size={12} /> Export CSV
+                </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <MiniStat label="Total Volume" value="$24,500" trend="+12.4%" />
-                <MiniStat label="Active nodes" value="1,240" trend="+5.2%" />
-                <MiniStat label="Retention" value="94.2%" trend="+0.8%" />
-                <MiniStat label="Avg. Ticket" value="$1,200" trend="-2.1%" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <MiniStat label="Gross Volume" value={money(stats.revenue)} />
+                <MiniStat label="Registered Users" value={(stats.totalUsers ?? 0).toLocaleString()} />
+                <MiniStat label="Closed Deals" value={(stats.closedDeals ?? 0).toLocaleString()} />
+                <MiniStat label="Avg. Deal Value" value={money(stats.averageDealValue)} />
             </div>
 
             <div className="h-[300px] w-full pt-6">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                        <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={10} axisLine={false} tickLine={false} />
-                        <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} axisLine={false} tickLine={false} />
-                        <Tooltip
-                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }}
-                        />
-                        <Bar dataKey="revenue" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={40} />
-                    </BarChart>
-                </ResponsiveContainer>
+                {!hasData ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-white/10 gap-3">
+                        <BarChart3 size={40} className="text-slate-600" />
+                        <div>
+                            <p className="text-sm font-bold text-white">No confirmed revenue yet</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Revenue appears here once bookings are accepted.
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={series}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={10} axisLine={false} tickLine={false} />
+                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} axisLine={false} tickLine={false} />
+                            <Tooltip
+                                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                                contentStyle={{
+                                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '16px'
+                                }}
+                                formatter={(value, name) => [name === 'revenue' ? money(value) : value, name]}
+                            />
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                            <Bar dataKey="revenue" name="Revenue" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={32} />
+                            <Bar dataKey="bookings" name="Bookings" fill="#10B981" radius={[6, 6, 0, 0]} barSize={32} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                )}
             </div>
         </div>
     );
 };
 
-const MiniStat = ({ label, value, trend }) => (
+const MiniStat = ({ label, value }) => (
     <div className="space-y-1">
         <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-tighter">{label}</p>
-        <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-white">{value}</span>
-            <span className={`text-[10px] font-bold ${trend.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {trend}
-            </span>
-        </div>
+        <span className="text-2xl font-black text-white">{value}</span>
     </div>
 );
 
