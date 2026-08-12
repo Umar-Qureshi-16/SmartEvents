@@ -58,7 +58,7 @@ export default function About() {
             </div>
 
             {/* Vision Section */}
-            <div className="adyen-card bg-[#111827] text-fg p-8 md:p-12 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="bg-slate-900 text-white p-8 md:p-12 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-8">
                 <div className="space-y-4 max-w-xl">
                     <span className="text-xs font-mono font-bold text-success uppercase tracking-widest">OUR VISION</span>
                     <h2 className="text-3xl font-extrabold tracking-tight text-fg">Trust, Transparency, & Safety</h2>

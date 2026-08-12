@@ -247,7 +247,7 @@ export default function VendorProfilePage({ user }) {
 
             {/* Negotiation Offer Modal */}
             {bookingModalOpen && selectedService && (
-                <div className="fixed inset-0 z-50 bg-[#111827]/40 flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
                     <div className="adyen-card max-w-md w-full bg-surface p-6 border border-border rounded-3xl space-y-4 shadow-2xl">
                         <h3 className="text-base font-bold text-fg">InDrive Negotiation Quote</h3>
                         <p className="text-[11px] text-muted font-semibold">Service: {selectedService.title}</p>

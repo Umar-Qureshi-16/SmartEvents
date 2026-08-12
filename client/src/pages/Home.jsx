@@ -38,13 +38,15 @@ function Home({ user }) {
         return () => observer.disconnect();
     }, []);
 
-    // Featured vendors
-    const featuredVendors = [
-        { id: 'fv-1', businessName: 'Grand Hyatt Ballroom', category: 'venue', rating: 4.95, reviewsCount: 312, location: 'Chicago, IL', price: 2500, image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80', trustScore: 98 },
-        { id: 'fv-2', businessName: 'Gourmet Royale Catering', category: 'catering', rating: 4.92, reviewsCount: 184, location: 'New York, NY', price: 120, image: 'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=600&q=80', trustScore: 96 },
-        { id: 'fv-3', businessName: 'Aura Light & Sound AV', category: 'music', rating: 4.88, reviewsCount: 96, location: 'Miami, FL', price: 1500, image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80', trustScore: 94 },
-        { id: 'fv-4', businessName: 'Capture Film Co.', category: 'photography', rating: 4.97, reviewsCount: 142, location: 'Los Angeles, CA', price: 800, image: 'https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&w=600&q=80', trustScore: 99 }
-    ];
+    // Featured vendors, pulled from the real directory. These were four
+    // hardcoded businesses with stock photography, which meant the landing
+    // page advertised providers that do not exist on the platform.
+    const [featuredVendors, setFeaturedVendors] = useState([]);
+    useEffect(() => {
+        axios.get('/vendor/list', { params: { limit: 4 } })
+            .then(res => setFeaturedVendors(res.data.data || []))
+            .catch(() => setFeaturedVendors([]));
+    }, []);
 
     // FAQ state
     const [openFaqIdx, setOpenFaqIdx] = useState(null);
@@ -225,7 +227,7 @@ function Home({ user }) {
                             <motion.div
                                 animate={{ y: [0, -8, 0] }}
                                 transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                                className="adyen-card p-4 bg-[#111827] text-fg border border-border shadow-2xl relative z-10 flex items-center justify-between"
+                                className="p-4 bg-slate-900 text-white border border-white/10 rounded-3xl shadow-2xl relative z-10 flex items-center justify-between"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-fg/10 flex items-center justify-center text-success">
@@ -247,7 +249,7 @@ function Home({ user }) {
             </section>
 
             {/* 2. TRUST / STATS BAR */}
-            <section ref={statsRef} className="py-16 px-6 bg-[#111827] text-fg">
+            <section ref={statsRef} className="py-16 px-6 bg-slate-900 text-white">
                 <div className="max-w-[1280px] mx-auto grid grid-cols-2 md:grid-cols-5 gap-8 text-center">
                     <div className="space-y-2">
                         <div className="text-3xl md:text-5xl font-black text-success font-mono">
@@ -383,7 +385,7 @@ function Home({ user }) {
                                 <ChevronLeft size={16} />
                             </button>
                             <button
-                                onClick={() => setCarouselIndex(Math.min(featuredVendors.length - 2, carouselIndex + 1))}
+                                onClick={() => setCarouselIndex(Math.min(Math.max(0, featuredVendors.length - 2), carouselIndex + 1))}
                                 className="p-2.5 rounded-full bg-surface border border-border hover:border-success text-fg shadow-sm transition-colors"
                             >
                                 <ChevronRight size={16} />
@@ -399,13 +401,13 @@ function Home({ user }) {
                         >
                             {featuredVendors.map((vendor) => (
                                 <div
-                                    key={vendor.id}
-                                    onClick={() => navigate(`/vendor/${vendor.id}`)}
+                                    key={vendor._id}
+                                    onClick={() => navigate(`/vendor/${vendor.userId?._id || vendor.userId}`)}
                                     className="w-[280px] shrink-0 adyen-card bg-surface border border-border rounded-3xl overflow-hidden cursor-pointer hover:border-success shadow-sm transition-all"
                                 >
-                                    <div className="h-40 overflow-hidden relative">
-                                        <img src={vendor.image} alt={vendor.businessName} className="w-full h-full object-cover" />
-                                        <span className="absolute top-3 right-3 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#111827]/80 text-fg">
+                                    <div className="h-40 overflow-hidden relative grad-primary flex items-center justify-center">
+                                        <span className="text-5xl font-black text-white/90">{vendor.businessName?.charAt(0)}</span>
+                                        <span className="absolute top-3 right-3 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-900/80 text-white">
                                             Trust: {vendor.trustScore}%
                                         </span>
                                     </div>
@@ -414,7 +416,7 @@ function Home({ user }) {
                                         <h4 className="text-base font-bold text-fg truncate">{vendor.businessName}</h4>
                                         <div className="flex items-center justify-between text-xs font-semibold">
                                             <span className="text-muted">{vendor.location}</span>
-                                            <span className="text-success font-bold">{vendor.rating} ★</span>
+                                            <span className="text-success font-bold">{vendor.rating ? `${vendor.rating.toFixed(1)} ★` : 'New'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -425,7 +427,7 @@ function Home({ user }) {
             </section>
 
             {/* 6. AI CONCIERGE TEASER SECTION */}
-            <section className="py-24 px-6 bg-[#111827] text-fg overflow-hidden relative border-b border-border">
+            <section className="py-24 px-6 bg-slate-900 text-white overflow-hidden relative border-b border-white/10">
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0ABF53]/10 to-transparent pointer-events-none blur-3xl" />
                 <div className="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                     
@@ -617,7 +619,7 @@ function Home({ user }) {
             </section>
 
             {/* 11. FULL-SITEMAP FOOTER */}
-            <footer className="bg-[#111827] py-16 px-6 text-xs text-muted">
+            <footer className="bg-slate-900 py-16 px-6 text-xs text-slate-400">
                 <div className="max-w-[1280px] mx-auto space-y-12">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
                         <div className="space-y-3">

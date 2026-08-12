@@ -103,7 +103,7 @@ const ForgotPassword = () => {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full bg-amber-500 text-[#050505] py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+                                className="w-full bg-warning text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
                             >
                                 {isLoading ? (
                                     <Loader2 className="animate-spin" size={20} />

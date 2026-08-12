@@ -111,7 +111,7 @@ export default function TicketWallet({ user }) {
             {/* Selected Ticket Drawer / Modal */}
             <AnimatePresence>
                 {selectedTicket && (
-                    <div className="fixed inset-0 z-50 bg-[#111827]/40 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}

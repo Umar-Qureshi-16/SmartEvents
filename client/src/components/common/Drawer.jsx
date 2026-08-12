@@ -24,7 +24,7 @@ export default function Drawer({ isOpen, onClose, title, children }) {
                     >
                         <div className="flex items-center justify-between border-b border-border pb-3">
                             <h3 className="text-lg font-bold text-fg">{title}</h3>
-                            <button onClick={onClose} className="p-1 rounded-full text-muted hover:text-black"
+                            <button onClick={onClose} className="p-1 rounded-full text-muted hover:text-fg"
                                 aria-label="Close panel">
                                 <X size={20} />
                             </button>

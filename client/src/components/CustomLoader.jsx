@@ -53,7 +53,7 @@ const CustomLoader = () => {
     return (
         <div
             ref={loaderRef}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950 text-fg overflow-hidden"
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950 text-white overflow-hidden"
         >
             {/* Ambient Background Particles */}
             {[...Array(20)].map((_, i) => (

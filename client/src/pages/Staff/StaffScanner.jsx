@@ -116,8 +116,8 @@ export default function StaffScanner({ user }) {
                     {scanResult && (
                         <div className={`adyen-card p-6 rounded-3xl border flex items-start gap-4 ${
                             scanResult.valid 
-                                ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
-                                : 'bg-rose-50 border-rose-200 text-rose-800'
+                                ? 'bg-success/10 border-success/30 text-success' 
+                                : 'bg-danger/10 border-danger/30 text-danger'
                         }`}>
                             <div className="space-y-2">
                                 <h4 className="text-lg font-black uppercase tracking-tight">{scanResult.message}</h4>

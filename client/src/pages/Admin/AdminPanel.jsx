@@ -49,10 +49,16 @@ export default function AdminPanel({ user }) {
                     vendor: b.vendorId?.name || 'Vendor',
                     amount: b.offerPrice,
                     status: b.status,
+                    // Evidence is drawn from the real negotiation thread. This
+                    // previously attached a stock photograph as "evidence",
+                    // which would be indefensible in an actual dispute review.
                     evidence: {
-                        images: ['https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=400&q=80'],
-                        chatHistory: b.negotiationHistory?.map(h => `${h.offeredBy === b.customerId?._id ? 'Customer' : 'Vendor'}: ${h.message || 'Counter price suggested'}`).join('\n') || 'No messages.',
-                        contract: `Contract for booking ID #${b._id}`
+                        chatHistory: b.negotiationHistory?.length
+                            ? b.negotiationHistory
+                                .map(h => `${h.offeredBy === (b.customerId?._id || b.customerId) ? 'Customer' : 'Provider'}: $${h.price}${h.message ? ` — ${h.message}` : ''}`)
+                                .join('\n')
+                            : 'No negotiation history recorded.',
+                        contract: `Booking reference #${b._id}`
                     }
                 }));
                 setDisputesList(disputes);
@@ -131,7 +137,7 @@ export default function AdminPanel({ user }) {
         { header: 'Trust Score', cell: (row) => {
             if (row.role !== 'provider') return <span className="text-muted font-bold">-</span>;
             const score = row.trustScore ?? 100;
-            const badgeColor = score >= 80 ? 'text-emerald-600 bg-emerald-50/50' : score >= 50 ? 'text-amber-600 bg-amber-50/50' : 'text-rose-600 bg-rose-50/50';
+            const badgeColor = score >= 80 ? 'text-success bg-success/10' : score >= 50 ? 'text-warning bg-warning/10' : 'text-danger bg-danger/10';
             return (
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border border-current ${badgeColor}`}>
                     {score}%

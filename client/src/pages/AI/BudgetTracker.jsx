@@ -182,7 +182,7 @@ export default function BudgetTracker() {
 
                             {/* Warnings Alert */}
                             {report.warnings?.length > 0 && (
-                                <div className="adyen-card p-6 bg-rose-50 border border-rose-100 space-y-3">
+                                <div className="adyen-card p-6 bg-danger/10 border border-danger/25 space-y-3">
                                     <h4 className="text-xs font-black text-rose-800 uppercase tracking-wider flex items-center gap-1.5">
                                         <AlertTriangle size={15} />
                                         <span>Warnings & Cost Adjustments</span>

@@ -80,6 +80,10 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
+      - name: Theme safety check
+        working-directory: client
+        run: npm run theme:lint
+
       - name: Build
         working-directory: client
         run: npm run build

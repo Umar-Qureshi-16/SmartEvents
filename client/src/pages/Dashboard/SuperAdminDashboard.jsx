@@ -253,7 +253,7 @@ export default function SuperAdminDashboard({ user }) {
                                 className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap flex items-center gap-2 transition-all border ${
                                     active
                                         ? 'bg-indigo-500 text-white border-indigo-400 shadow-lg shadow-indigo-500/20'
-                                        : 'bg-fg/5 text-muted border-border hover:bg-surface/10 hover:text-white'
+                                        : 'bg-fg/5 text-muted border-border hover:bg-fg/10 hover:text-fg'
                                 }`}
                             >
                                 <Icon size={14} /> {label}
@@ -294,7 +294,7 @@ export default function SuperAdminDashboard({ user }) {
     );
 }
 
-const Kpi = ({ icon: Icon, label, value, sub, tone = 'text-white' }) => (
+const Kpi = ({ icon: Icon, label, value, sub, tone = 'text-fg' }) => (
     <div className="glass p-5 rounded-3xl border-border space-y-2">
         <div className="flex items-center gap-2 text-muted">
             <Icon size={14} aria-hidden="true" />

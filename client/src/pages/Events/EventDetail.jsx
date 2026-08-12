@@ -95,7 +95,7 @@ const EventDetail = () => {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-[#030712] pt-24 pb-20 px-6 animate-pulse">
+        <div className="min-h-screen bg-bg pt-24 pb-20 px-6 animate-pulse">
             <div className="max-w-6xl mx-auto space-y-12">
                 <div className="w-32 h-6 bg-fg/5 rounded-md"></div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
@@ -148,7 +148,7 @@ const EventDetail = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#030712] text-fg pt-24 pb-20 px-6">
+        <div className="min-h-screen bg-bg text-fg pt-24 pb-20 px-6">
             <div className="max-w-6xl mx-auto space-y-12">
                 <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-muted hover:text-fg transition-colors group">
                     <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
@@ -307,7 +307,7 @@ const EventDetail = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="w-full max-w-lg glass bg-[#0f172a] rounded-3xl border border-border p-8 shadow-2xl relative"
+                            className="w-full max-w-lg bg-surface rounded-3xl border border-border p-8 shadow-2xl relative"
                         >
                             <button
                                 onClick={() => setIsModalOpen(false)}

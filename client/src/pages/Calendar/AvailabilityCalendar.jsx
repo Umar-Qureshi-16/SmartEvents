@@ -157,7 +157,7 @@ export default function AvailabilityCalendar() {
                                             onClick={() => toggleDate(day.date)}
                                             className={`h-24 p-2 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
                                                 isBlocked 
-                                                    ? 'bg-rose-50 border-rose-200 text-rose-800 hover:bg-rose-100'
+                                                    ? 'bg-danger/10 border-danger/30 text-danger hover:bg-danger/20'
                                                     : day.isCurrentMonth
                                                         ? 'bg-surface border-border hover:border-success'
                                                         : 'bg-surface-2 border-border text-muted hover:border-slate-300'
