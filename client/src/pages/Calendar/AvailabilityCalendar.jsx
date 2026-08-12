@@ -122,10 +122,12 @@ export default function AvailabilityCalendar() {
                                 {monthNames[month]} {year}
                             </h3>
                             <div className="flex items-center gap-2">
-                                <button onClick={prevMonth} className="p-2 border border-border rounded-xl hover:bg-surface-2 transition-colors">
+                                <button onClick={prevMonth} className="p-2 border border-border rounded-xl hover:bg-surface-2 transition-colors"
+                                aria-label="Previous month">
                                     <ArrowLeft size={16} />
                                 </button>
-                                <button onClick={nextMonth} className="p-2 border border-border rounded-xl hover:bg-surface-2 transition-colors">
+                                <button onClick={nextMonth} className="p-2 border border-border rounded-xl hover:bg-surface-2 transition-colors"
+                                aria-label="Next month">
                                     <ArrowRight size={16} />
                                 </button>
                             </div>

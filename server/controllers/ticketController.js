@@ -1,6 +1,28 @@
+const QRCode = require('qrcode');
 const Ticket = require('../models/Ticket');
 const Event = require('../models/Event');
 const notificationService = require('../services/notificationService');
+
+/**
+ * Renders the scannable pass as a data URI.
+ *
+ * The wallet previously fell back to fetching QR images from a third-party
+ * service (api.qrserver.com), which leaked ticket numbers off-platform and
+ * broke wherever that host was unreachable — including a venue gate with poor
+ * connectivity, which is exactly where it is needed.
+ */
+async function renderQr(ticket) {
+    try {
+        return await QRCode.toDataURL(ticket.ticketNumber, {
+            errorCorrectionLevel: 'M',
+            margin: 1,
+            width: 320,
+        });
+    } catch (err) {
+        console.error('QR render failed:', err.message);
+        return null;
+    }
+}
 
 exports.purchaseTicket = async (req, res) => {
     try {
@@ -46,7 +68,7 @@ exports.purchaseTicket = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            data: newTicket,
+            data: { ...newTicket.toObject(), qrCode: await renderQr(newTicket) },
             message: 'Ticket registered successfully'
         });
     } catch (err) {
@@ -59,9 +81,16 @@ exports.getMyTickets = async (req, res) => {
     try {
         const tickets = await Ticket.find({ attendee: req.user.id })
             .populate('event')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
-        res.json({ success: true, data: tickets });
+        // Attach a rendered QR to each pass so the wallet needs no external
+        // service to display it.
+        const withQr = await Promise.all(
+            tickets.map(async (t) => ({ ...t, qrCode: await renderQr(t) }))
+        );
+
+        res.json({ success: true, data: withQr });
     } catch (err) {
         console.error('Fetch Tickets Error:', err);
         res.status(500).json({ success: false, message: 'Server error fetching tickets' });

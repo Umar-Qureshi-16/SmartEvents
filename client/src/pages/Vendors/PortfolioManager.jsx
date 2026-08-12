@@ -174,7 +174,8 @@ export default function PortfolioManager() {
                                 onChange={(e) => setNewImageUrl(e.target.value)}
                                 className="flex-1 bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
                             />
-                            <button type="submit" className="btn-adyen-primary p-2.5 rounded-xl shadow-glow">
+                            <button type="submit" className="btn-adyen-primary p-2.5 rounded-xl shadow-glow"
+                                aria-label="Add portfolio image">
                                 <Plus size={16} />
                             </button>
                         </form>

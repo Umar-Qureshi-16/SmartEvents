@@ -129,7 +129,8 @@ export default function BudgetTracker() {
                                 onChange={(e) => setNewItem({ ...newItem, cost: e.target.value })}
                                 className="w-24 bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
                             />
-                            <button type="submit" className="p-2.5 bg-success text-white rounded-xl">
+                            <button type="submit" className="p-2.5 bg-success text-white rounded-xl"
+                                aria-label="Add budget item">
                                 <Plus size={16} />
                             </button>
                         </form>

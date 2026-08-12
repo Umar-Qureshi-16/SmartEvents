@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  server:
+    name: Server — tests
+    runs-on: ubuntu-latest
+
+    services:
+      # A real mongod is far quicker than downloading a standalone binary,
+      # and tests/setup.js prefers it when reachable.
+      mongodb:
+        image: mongo:7
+        ports: ['27017:27017']
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Run tests
+        working-directory: server
+        run: npm test
+        env:
+          NODE_ENV: test
+          MONGO_TEST_URI: mongodb://127.0.0.1:27017/smartevents_test
+          MONGODB_URI: mongodb://127.0.0.1:27017/smartevents_test
+          JWT_SECRET: ci-secret-not-used-outside-continuous-integration
+
+      - name: Verify the server boots
+        working-directory: server
+        run: |
+          node -e "
+            const createApp = require('./app');
+            createApp();
+            console.log('App builds and all routers mount cleanly.');
+          "
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://127.0.0.1:27017/smartevents_test
+          JWT_SECRET: ci-secret-not-used-outside-continuous-integration
+
+  client:
+    name: Client — lint and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Lint
+        working-directory: client
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build
+        working-directory: client
+        run: npm run build
+
+      - name: Check bundle size
+        working-directory: client
+        run: |
+          MAIN=$(find dist/assets -name 'index-*.js' | head -1)
+          SIZE=$(stat -c%s "$MAIN")
+          echo "Main chunk: $((SIZE / 1024)) kB"
+          # Guards against a regression that reintroduces a monolithic bundle.
+          if [ "$SIZE" -gt 700000 ]; then
+            echo "::error::Main chunk exceeded 700 kB — check that route splitting still applies."
+            exit 1
+          fi

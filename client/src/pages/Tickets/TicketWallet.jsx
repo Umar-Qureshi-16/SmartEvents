@@ -29,35 +29,9 @@ export default function TicketWallet({ user }) {
         fetchTickets();
     }, []);
 
-    // Fallback mock tickets to ensure beautiful UI if DB has no registrations yet
-    const displayTickets = tickets.length > 0 ? tickets : [
-        {
-            _id: 't1',
-            ticketNumber: 'TKT-DEMO-VIP-101',
-            passTier: 'VIP Premium Pass',
-            status: 'valid',
-            event: {
-                title: 'Global Tech Summit & Developer Expo 2026',
-                date: '2026-08-18T10:00:00.000Z',
-                location: 'Javits Center, New York, NY'
-            },
-            qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=TKT-DEMO-VIP-101'
-        },
-        {
-            _id: 't2',
-            ticketNumber: 'TKT-DEMO-GEN-842',
-            passTier: 'General Admission Pass',
-            status: 'valid',
-            event: {
-                title: 'Apex Summer EDM & Lights Music Fest',
-                date: '2026-09-05T18:00:00.000Z',
-                location: 'Bayfront Park, Miami, FL'
-            },
-            qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=TKT-DEMO-GEN-842'
-        }
-    ];
-
-    const filteredTickets = displayTickets.filter(t =>
+    // The wallet previously fell back to two invented demo tickets when the
+    // database returned nothing, so an empty wallet looked populated.
+    const filteredTickets = tickets.filter(t =>
         t.event?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -160,8 +134,8 @@ export default function TicketWallet({ user }) {
 
                             <div className="bg-surface-2 p-6 rounded-2xl border border-border flex flex-col items-center justify-center space-y-4">
                                 <img
-                                    src={selectedTicket.qrCode || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${selectedTicket.ticketNumber}`}
-                                    alt="QR Code"
+                                    src={selectedTicket.qrCode}
+                                    alt={`QR pass for ticket ${selectedTicket.ticketNumber}`}
                                     className="w-44 h-44 bg-surface p-2 rounded-xl shadow-sm border border-border"
                                 />
                                 <div className="text-center">

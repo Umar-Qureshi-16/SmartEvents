@@ -243,7 +243,8 @@ export default function AIConcierge() {
                                     onChange={(e) => setChatQuery(e.target.value)}
                                     className="flex-1 bg-bg border border-border rounded-xl px-4 py-3 outline-none focus:border-success text-xs"
                                 />
-                                <button type="submit" disabled={loading} className="btn-adyen-primary p-3 rounded-xl shadow-glow">
+                                <button type="submit" disabled={loading} className="btn-adyen-primary p-3 rounded-xl shadow-glow"
+                                aria-label="Send message">
                                     <Send size={16} />
                                 </button>
                             </form>

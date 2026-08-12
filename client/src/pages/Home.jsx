@@ -663,7 +663,8 @@ function Home({ user }) {
                                     placeholder="Work email"
                                     className="bg-surface-2 border border-border rounded-full px-3.5 py-2 text-xs text-fg placeholder-slate-500 outline-none w-full"
                                 />
-                                <button className="p-2 bg-success text-white rounded-full">
+                                <button className="p-2 bg-success text-white rounded-full"
+                                aria-label="Subscribe">
                                     <Mail size={14} />
                                 </button>
                             </div>
