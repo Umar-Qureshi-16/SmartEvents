@@ -1,40 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import DynamicNavbar from './components/layout/DynamicNavbar';
+
+// Eager: the entry points a first-time visitor lands on.
 import Home from './pages/Home';
 import Login from './pages/Auth/Login';
 import Signup from './pages/Auth/Signup';
-import ForgotPassword from './pages/Auth/ForgotPassword';
-import ResetPassword from './pages/Auth/ResetPassword';
-import Inspiration from './pages/Inspiration';
-import Contact from './pages/Contact';
-import Dashboard from './pages/Dashboard/Dashboard';
-import Revenue from './pages/Revenue/Revenue';
-import Bookings from './pages/Bookings/Bookings';
-import Services from './pages/Services/Services';
-import Leads from './pages/Leads/Leads';
-import TicketWallet from './pages/Tickets/TicketWallet';
-import StaffScanner from './pages/Staff/StaffScanner';
-import ExploreEvents from './pages/Events/ExploreEvents';
-import EventDetail from './pages/Events/EventDetail';
-import VendorMarketplace from './pages/Vendors/VendorMarketplace';
-import VendorProfilePage from './pages/Vendors/VendorProfilePage';
-import HowItWorks from './pages/Public/HowItWorks';
-import PricingPasses from './pages/Public/PricingPasses';
-import About from './pages/Public/About';
-import AdminPanel from './pages/Admin/AdminPanel';
-import AttendeeDashboard from './pages/Attendee/AttendeeDashboard';
-import Settings from './pages/Settings/Settings';
-import NegotiationPage from './pages/Bookings/NegotiationPage';
-import AvailabilityCalendar from './pages/Calendar/AvailabilityCalendar';
-import Notifications from './pages/Notifications/Notifications';
-import BudgetTracker from './pages/AI/BudgetTracker';
-import AIConcierge from './pages/AI/AIConcierge';
-import Favorites from './pages/Favorites/Favorites';
-import PortfolioManager from './pages/Vendors/PortfolioManager';
-import ProviderReviews from './pages/Reviews/ProviderReviews';
+import NotFound from './pages/NotFound';
+
+/*
+ * Everything else is route-split. The production bundle was a single 1.18 MB
+ * chunk, so every visitor downloaded the admin console, the governance
+ * widgets, Recharts and GSAP before the homepage could paint.
+ *
+ * The heaviest leaves are grouped deliberately: Recharts is pulled in by
+ * Revenue, BudgetTracker and the SuperAdmin console, so those share a chunk
+ * rather than duplicating it.
+ */
+const ForgotPassword       = lazy(() => import('./pages/Auth/ForgotPassword'));
+const ResetPassword        = lazy(() => import('./pages/Auth/ResetPassword'));
+const Inspiration          = lazy(() => import('./pages/Inspiration'));
+const Contact              = lazy(() => import('./pages/Contact'));
+const Dashboard            = lazy(() => import('./pages/Dashboard/Dashboard'));
+const Revenue              = lazy(() => import('./pages/Revenue/Revenue'));
+const Bookings             = lazy(() => import('./pages/Bookings/Bookings'));
+const Services             = lazy(() => import('./pages/Services/Services'));
+const Leads                = lazy(() => import('./pages/Leads/Leads'));
+const TicketWallet         = lazy(() => import('./pages/Tickets/TicketWallet'));
+const StaffScanner         = lazy(() => import('./pages/Staff/StaffScanner'));
+const ExploreEvents        = lazy(() => import('./pages/Events/ExploreEvents'));
+const EventDetail          = lazy(() => import('./pages/Events/EventDetail'));
+const VendorMarketplace    = lazy(() => import('./pages/Vendors/VendorMarketplace'));
+const VendorProfilePage    = lazy(() => import('./pages/Vendors/VendorProfilePage'));
+const HowItWorks           = lazy(() => import('./pages/Public/HowItWorks'));
+const PricingPasses        = lazy(() => import('./pages/Public/PricingPasses'));
+const About                = lazy(() => import('./pages/Public/About'));
+const AdminPanel           = lazy(() => import('./pages/Admin/AdminPanel'));
+const Settings             = lazy(() => import('./pages/Settings/Settings'));
+const NegotiationPage      = lazy(() => import('./pages/Bookings/NegotiationPage'));
+const AvailabilityCalendar = lazy(() => import('./pages/Calendar/AvailabilityCalendar'));
+const Notifications        = lazy(() => import('./pages/Notifications/Notifications'));
+const BudgetTracker        = lazy(() => import('./pages/AI/BudgetTracker'));
+const AIConcierge          = lazy(() => import('./pages/AI/AIConcierge'));
+const Favorites            = lazy(() => import('./pages/Favorites/Favorites'));
+const PortfolioManager     = lazy(() => import('./pages/Vendors/PortfolioManager'));
+const ProviderReviews      = lazy(() => import('./pages/Reviews/ProviderReviews'));
+
 import './feature-styles.css';
 import './gallery-styles.css';
 import './mega-menu.css';
@@ -49,7 +62,16 @@ import { setCredentials, logout } from './store/slices/authSlice';
 import axios from './api/axios';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
-import NotFound from './pages/NotFound';
+
+/** Shown for the moment a route's chunk is being fetched. */
+function RouteFallback() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
+      <span className="sr-only">Loading page…</span>
+      <span className="w-8 h-8 border-2 border-brand/25 border-t-brand rounded-full animate-spin" />
+    </div>
+  );
+}
 
 function App() {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
@@ -116,6 +138,8 @@ function App() {
             <div className="w-full min-h-screen bg-bg text-fg pt-20">
               <main id="main-content" className="relative z-10 h-full">
                 <AnimatePresence mode="wait">
+                  {/* Lazy routes need a boundary while their chunk loads. */}
+                  <Suspense fallback={<RouteFallback />}>
                   <Routes location={location} key={location.pathname}>
                     {/* ---------- Public ---------- */}
                     <Route path="/" element={user ? <Dashboard user={user} /> : <Home user={user} />} />
@@ -166,6 +190,7 @@ function App() {
 
                     <Route path="*" element={<NotFound />} />
                   </Routes>
+                  </Suspense>
                 </AnimatePresence>
               </main>
             </div>
