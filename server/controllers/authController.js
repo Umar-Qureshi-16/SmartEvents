@@ -81,6 +81,57 @@ exports.logout = asyncHandler(async (req, res) => {
     res.json({ success: true, message: 'Identity terminated from active session.' });
 });
 
+/**
+ * Contact form.
+ *
+ * The page previously ran a setTimeout and told the user "our team will get
+ * back to you" without sending anything anywhere.
+ */
+exports.submitContact = asyncHandler(async (req, res, next) => {
+    const { name, email, subject, message } = req.body;
+    const { sendEmail } = require('../services/mailService');
+
+    const destination = env.MAIL_FROM || 'support@smartevents.local';
+    const escape = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    let delivered = false;
+    try {
+        await sendEmail(
+            destination,
+            `[Contact] ${escape(subject)}`,
+            `<h3>New enquiry from the contact form</h3>
+             <p><strong>From:</strong> ${escape(name)} &lt;${escape(email)}&gt;</p>
+             <p><strong>Subject:</strong> ${escape(subject)}</p>
+             <hr />
+             <p>${escape(message).replace(/\n/g, '<br />')}</p>`
+        );
+        delivered = true;
+    } catch (err) {
+        // The enquiry is still logged so it is not lost if SMTP is unconfigured.
+        console.error('Contact email failed to send:', err.message);
+    }
+
+    console.log(`[CONTACT] ${name} <${email}> — ${subject}: ${message.slice(0, 200)}`);
+
+    res.json({
+        success: true,
+        message: delivered
+            ? 'Thanks for getting in touch. We will reply to you by email.'
+            : 'Thanks for getting in touch. Your message has been recorded.',
+    });
+});
+
+exports.updateProfile = asyncHandler(async (req, res, next) => {
+    const user = await authService.updateProfile(req.user.id, req.body);
+    res.json({ success: true, user, message: 'Your profile has been updated.' });
+});
+
+exports.changePassword = asyncHandler(async (req, res, next) => {
+    const { currentPassword, newPassword } = req.body;
+    await authService.changePassword(req.user.id, currentPassword, newPassword);
+    res.json({ success: true, message: 'Your password has been changed.' });
+});
+
 exports.getFavorites = asyncHandler(async (req, res, next) => {
     const User = require('../models/User');
     const VendorProfile = require('../models/VendorProfile');

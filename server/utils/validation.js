@@ -115,6 +115,23 @@ const validate = (schema) => (req, res, next) => {
     next();
 };
 
+const updateProfileSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters").max(50).optional(),
+    email: z.string().email("Invalid email address").optional()
+}).refine(d => d.name || d.email, { message: "Provide a name or an email to update" });
+
+const changePasswordSchema = z.object({
+    currentPassword: z.string().min(1, "Your current password is required"),
+    newPassword: z.string().min(8, "New password must be at least 8 characters")
+});
+
+const contactSchema = z.object({
+    name: z.string().min(2, "Name is required").max(80),
+    email: z.string().email("A valid email is required"),
+    subject: z.string().min(3, "Subject is required").max(150),
+    message: z.string().min(10, "Please write at least 10 characters").max(2000)
+});
+
 const forgotPasswordSchema = z.object({
     email: z.string().email("Invalid email address")
 });
@@ -142,5 +159,8 @@ module.exports = {
     reviewCreateSchema,
     forgotPasswordSchema,
     resetPasswordSchema,
+    updateProfileSchema,
+    changePasswordSchema,
+    contactSchema,
     validate
 };

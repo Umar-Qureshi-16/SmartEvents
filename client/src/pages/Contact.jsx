@@ -1,81 +1,120 @@
-import { useNavigate } from 'react-router-dom';
 import React, { useState } from 'react';
+import { Mail, MapPin, MessageSquare, Send, CheckCircle2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
-function Contact() {
-    const navigate = useNavigate();
-    const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
+import axios from '../api/axios';
+import { Button, Card, Badge, Input, Textarea } from '../components/ui';
 
-    const handleSubmit = (e) => {
+/**
+ * Contact form.
+ *
+ * The previous version ran a setTimeout and told the user "our team will get
+ * back to you" without sending anything anywhere. It also used inline styles
+ * with hardcoded hex colours, so it ignored the theme entirely.
+ */
+export default function Contact() {
+    const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
+    const [errors, setErrors] = useState({});
+    const [submitting, setSubmitting] = useState(false);
+    const [sent, setSent] = useState(false);
+
+    const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }));
+
+    const validate = () => {
+        const e = {};
+        if (form.name.trim().length < 2) e.name = 'Please tell us your name.';
+        if (!/^\S+@\S+\.\S+$/.test(form.email)) e.email = 'Enter a valid email address.';
+        if (form.subject.trim().length < 3) e.subject = 'Please add a subject.';
+        if (form.message.trim().length < 10) e.message = 'Please write at least 10 characters.';
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsSubmitting(true);
-        // Simulate API call for FYP
-        setTimeout(() => {
-            setIsSubmitting(false);
-            setSuccessMessage("Thank you for reaching out! Our team will get back to you shortly.");
-            setFormData({ name: '', email: '', subject: '', message: '' });
-        }, 1500);
+        if (!validate()) return;
+
+        setSubmitting(true);
+        try {
+            const res = await axios.post('/auth/contact', {
+                name: form.name.trim(),
+                email: form.email.trim(),
+                subject: form.subject.trim(),
+                message: form.message.trim(),
+            });
+            setSent(true);
+            toast.success(res.data.message || 'Message sent.');
+            setForm({ name: '', email: '', subject: '', message: '' });
+        } catch (err) {
+            const data = err.response?.data;
+            if (data?.errors?.length) setErrors(Object.fromEntries(data.errors.map(x => [x.path, x.message])));
+            toast.error(data?.message || 'Could not send your message. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
-        <div style={{ maxWidth: '800px', margin: '40px auto', padding: '0 20px', fontFamily: 'Inter, sans-serif' }}>
-            <h1 style={{ fontSize: '2.5rem', color: '#0f172a', marginBottom: '10px', textAlign: 'center' }}>Get In Touch</h1>
-            <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '40px', fontSize: '1.1rem' }}>
-                Have questions about our AI matching or want to partner with us? Send us a message.
-            </p>
+        <div className="min-h-screen bg-bg text-fg p-6 max-w-3xl mx-auto space-y-8">
+            <header className="text-center space-y-3">
+                <Badge tone="brand">Get in touch</Badge>
+                <h1 className="text-4xl md:text-5xl font-black tracking-tight">Contact us</h1>
+                <p className="text-sm text-muted max-w-xl mx-auto">
+                    Questions about negotiating on SmartEvents, listing your services, or
+                    partnering with us? Send a message and we will reply by email.
+                </p>
+            </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '40px' }}>
-                <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                    <h3 style={{ color: '#1e293b', marginBottom: '20px' }}>Contact Information</h3>
-                    <div style={{ marginBottom: '15px' }}>
-                        <strong style={{ display: 'block', color: '#4f46e5', marginBottom: '5px' }}>📍 Headquarters</strong>
-                        <span style={{ color: '#475569' }}>DHA Phase 5, Main Boulevard<br />Lahore, Pakistan</span>
-                    </div>
-                    <div style={{ marginBottom: '15px' }}>
-                        <strong style={{ display: 'block', color: '#4f46e5', marginBottom: '5px' }}>📧 Email Us</strong>
-                        <span style={{ color: '#475569' }}>support@smartevents.fyp</span>
-                    </div>
-                    <div>
-                        <strong style={{ display: 'block', color: '#4f46e5', marginBottom: '5px' }}>📞 Call Us</strong>
-                        <span style={{ color: '#475569' }}>+92 300 1234567</span>
-                    </div>
-                </div>
-
-                <div style={{ background: '#ffffff', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0' }}>
-                    {successMessage ? (
-                        <div style={{ padding: '20px', background: '#dcfce3', color: '#166534', borderRadius: '8px', textAlign: 'center', fontWeight: '500' }}>
-                            ✅ {successMessage}
-                        </div>
-                    ) : (
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            <div style={{ display: 'flex', gap: '15px' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', marginBottom: '5px', color: '#334155', fontWeight: '600', fontSize: '0.9rem' }}>Full Name</label>
-                                    <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} placeholder="John Doe" />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', marginBottom: '5px', color: '#334155', fontWeight: '600', fontSize: '0.9rem' }}>Email Address</label>
-                                    <input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} placeholder="john@example.com" />
-                                </div>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px', color: '#334155', fontWeight: '600', fontSize: '0.9rem' }}>Subject</label>
-                                <input type="text" required value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} placeholder="How can we help?" />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px', color: '#334155', fontWeight: '600', fontSize: '0.9rem' }}>Message</label>
-                                <textarea required value={formData.message} onChange={e => setFormData({ ...formData, message: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', minHeight: '120px', resize: 'vertical', outline: 'none' }} placeholder="Type your message here..."></textarea>
-                            </div>
-                            <button type="submit" disabled={isSubmitting} style={{ padding: '14px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '1rem', cursor: isSubmitting ? 'not-allowed' : 'pointer', transition: 'background 0.2s' }}>
-                                {isSubmitting ? 'Sending Message...' : 'Send Message'}
-                            </button>
-                        </form>
-                    )}
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Card className="p-5 text-center space-y-2">
+                    <Mail className="mx-auto text-brand" size={20} aria-hidden="true" />
+                    <p className="text-xs font-bold">Email</p>
+                    <p className="text-xs text-muted break-all">support@smartevents.local</p>
+                </Card>
+                <Card className="p-5 text-center space-y-2">
+                    <MessageSquare className="mx-auto text-brand" size={20} aria-hidden="true" />
+                    <p className="text-xs font-bold">Response time</p>
+                    <p className="text-xs text-muted">Within 2 working days</p>
+                </Card>
+                <Card className="p-5 text-center space-y-2">
+                    <MapPin className="mx-auto text-brand" size={20} aria-hidden="true" />
+                    <p className="text-xs font-bold">Based in</p>
+                    <p className="text-xs text-muted">Lahore, Pakistan</p>
+                </Card>
             </div>
+
+            <Card className="p-8">
+                {sent ? (
+                    <div className="text-center py-10 space-y-4" role="status">
+                        <CheckCircle2 className="mx-auto text-success" size={48} aria-hidden="true" />
+                        <h2 className="text-xl font-bold">Message sent</h2>
+                        <p className="text-sm text-muted max-w-sm mx-auto">
+                            Thanks for getting in touch. We will reply to the address you gave us.
+                        </p>
+                        <Button variant="secondary" onClick={() => setSent(false)}>
+                            Send another message
+                        </Button>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Input label="Your name" value={form.name} onChange={set('name')}
+                                   error={errors.name} maxLength={80} />
+                            <Input label="Email address" type="email" value={form.email} onChange={set('email')}
+                                   error={errors.email} />
+                        </div>
+                        <Input label="Subject" value={form.subject} onChange={set('subject')}
+                               error={errors.subject} maxLength={150}
+                               placeholder="What is this about?" />
+                        <Textarea label="Message" value={form.message} onChange={set('message')}
+                                  error={errors.message} maxLength={2000}
+                                  placeholder="Tell us how we can help." />
+                        <Button type="submit" icon={Send} loading={submitting} className="w-full sm:w-auto">
+                            Send message
+                        </Button>
+                    </form>
+                )}
+            </Card>
         </div>
     );
 }
-
-export default Contact;

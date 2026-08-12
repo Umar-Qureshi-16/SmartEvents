@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { validate, signupSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } = require('../utils/validation');
+const { validate, signupSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema,
+        updateProfileSchema, changePasswordSchema, contactSchema } = require('../utils/validation');
 
 const { verifyToken: auth } = require('../middleware/authMiddleware');
 
@@ -12,6 +13,10 @@ router.post('/logout', authController.logout);
 router.get('/me', auth, authController.me);
 router.post('/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
+
+router.put('/profile', auth, validate(updateProfileSchema), authController.updateProfile);
+router.put('/password', auth, validate(changePasswordSchema), authController.changePassword);
+router.post('/contact', validate(contactSchema), authController.submitContact);
 
 router.get('/favorites', auth, authController.getFavorites);
 router.post('/favorites', auth, authController.addFavorite);

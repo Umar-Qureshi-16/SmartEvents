@@ -73,6 +73,35 @@ class AuthService {
         return user;
     }
 
+    /** Updates the display name and email on the signed-in account. */
+    async updateProfile(userId, { name, email }) {
+        const user = await User.findById(userId);
+        if (!user) throw new NotFoundError('User not found.');
+
+        if (email && email !== user.email) {
+            const taken = await User.findOne({ email, _id: { $ne: userId } });
+            if (taken) throw new ConflictError('That email is already in use.');
+            user.email = email;
+        }
+        if (name) user.name = name;
+
+        await user.save();
+        return User.findById(userId).select('-password');
+    }
+
+    /** Changes the password, requiring the current one as proof of identity. */
+    async changePassword(userId, currentPassword, newPassword) {
+        const user = await User.findById(userId).select('+password');
+        if (!user) throw new NotFoundError('User not found.');
+
+        const matches = await bcrypt.compare(currentPassword, user.password);
+        if (!matches) throw new UnauthorizedError('Your current password is incorrect.');
+
+        user.password = await bcrypt.hash(newPassword, 10);
+        await user.save();
+        return true;
+    }
+
     async generateResetToken(email) {
         const user = await User.findOne({ email });
         if (!user) throw new NotFoundError('No account is registered with that email.');
