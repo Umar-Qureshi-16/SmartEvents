@@ -18,6 +18,9 @@ router.get('/services', verifyToken, vendorController.getServices);
 router.put('/services/:id', verifyToken, vendorController.updateService);
 router.delete('/services/:id', verifyToken, vendorController.deleteService);
 
+// Public directory. Declared before '/profile/:id' so 'list' is not captured
+// as an :id parameter.
+router.get('/list', vendorController.listPublicVendors);
 router.get('/profile/:id', vendorController.getPublicProfile);
 
 module.exports = router;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
 import { Sparkles, Send, FileText, Calendar, DollarSign, ArrowRight, Bot, User, Cpu, Check, X, Loader2 } from 'lucide-react';
@@ -19,6 +19,12 @@ export default function AIConcierge() {
         { role: 'bot', text: 'Hello! I am Smartie, your AI Concierge. How can I help you plan, structure or budget your event today?' }
     ]);
     const [actionBusy, setActionBusy] = useState(null);
+    const chatEndRef = useRef(null);
+
+    // Keep the newest message in view as the thread grows.
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, [chatHistory, loading]);
 
     // RFP state
     const [rfpQuery, setRfpQuery] = useState('');
@@ -41,13 +47,29 @@ export default function AIConcierge() {
             const res = await axios.post('/ai/query', { query: userMsg.text });
             // Strip the machine-readable [ACTION_*] block out of the visible
             // text and surface it as a confirmation card instead.
-            const { text, action } = parseAssistantReply(res.data.data.reply || '');
+            const { text, action } = parseAssistantReply(res.data?.data?.reply || '');
+
             // Creating a service requires the provider role; offering the
             // button to a customer would only produce a 403.
             const allowed = action?.type === ACTION_TYPES.EVENT_CREATE ? canCreateServices : Boolean(action);
-            setChatHistory(prev => [...prev, { role: 'bot', text, action: allowed ? action : null }]);
+            const keptAction = allowed ? action : null;
+
+            // A reply that was ONLY an action block leaves empty text once the
+            // block is stripped, which rendered a blank bubble — Smartie
+            // appeared to vanish. Never append an empty message.
+            const safeText = text?.trim()
+                ? text
+                : keptAction
+                    ? 'I can set that up for you — confirm below.'
+                    : 'Sorry, I did not catch that. Could you rephrase?';
+
+            setChatHistory(prev => [...prev, { role: 'bot', text: safeText, action: keptAction }]);
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Smartie is unavailable right now.');
+            const message = err.response?.data?.message || 'Smartie is unavailable right now. Please try again.';
+            toast.error(message);
+            // Keep the thread coherent instead of leaving the user's question
+            // hanging with no response at all.
+            setChatHistory(prev => [...prev, { role: 'bot', text: message, isError: true }]);
         } finally {
             setLoading(false);
         }
@@ -169,7 +191,13 @@ export default function AIConcierge() {
                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-brand/10 text-brand' : 'bg-success/15 text-success'}`}>
                                                     {msg.role === 'user' ? <User size={14} aria-hidden="true" /> : <Bot size={14} aria-hidden="true" />}
                                                 </div>
-                                                <div className={`p-3.5 rounded-2xl border leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-brand/5 border-brand/20 text-fg' : 'bg-surface-2 border-border text-fg'}`}>
+                                                <div className={`p-3.5 rounded-2xl border leading-relaxed whitespace-pre-wrap ${
+                                                    msg.role === 'user'
+                                                        ? 'bg-brand/5 border-brand/20 text-fg'
+                                                        : msg.isError
+                                                            ? 'bg-danger/5 border-danger/25 text-danger'
+                                                            : 'bg-surface-2 border-border text-fg'
+                                                }`}>
                                                     {msg.text}
                                                 </div>
                                             </div>
@@ -231,6 +259,7 @@ export default function AIConcierge() {
                                         </div>
                                     </div>
                                 )}
+                                <div ref={chatEndRef} />
                             </div>
 
                             <form onSubmit={handleChatSubmit} className="p-4 border-t border-border flex gap-2">
@@ -331,22 +360,29 @@ export default function AIConcierge() {
                             </div>
 
                             <div className="adyen-card p-6 bg-surface border border-border rounded-3xl min-h-[300px] flex flex-col justify-between">
-                                {!timelineResult ? (
+                                {/* Guard the shape: the API used to hand back a plain
+                                    object, and calling .map on it threw, which took the
+                                    whole page down through the error boundary. */}
+                                {!Array.isArray(timelineResult) || timelineResult.length === 0 ? (
                                     <div className="text-center text-muted my-auto">
-                                        <Calendar size={40} className="mx-auto opacity-15 mb-2" />
-                                        <p className="text-xs font-semibold">No timeline generated yet.</p>
+                                        <Calendar size={40} className="mx-auto opacity-30 mb-2" />
+                                        <p className="text-xs font-semibold">
+                                            {timelineResult ? 'No milestones came back — try again.' : 'No timeline generated yet.'}
+                                        </p>
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
-                                        <h4 className="text-sm font-bold text-fg">Milestone Checklist</h4>
+                                        <h4 className="text-sm font-bold text-fg">Milestone checklist</h4>
                                         <div className="space-y-4 overflow-y-auto max-h-72 pr-1">
-                                            {timelineResult.map((milestone, idx) => (
-                                                <div key={idx} className="flex gap-3 text-xs font-semibold border-l-2 border-success/30 pl-3 relative">
+                                            {timelineResult.map((m, idx) => (
+                                                <div key={`${m.milestone}-${idx}`} className="flex gap-3 text-xs font-semibold border-l-2 border-success/30 pl-3 relative">
                                                     <div className="w-2.5 h-2.5 rounded-full bg-success absolute -left-[6px] top-1" />
                                                     <div className="space-y-0.5">
-                                                        <span className="text-[10px] font-mono text-muted block uppercase font-bold">L-{milestone.daysBefore} Days</span>
-                                                        <h5 className="font-bold text-fg">{milestone.title}</h5>
-                                                        <p className="text-muted leading-relaxed font-medium">{milestone.task}</p>
+                                                        <span className="text-[10px] font-mono text-muted block uppercase font-bold">
+                                                            {m.daysBefore} days before
+                                                        </span>
+                                                        <h5 className="font-bold text-fg">{m.milestone}</h5>
+                                                        <p className="text-muted leading-relaxed font-medium">{m.description}</p>
                                                     </div>
                                                 </div>
                                             ))}

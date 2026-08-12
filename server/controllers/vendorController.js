@@ -154,6 +154,73 @@ exports.deleteService = async (req, res) => {
     }
 };
 
+/**
+ * Public vendor directory.
+ *
+ * No listing endpoint existed — only single-profile lookup — which is why the
+ * marketplace page shipped with four hardcoded vendors instead of real data.
+ */
+exports.listPublicVendors = async (req, res) => {
+    try {
+        const { category, location, search, page = 1, limit = 12 } = req.query;
+
+        const query = {};
+        if (category && category !== 'All') query.category = category;
+        if (location) query.location = { $regex: location, $options: 'i' };
+        if (search) {
+            query.$or = [
+                { businessName: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } },
+                { location: { $regex: search, $options: 'i' } },
+            ];
+        }
+
+        const skip = (Number(page) - 1) * Number(limit);
+
+        const [profiles, total] = await Promise.all([
+            VendorProfile.find(query)
+                .populate('userId', 'name email trustScore status businessDetails analytics')
+                .skip(skip)
+                .limit(Number(limit))
+                .sort({ rating: -1, createdAt: -1 })
+                .lean(),
+            VendorProfile.countDocuments(query),
+        ]);
+
+        // Suspended providers should not appear in a public directory.
+        const visible = profiles.filter(p => p.userId && p.userId.status === 'active');
+
+        // Attach a starting price from each provider's cheapest package.
+        const withPricing = await Promise.all(visible.map(async (p) => {
+            const cheapest = await Service.findOne({ vendorId: p._id })
+                .sort({ price: 1 })
+                .select('price')
+                .lean();
+            return {
+                ...p,
+                startingPrice: cheapest?.price ?? null,
+                trustScore: p.userId?.trustScore ?? null,
+                completedEvents: p.userId?.analytics?.completedEvents ?? 0,
+                averageRating: p.userId?.analytics?.averageRating ?? 0,
+                verified: p.userId?.businessDetails?.verified ?? false,
+            };
+        }));
+
+        res.json({
+            success: true,
+            data: withPricing,
+            meta: {
+                total,
+                page: Number(page),
+                limit: Number(limit),
+                totalPages: Math.max(1, Math.ceil(total / Number(limit))),
+            },
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error listing vendors', error: error.message });
+    }
+};
+
 exports.getPublicProfile = async (req, res) => {
     try {
         const { id } = req.params;

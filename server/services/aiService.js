@@ -107,97 +107,146 @@ async function generateUserEmbeddings(userId) {
 // 6. Real-time Intelligence + AI Generation (Steps 5 & 8)
 async function generateResponse(query, contextDocuments, userId) {
     try {
-        // Step 8: Pre-generation Intelligence Layer (Rules)
         let ruleInstructions = "";
-        const user = await User.findById(userId);
-        if (!user) return "User account not isolated in the AI data map.";
+        const user = await User.findById(userId).lean();
+        if (!user) return "I could not find your account. Please sign in again.";
 
-        const services = await Event.find({ createdBy: userId }).lean();
+        // The assistant used to address every user as a service provider, so a
+        // customer asking about their wedding was told their "business is in
+        // its startup phase". Context and persona now follow the actual role.
+        const isProvider = user.role === 'provider' || user.role === 'admin' || user.role === 'superadmin';
 
-        // Filter in the database, not in JavaScript. This previously ran
-        // Booking.find() with no filter at all, pulling every booking on the
-        // platform into memory on every single AI query.
-        const myEventIds = services.map(s => s._id);
-        const myBookings = await Booking.find({
-            $or: [
-                { eventId: { $in: myEventIds } },
-                { vendorId: userId }
-            ],
-            status: { $in: ['confirmed', 'completed'] }
-        })
-            .populate('eventId', 'title price')
-            .lean();
+        let knowledgeBase;
 
-        // 1. Calculate Detailed Metrics
-        const totalRevenue = myBookings.reduce((sum, b) => sum + (b.offerPrice || b.eventId?.price || 0), 0);
-        const avgBookingValue = myBookings.length > 0 ? (totalRevenue / myBookings.length).toFixed(2) : 0;
+        if (isProvider) {
+            const services = await Event.find({ createdBy: userId }).lean();
+            const myEventIds = services.map(s => s._id);
 
-        // Find top performing service
-        const serviceCounts = {};
-        myBookings.forEach(b => {
-            const title = b.eventId?.title;
-            if (!title) return;
-            serviceCounts[title] = (serviceCounts[title] || 0) + 1;
-        });
-        const topService = Object.entries(serviceCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "None yet";
+            // Filter in the database, not in JavaScript. This previously ran
+            // Booking.find() with no filter at all, pulling every booking on
+            // the platform into memory on every single AI query.
+            const myBookings = await Booking.find({
+                $or: [{ eventId: { $in: myEventIds } }, { vendorId: userId }],
+                status: { $in: ['confirmed', 'completed'] }
+            }).populate('eventId', 'title price').lean();
 
-        // Construct complete real-time knowledge base
-        const knowledgeBase = [
-            `Provider Profile: ${user.name} (${user.email})`,
-            `FINANCIAL METRICS:`,
-            `- Total Revenue: $${totalRevenue}`,
-            `- Total Bookings: ${myBookings.length}`,
-            `- Average Booking Value: $${avgBookingValue}`,
-            `- Top Performing Package: ${topService}`,
-            `PORTFOLIO:`,
-            `- Services List: ${services.map(s => `${s.title} ($${s.price})`).join(', ')}`,
-            `PERFORMANCE SUMMARY: ${myBookings.length === 0 ? 'Zero sales records found. Business is in startup phase.' : `${myBookings.length} confirmed deals. Growth is stable.`}`
-        ].join('\n');
+            const openLeads = await Booking.countDocuments({
+                vendorId: userId, status: { $in: ['pending', 'negotiating'] }
+            });
 
-        if (services.length === 0) {
-            ruleInstructions += "RULE 1: The user has NO active services listed. You MUST instruct them to navigate to the 'My Services' tab to create their first portfolio package.\n";
-        } else if (myBookings.length === 0) {
-            ruleInstructions += "RULE 2: The user has active services but ZERO bookings. Suggest a 10% price drop or category diversification.\n";
+            const totalRevenue = myBookings.reduce((sum, b) => sum + (b.offerPrice || b.eventId?.price || 0), 0);
+            const avgBookingValue = myBookings.length ? (totalRevenue / myBookings.length).toFixed(2) : 0;
+
+            const serviceCounts = {};
+            myBookings.forEach(b => {
+                const title = b.eventId?.title;
+                if (title) serviceCounts[title] = (serviceCounts[title] || 0) + 1;
+            });
+            const topService = Object.entries(serviceCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'None yet';
+
+            knowledgeBase = [
+                `ROLE: Service provider`,
+                `Provider: ${user.name} (${user.email})`,
+                `Trust score: ${user.trustScore ?? 'not yet rated'} / 100`,
+                `FINANCIAL METRICS:`,
+                `- Total revenue: $${totalRevenue}`,
+                `- Confirmed bookings: ${myBookings.length}`,
+                `- Average booking value: $${avgBookingValue}`,
+                `- Top performing package: ${topService}`,
+                `- Open leads awaiting response: ${openLeads}`,
+                `PORTFOLIO:`,
+                `- Services listed: ${services.length ? services.map(s => `${s.title} ($${s.price})`).join(', ') : 'none yet'}`,
+            ].join('\n');
+
+            if (services.length === 0) {
+                ruleInstructions += "RULE: This provider has NO services listed. Encourage them to create their first package from the 'My Services' page.\n";
+            } else if (myBookings.length === 0) {
+                ruleInstructions += "RULE: This provider has services but no confirmed bookings yet. Suggest concrete steps such as adjusting pricing or broadening categories.\n";
+            }
+            if (openLeads > 0) {
+                ruleInstructions += `RULE: ${openLeads} lead(s) are awaiting a response. Remind them to reply promptly — response speed affects their trust score.\n`;
+            }
+        } else {
+            // Customer: their context is the events they are planning.
+            const myBookings = await Booking.find({ customerId: userId })
+                .populate('eventId', 'title price')
+                .populate('vendorId', 'name')
+                .lean();
+
+            const confirmed = myBookings.filter(b => ['confirmed', 'completed'].includes(b.status));
+            const active = myBookings.filter(b => ['pending', 'negotiating'].includes(b.status));
+            const committed = confirmed.reduce((sum, b) => sum + (b.offerPrice || 0), 0);
+
+            const upcoming = confirmed
+                .filter(b => b.eventDetails?.date && new Date(b.eventDetails.date) > new Date())
+                .sort((a, b) => new Date(a.eventDetails.date) - new Date(b.eventDetails.date))[0];
+
+            knowledgeBase = [
+                `ROLE: Customer planning events`,
+                `Customer: ${user.name} (${user.email})`,
+                `PLANNING STATUS:`,
+                `- Confirmed bookings: ${confirmed.length}`,
+                `- Negotiations in progress: ${active.length}`,
+                `- Total committed spend: $${committed}`,
+                upcoming
+                    ? `- Next event: ${upcoming.eventId?.title || upcoming.eventDetails?.eventType} on ${new Date(upcoming.eventDetails.date).toDateString()} with ${upcoming.vendorId?.name || 'a provider'}`
+                    : `- No upcoming confirmed events`,
+                `- Bookings: ${myBookings.length ? myBookings.map(b => `${b.eventId?.title || b.eventDetails?.eventType} ($${b.offerPrice}, ${b.status})`).join('; ') : 'none yet'}`,
+            ].join('\n');
+
+            if (myBookings.length === 0) {
+                ruleInstructions += "RULE: This customer has no bookings yet. Help them think through their event, then point them to the Events or Vendors pages to make their first offer.\n";
+            }
+            if (active.length > 0) {
+                ruleInstructions += `RULE: ${active.length} negotiation(s) are open. Offer practical advice on countering, and remind them they can accept or counter from the Bookings page.\n`;
+            }
+            ruleInstructions += "RULE: This user is a CUSTOMER, not a business. Never refer to 'your business', 'your revenue' or 'your services'. Never propose creating a service package.\n";
         }
 
-        // Detect if it's a "Report Request"
-        const isReportRequest = query.toLowerCase().includes('report') || query.toLowerCase().includes('analysis') || query.toLowerCase().includes('performance');
-        if (isReportRequest) {
-            ruleInstructions += "RULE: The user requested a REPORT. Use a formal, analytical tone. Break down their metrics clearly with bullet points. Compare their portfolio against their performance. Propose actionable growth steps.\n";
+        const isReportRequest = /report|analysis|performance/i.test(query);
+        if (isReportRequest && isProvider) {
+            ruleInstructions += "RULE: A REPORT was requested. Use a formal analytical tone, break the metrics down with bullet points, and propose actionable next steps.\n";
         }
 
-        const contextText = knowledgeBase; // We pass the full KB now
+        const contextText = knowledgeBase;
+
+        const personaBlock = isProvider
+            ? `You are "Smartie", the AI business partner for service providers on SmartEvents.
+Help them win more bookings, price competitively, and respond to leads quickly.`
+            : `You are "Smartie", the AI event-planning assistant on SmartEvents.
+Help this customer plan their event: choosing services, setting a realistic budget,
+negotiating a fair price, and staying on schedule.`;
+
+        const actionBlock = isProvider
+            ? `ACTION PROTOCOL
+You may append ONE machine-readable block at the very end of your reply, and only
+when the user has given enough detail or has agreed to a specific next step.
+
+Creating a service package:
+[ACTION_EVENT_CREATE]: { "title": "NAME", "type": "Wedding|Corporate|Concert|Birthday|Conference|Exhibition", "price": NUMBER, "description": "DETAILS" }
+
+Generating a performance report:
+[ACTION_REPORT_GENERATE]: { "timeframe": "monthly|weekly", "metrics": ["revenue", "bookings", "leads"] }
+
+Never output an action block on its own — always write your reply first.`
+            : `Do NOT output any [ACTION_...] blocks. You cannot create services for a customer.`;
 
         const systemPrompt = `
-You are "Smartie", the elite AI Business Partner for the SmartEvents platform.
-Your goal is to be a supportive, proactive, and highly intelligent companion for service providers.
+${personaBlock}
 
-CONVERSATIONAL GUIDELINES:
-1. **Be Human-Like**: Don't just provide data. Use phrases like "I see your business is growing!" or "That's a great idea for a service."
-2. **Be Smart**: You have full access to their business data. Use it to give specific advice.
-3. **Handle Regular Chat**: If they talk about their day or ask general questions, respond warmly but keep the focus on how you can help their event business.
+CONVERSATIONAL GUIDELINES
+- Write naturally and warmly, in 2-3 short paragraphs.
+- Use the real figures below rather than speaking in generalities.
+- If you do not have the data to answer, say so plainly instead of inventing it.
+- Amounts are in USD.
 
-ACTION PROTOCOL:
-You can trigger "Actions" by outputting a specific JSON block AT THE END of your message. 
-ONLY output an action block if the user has provided enough details or if you are proposing a specific next step that they have agreed to.
+${actionBlock}
 
-FORMAT FOR EVENT CREATION:
-If proposing to create a service/event, include:
-[ACTION_EVENT_CREATE]: { "title": "NAME", "type": "CATEGORY", "price": NUMBER, "description": "DETAILS" }
-
-FORMAT FOR REPORT GENERATION:
-If proposing a performance report:
-[ACTION_REPORT_GENERATE]: { "timeframe": "monthly/weekly", "metrics": ["revenue", "bookings", "leads"] }
-
-USER DATA CONTEXT:
+USER DATA
 ${contextText}
 
-CRITICAL BUSINESS RULES:
-${ruleInstructions}
-
-INSTRUCTIONS:
-- Speak naturally and keep responses to 2-3 concise paragraphs.
-- When you detect an intent to "do or create work", ask for missing details first, then output the [ACTION_...] block once confirmed.
+RULES
+${ruleInstructions || '- None.'}
         `.trim();
 
         const model = "llama-3.3-70b-versatile";
@@ -252,12 +301,33 @@ Output exactly this JSON format:
     }
 }
 
+/**
+ * Pulls the milestone array out of whatever wrapper the model chose.
+ *
+ * `response_format: json_object` guarantees valid JSON but NOT a stable shape:
+ * the model returns `{timeline: []}`, `{planningTimeline: []}`, `{milestones: []}`
+ * or a bare array on different runs. The previous code only checked
+ * `result.timeline`, so in practice it handed a plain object back to the UI,
+ * which expects an array — and the timeline silently rendered nothing.
+ */
+function extractArray(payload) {
+    if (Array.isArray(payload)) return payload;
+    if (!payload || typeof payload !== 'object') return [];
+
+    // First array-valued property wins.
+    for (const value of Object.values(payload)) {
+        if (Array.isArray(value)) return value;
+    }
+    return [];
+}
+
 // 8. Enterprise Timeline Generator
 async function generateEnterpriseTimeline(eventDetails) {
     try {
-        const prompt = `Generate a detailed planning timeline for a ${eventDetails.type} event titled "${eventDetails.title}" happening on ${eventDetails.date}.
-        Include milestones for: Venue Booking, Catering, Invitations, Logistics, and Final Review.
-        Output as a JSON array of objects: [{ "milestone": "string", "daysBefore": number, "description": "string" }]`;
+        const prompt = `Generate a planning timeline for a ${eventDetails.type || 'event'} titled "${eventDetails.title || 'Untitled'}" happening on ${eventDetails.date}.
+Include milestones for: Venue Booking, Catering, Invitations, Logistics, and Final Review.
+Respond with a JSON object of exactly this shape, ordered from the earliest milestone (largest daysBefore) to the latest:
+{ "timeline": [{ "milestone": "string", "daysBefore": number, "description": "string" }] }`;
 
         const chatCompletion = await groq.chat.completions.create({
             messages: [{ role: "user", content: prompt }],
@@ -265,10 +335,23 @@ async function generateEnterpriseTimeline(eventDetails) {
             temperature: 0.3,
             response_format: { type: "json_object" }
         });
-        const result = JSON.parse(chatCompletion.choices[0]?.message?.content || '{"timeline": []}');
-        return result.timeline || result;
+
+        const parsed = JSON.parse(chatCompletion.choices[0]?.message?.content || '{}');
+        const items = extractArray(parsed);
+
+        // Normalise field names and drop anything unusable, then order by lead
+        // time — the model does not reliably sort, and an out-of-order plan is
+        // worse than no plan.
+        return items
+            .map(m => ({
+                milestone: m.milestone || m.title || m.task || 'Milestone',
+                daysBefore: Number(m.daysBefore ?? m.days_before ?? m.days) || 0,
+                description: m.description || m.task || '',
+            }))
+            .filter(m => m.milestone)
+            .sort((a, b) => b.daysBefore - a.daysBefore);
     } catch (err) {
-        console.error('Error generating timeline:', err);
+        console.error('Error generating timeline:', err.message);
         return [];
     }
 }

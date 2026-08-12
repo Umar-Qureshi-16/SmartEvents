@@ -8,6 +8,9 @@ const User = require('../models/User');
 const Event = require('../models/Event');
 const Booking = require('../models/Booking');
 const Ticket = require('../models/Ticket');
+const VendorProfile = require('../models/VendorProfile');
+const Service = require('../models/Service');
+const Review = require('../models/Review');
 
 async function seedData() {
     try {
@@ -21,6 +24,9 @@ async function seedData() {
         await Event.deleteMany({});
         await Booking.deleteMany({});
         await Ticket.deleteMany({});
+        await VendorProfile.deleteMany({});
+        await Service.deleteMany({});
+        await Review.deleteMany({});
 
         const hashedPassword = await bcrypt.hash('password123', 10);
 
@@ -45,6 +51,108 @@ async function seedData() {
             password: hashedPassword,
             role: 'superadmin'
         });
+
+        // 1.2 Additional providers, each with a real VendorProfile and packages,
+        //     so the public vendor directory has genuine records to list. It
+        //     previously had none, which is why the marketplace page was mocked.
+        const providerSpecs = [
+            {
+                name: 'Ayesha Khan', email: 'ayesha_catering@example.com',
+                businessName: 'Gourmet Royale Catering', category: 'catering', location: 'Lahore',
+                description: 'Multi-cuisine wedding and corporate catering with in-house service staff.',
+                packages: [
+                    { title: 'Silver Buffet (100 guests)', price: 180000, description: 'Three-course buffet with service staff.', includes: ['3 mains', '2 desserts', 'Service crew'] },
+                    { title: 'Gold Banquet (250 guests)', price: 420000, description: 'Premium banquet with live cooking stations.', includes: ['5 mains', 'Live BBQ', 'Waitstaff', 'Crockery'] }
+                ]
+            },
+            {
+                name: 'Bilal Ahmed', email: 'bilal_photo@example.com',
+                businessName: 'Lumina Studios', category: 'photography', location: 'Islamabad',
+                description: 'Documentary-style wedding photography and 4K cinematography.',
+                packages: [
+                    { title: 'Single Day Coverage', price: 95000, description: 'One photographer and one cinematographer.', includes: ['8 hours', '300 edited photos', 'Highlight reel'] },
+                    { title: 'Full Wedding Package', price: 240000, description: 'Three-event coverage with drone.', includes: ['3 events', 'Drone footage', 'Album', 'Full film'] }
+                ]
+            },
+            {
+                name: 'Sana Malik', email: 'sana_decor@example.com',
+                businessName: 'Bloom and Co. Decor', category: 'decoration', location: 'Karachi',
+                description: 'Floral installations, stage design and themed event styling.',
+                packages: [
+                    { title: 'Classic Stage Setup', price: 120000, description: 'Floral stage with lighting.', includes: ['Stage florals', 'Uplighting', 'Setup crew'] },
+                    { title: 'Full Venue Styling', price: 350000, description: 'Complete venue transformation.', includes: ['Entrance', 'Stage', 'Table centrepieces', 'Lighting'] }
+                ]
+            },
+            {
+                name: 'Hassan Raza', email: 'hassan_venue@example.com',
+                businessName: 'The Grand Pavilion', category: 'venue', location: 'Lahore',
+                description: 'Indoor and outdoor banquet halls seating up to 800 guests.',
+                packages: [
+                    { title: 'Garden Lawn (300 guests)', price: 300000, description: 'Open-air lawn with parking.', includes: ['Lawn', 'Parking', 'Basic lighting'] },
+                    { title: 'Grand Hall (800 guests)', price: 750000, description: 'Air-conditioned hall with stage.', includes: ['Hall', 'Stage', 'AV rig', 'Valet'] }
+                ]
+            },
+            {
+                name: 'Zara Sheikh', email: 'zara_music@example.com',
+                businessName: 'Aura Sound and Light', category: 'music', location: 'Islamabad',
+                description: 'Live bands, DJs and concert-grade sound and lighting.',
+                packages: [
+                    { title: 'DJ Night', price: 85000, description: 'DJ with full sound and lighting rig.', includes: ['DJ', 'Sound system', 'Dance floor lighting'] }
+                ]
+            }
+        ];
+
+        console.log('Creating vendor profiles and service packages...');
+        for (const spec of providerSpecs) {
+            const providerUser = await User.create({
+                name: spec.name, email: spec.email, password: hashedPassword, role: 'provider',
+                trustScore: 70 + Math.floor(Math.random() * 25),
+                businessDetails: { companyName: spec.businessName, verified: true }
+            });
+
+            const profile = await VendorProfile.create({
+                userId: providerUser._id,
+                businessName: spec.businessName,
+                description: spec.description,
+                category: spec.category,
+                location: spec.location,
+                packages: spec.packages,
+                rating: Number((4 + Math.random()).toFixed(2)),
+                reviewsCount: Math.floor(Math.random() * 40) + 5
+            });
+
+            for (const pkg of spec.packages) {
+                await Service.create({
+                    vendorId: profile._id,
+                    title: pkg.title,
+                    price: pkg.price,
+                    description: pkg.description,
+                    eventType: spec.category === 'venue' ? 'wedding' : spec.category
+                });
+            }
+        }
+
+        // The lead provider needs a profile too, or their own public page and
+        // the directory have nothing to show for them.
+        const leadProfile = await VendorProfile.create({
+            userId: provider._id,
+            businessName: 'Umar Events and Production',
+            description: 'Full-service event production covering venues, catering coordination and staging.',
+            category: 'venue',
+            location: 'Lahore',
+            packages: [
+                { title: 'Complete Wedding Production', price: 850000, description: 'End-to-end wedding management.', includes: ['Venue', 'Catering', 'Decor', 'Photography'] },
+                { title: 'Corporate Event Package', price: 450000, description: 'Conference and summit production.', includes: ['Venue', 'AV', 'Catering', 'Registration desk'] }
+            ],
+            rating: 4.8,
+            reviewsCount: 32
+        });
+        for (const pkg of leadProfile.packages) {
+            await Service.create({
+                vendorId: leadProfile._id, title: pkg.title, price: pkg.price,
+                description: pkg.description, eventType: 'wedding'
+            });
+        }
 
         // 2. Create Multiple Customers
         const customer1 = await User.create({
