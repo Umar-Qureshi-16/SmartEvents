@@ -3,7 +3,9 @@
 > **Project type:** Final Year Project (FYP-2), BS Software Engineering
 > **Stack:** MongoDB · Express.js · React 19 (Vite) · Node.js (MERN) + Socket.IO + LLM services
 > **Core differentiator:** InDrive-style two-sided real-time price negotiation for event services, plus an AI business concierge ("Smartie").
-> **Document status:** Written from a full read of the source on 2026-08-12, and updated after the Phase 0/1 repair work. Feature statuses in §11 reflect what the code *actually does*, not what earlier docs claimed. Entries marked *(fixed)* record a defect that existed and has since been repaired — useful material for a report's testing chapter.
+> **Document status:** Written from a full read of the source on 2026-08-12 and kept current through the rebuild. Feature statuses in §11 reflect what the code *actually does*. Entries marked *(fixed)* record a defect that existed and has since been repaired — useful material for a report's testing and debugging chapter.
+>
+> **Current state:** 11 commits. 150 automated tests passing across 7 suites. Client production build passing with a 466 kB main chunk. Both themes meet WCAG AA. Interactive API documentation at `/api-docs` covering 34 endpoints. See [README.md](README.md) for setup and [docs/DIAGRAMS.md](docs/DIAGRAMS.md) for the report diagrams.
 
 ---
 
@@ -110,8 +112,8 @@ Controllers only handle HTTP request/response shape; all business logic belongs 
 | Animation | Framer Motion, GSAP | 12.38 / 3.15 |
 | Charts | Recharts | 3.8 |
 | Icons | lucide-react, react-icons | — |
-| Forms | React Hook Form + Zod resolvers *(installed but unused — see §15.5)* | 7.80 |
-| Toasts | react-hot-toast | 2.6 |
+| Forms | React Hook Form + Zod resolvers *(installed; most forms still hand-rolled)* | 7.80 |
+| Toasts | react-hot-toast (mounted in `App.jsx`) | 2.6 |
 
 ### Backend (`server/`)
 

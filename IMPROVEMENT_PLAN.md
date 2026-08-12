@@ -14,12 +14,13 @@ The problem was **not architecture. It was finishing.** The gap between what the
 
 ### Status as of 2026-08-12
 
-**Phases 0 and 1 are complete** (commits `3bd9f8b` → `2f35be6`). What that closed:
+**Phases 0 through 6 are complete** — 11 commits, from the baseline snapshot
+`3bd9f8b` through the final verification. What that closed:
 
 | Was | Now |
 |---|---|
 | Any email + any password signed in — both auth pages fabricated a session when the API call failed | Authentication fails closed |
-| Signup never created a real account (it sent roles not in the schema enum, so it always fell into that fallback) | Registration works, then auto-signs-in for a real session |
+| Signup never created a real account (it sent roles not in the schema enum, so it always fell into that fallback) | Registration works, then auto-signs in for a real session |
 | Anyone could register as `superadmin` | Public signup limited to `customer` / `provider` |
 | Every validation failure returned 500 with no field messages (Zod 4 removed `err.errors`) | Proper 400s with per-field messages |
 | Any client could join any negotiation room and watch strangers' prices | Sockets authenticated; room joins verify booking membership |
@@ -28,27 +29,42 @@ The problem was **not architecture. It was finishing.** The gap between what the
 | A customer could open `/admin/users` and see it render | `ProtectedRoute` with role checks |
 | Negotiation notes never displayed — in the flagship feature | Visible, with an `action` badge that reflects reality |
 | Ticket purchase returned 500 on every success | Returns 201 |
+| QR passes were fetched from a third-party service | Rendered server-side as data URIs |
 | Provider earnings always read $0; booking count showed cancellations | Both correct |
 | Fraud scores always 0; trust scores always 100 | Both discriminate |
 | Password reset always failed | Works end to end |
-| Authorization failures surfaced as 500 | Typed errors → correct 403 |
+| Authorization failures surfaced as 500 | Typed errors → correct 403/404/409 |
 | A duplicate abandoned backend broke ticket writes, and `vercel.json` deployed it | Removed; deployment repointed |
-| Zero git commits | Four, with a recoverable baseline |
+| The SuperAdmin dashboard was 4 lines rendering `<AdminPanel/>` | A six-tab governance console driving 7 previously orphaned widgets |
+| `disputed` status existed but nothing could reach it | Full dispute → mediation → ruling loop |
+| Smartie's `[ACTION_*]` blocks were printed as raw JSON | Parsed into confirmation cards |
+| The theme toggle only changed the page gutters | 1,392 colour classes migrated to tokens; both themes WCAG AA |
+| `slate-400` / `emerald-500` generated no CSS (the config replaced Tailwind's scales) | Scales restored; 504 usages now resolve |
+| Mobile nav links did a full page reload; signed-in users saw no links | React Router links; complete authenticated menu |
+| Zero automated tests | 150 assertions across 7 suites, green in CI |
+| Single 1,182 kB bundle | 466 kB main chunk, Recharts split out |
+| No API documentation | OpenAPI 3.0 at `/api-docs`, 34 endpoints |
+| Zero git commits | 11, with a recoverable baseline |
 
-**Verified:** 23 end-to-end API assertions against a live server and database, 3 WebSocket-auth assertions, all 13 routers loading, and a passing client production build.
+**Verified at each step:** 150 Jest assertions, 3 WebSocket-auth checks, a live
+smoke test against seeded data covering all four demo accounts and the whole
+SuperAdmin surface, a passing client build, and 22 contrast pairs at WCAG AA.
 
-⚠️ **One item still needs you personally: rotate the leaked MongoDB Atlas password (§0.2).**
+⚠️ **One item still needs you personally: rotate the leaked MongoDB Atlas
+password (§0.2).** Deleting the file that contained it does not rotate it.
 
 ### What remains
 
-- **~2,000 lines of finished UI are still orphaned** — including all seven SuperAdmin governance widgets, whose backends already work. **This is now the single highest value-per-hour work available** (Phase 2).
-- Dark mode is visibly broken and three design systems compete (Phase 3).
-- There are still **zero automated tests** (Phase 4).
-- No payment integration exists (documented as future work).
+Optional polish, in rough order of value:
 
-**The plan is sequenced so you can stop at any phase boundary and still have a coherent, defensible project.** Phase 2 is what turns claims in your report into screens you can demo. Phase 3 is what makes it look professional. Phases 4–6 are the industry-standard polish.
+- **Payment integration** — deliberately out of scope; documented as future work rather than faked.
+- **Move tokens out of `localStorage`** into `httpOnly` cookies with CSRF protection. Time-box this; it touches auth end to end.
+- **Adopt react-hook-form** on the remaining hand-rolled forms (§3.8). The dependency is installed but most forms still use bare `useState`.
+- **Frontend component tests** (§4.2) — the backend is covered; the client is not.
+- **Structured logging** with pino (§5.2) and per-request correlation IDs.
+- **Screenshots and a demo GIF** in the README before submission.
 
-**Remaining estimate: ~45–60 focused hours.**
+Everything else in this plan is done.
 
 ---
 
