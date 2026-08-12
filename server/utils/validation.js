@@ -21,7 +21,10 @@ const eventSchema = z.object({
     price: z.preprocess((val) => Number(val), z.number().min(0, "Price cannot be negative")),
     location: z.string().min(2, "Location is required"),
     description: z.string().min(10, "Description must be at least 10 characters"),
-    date: z.string().optional(), // Often sent as string from frontend
+    // The Event model requires a date. Leaving it optional here let requests
+    // through to Mongoose, which then threw a ValidationError the caller saw
+    // as an opaque 500 instead of a field-level 400.
+    date: z.coerce.date({ message: 'A valid event date is required' }),
     capacity: z.preprocess((val) => Number(val), z.number().min(1).default(100)),
     status: z.enum(['upcoming', 'ongoing', 'completed', 'cancelled']).default('upcoming').optional()
 });

@@ -1,13 +1,12 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
+const env = require('../config/env');
 
 let io;
 
 const init = (server) => {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-        ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-        : ["http://localhost:5173", "http://localhost:5174"];
+    const allowedOrigins = env.allowedOrigins;
 
     io = new Server(server, {
         cors: {

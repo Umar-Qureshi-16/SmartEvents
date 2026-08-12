@@ -9,7 +9,9 @@
     "seed": "node scripts/seedData.js",
     "seed:superadmin": "node scripts/seedSuperAdmin.js",
     "test:e2e": "node tests/e2e.js",
-    "test": "echo \"No unit tests yet — see IMPROVEMENT_PLAN.md Phase 4\" && exit 1"
+    "test": "cross-env NODE_ENV=test JWT_SECRET=test-secret-for-automated-tests-only MONGODB_URI=mongodb://127.0.0.1:27017/test jest --runInBand",
+    "test:watch": "npm test -- --watch",
+    "test:coverage": "npm test -- --coverage"
   },
   "keywords": [],
   "author": "",
@@ -31,9 +33,15 @@
     "nodemailer": "^9.0.3",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.3",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "cross-env": "^10.1.0",
+    "jest": "^30.4.2",
+    "mongodb-memory-server": "^11.2.0",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
   }
 }

@@ -3,13 +3,14 @@ const Event = require('../models/Event');
 const VendorProfile = require('../models/VendorProfile');
 const Booking = require('../models/Booking');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const env = require('../config/env');
+const groq = new Groq({ apiKey: env.GROQ_API_KEY || 'not-configured' });
 
 exports.handleChatbot = async (req, res) => {
     try {
         const { message, conversationHistory = [] } = req.body;
 
-        if (!process.env.GROQ_API_KEY) {
+        if (!env.GROQ_API_KEY) {
             return res.json({
                 reply: "I'm currently in 'Prototype Mode' because the Groq API Key is not set. Please add your API key to the .env file to enable my full intelligence!",
                 action: null

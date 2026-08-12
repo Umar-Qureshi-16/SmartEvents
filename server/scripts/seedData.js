@@ -12,7 +12,7 @@ const Ticket = require('../models/Ticket');
 async function seedData() {
     try {
         console.log('Connecting to MongoDB...');
-        await mongoose.connect(process.env.MONGODB_URI);
+        await mongoose.connect(require('../config/env').MONGODB_URI);
         console.log('Connected!');
 
         // Clear existing data

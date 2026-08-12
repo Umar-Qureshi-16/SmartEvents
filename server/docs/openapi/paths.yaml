@@ -1,0 +1,536 @@
+# OpenAPI path definitions, loaded by config/swagger.js.
+# Kept as YAML rather than JSDoc comments so the contract reads as one document.
+
+/health:
+  get:
+    tags: [System]
+    summary: Liveness and readiness probe
+    security: []
+    responses:
+      '200':
+        description: Service status, uptime, database state and memory usage
+
+/auth/register:
+  post:
+    tags: [Auth]
+    summary: Create an account
+    description: >
+      Public signup only permits the `customer` and `provider` roles.
+      Elevated roles are granted by an existing admin or the seed script.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [name, email, password]
+            properties:
+              name: { type: string, minLength: 2, example: Ali Ahmed }
+              email: { type: string, format: email, example: ali@example.com }
+              password: { type: string, minLength: 8, example: password123 }
+              role: { type: string, enum: [customer, provider], default: customer }
+    responses:
+      '201': { description: Account created }
+      '400': { $ref: '#/components/responses/ValidationError' }
+      '409': { description: Email already registered }
+
+/auth/login:
+  post:
+    tags: [Auth]
+    summary: Sign in and receive tokens
+    description: >
+      Returns the same message for an unknown email and a wrong password, so the
+      endpoint cannot be used to enumerate registered accounts.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [email, password]
+            properties:
+              email: { type: string, format: email }
+              password: { type: string }
+    responses:
+      '200':
+        description: Access token, refresh token and the user record
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success: { type: boolean }
+                token: { type: string }
+                refreshToken: { type: string }
+                user: { $ref: '#/components/schemas/User' }
+      '401': { description: Invalid email or password }
+      '403': { description: Account suspended }
+
+/auth/refresh:
+  post:
+    tags: [Auth]
+    summary: Exchange a refresh token for a new access token
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [refreshToken]
+            properties: { refreshToken: { type: string } }
+    responses:
+      '200': { description: New access token }
+      '401': { description: Invalid or expired refresh token }
+
+/auth/me:
+  get:
+    tags: [Auth]
+    summary: Current user profile
+    responses:
+      '200': { description: The signed-in user }
+      '401': { $ref: '#/components/responses/Unauthorized' }
+
+/auth/forgot-password:
+  post:
+    tags: [Auth]
+    summary: Request a password reset link
+    description: >
+      Always returns the same message whether or not the address is registered.
+      The reset token is emailed and never returned in the response body.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [email]
+            properties: { email: { type: string, format: email } }
+    responses:
+      '200': { description: Generic acknowledgement }
+
+/auth/reset-password:
+  post:
+    tags: [Auth]
+    summary: Set a new password using a reset token
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [token]
+            properties:
+              token: { type: string }
+              password: { type: string, minLength: 8 }
+    responses:
+      '200': { description: Password updated }
+      '400': { description: Token invalid or expired }
+
+/events:
+  get:
+    tags: [Events]
+    summary: List events
+    security: []
+    parameters:
+      - { in: query, name: page, schema: { type: integer, default: 1 } }
+      - { in: query, name: limit, schema: { type: integer, default: 12 } }
+      - { in: query, name: category, schema: { type: string, enum: [Wedding, Corporate, Concert, Birthday, Conference, Exhibition] } }
+      - { in: query, name: location, schema: { type: string } }
+      - { in: query, name: minPrice, schema: { type: number } }
+      - { in: query, name: maxPrice, schema: { type: number } }
+      - { in: query, name: search, schema: { type: string } }
+      - { in: query, name: sortBy, schema: { type: string, enum: [price_asc, price_desc, date] } }
+    responses:
+      '200': { description: Paginated events with metadata }
+  post:
+    tags: [Events]
+    summary: Create an event (provider or admin)
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [title, category, price, location, description]
+            properties:
+              title: { type: string, minLength: 3 }
+              category: { type: string, enum: [Wedding, Corporate, Concert, Birthday, Conference, Exhibition] }
+              price: { type: number, minimum: 0 }
+              location: { type: string }
+              description: { type: string, minLength: 10 }
+              capacity: { type: integer, default: 100 }
+              date: { type: string, format: date-time }
+              image: { type: string, format: binary }
+    responses:
+      '201': { description: Event created }
+      '403': { $ref: '#/components/responses/Forbidden' }
+
+/events/{id}:
+  get:
+    tags: [Events]
+    summary: Get one event
+    security: []
+    parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+    responses:
+      '200': { description: The event }
+      '404': { $ref: '#/components/responses/NotFound' }
+
+/bookings:
+  post:
+    tags: [Bookings]
+    summary: Make an offer (customer only)
+    description: >
+      Starts a negotiation. Target either an event listing via `eventId` or a
+      provider directly via `vendorId`. The first offer becomes the first entry
+      in the immutable negotiation history.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [offerPrice]
+            properties:
+              eventId: { type: string, description: 'Required unless vendorId is given' }
+              vendorId: { type: string, description: 'Required unless eventId is given' }
+              offerPrice: { type: number, exclusiveMinimum: 0 }
+              message: { type: string, maxLength: 500 }
+              eventDetails:
+                type: object
+                properties:
+                  eventType: { type: string }
+                  date: { type: string, format: date-time }
+                  location: { type: string }
+                  budget: { type: number }
+    responses:
+      '201': { description: Booking created with the opening offer }
+      '400': { $ref: '#/components/responses/ValidationError' }
+      '403': { description: Only customers may create bookings }
+      '409': { description: The provider has blocked that date }
+
+/bookings/my:
+  get:
+    tags: [Bookings]
+    summary: Bookings belonging to the signed-in customer
+    responses:
+      '200': { description: Booking list }
+
+/bookings/organizer/dashboard:
+  get:
+    tags: [Bookings]
+    summary: Provider dashboard — open leads, active bookings and revenue
+    responses:
+      '200': { description: Leads, active bookings and analytics }
+      '403': { $ref: '#/components/responses/Forbidden' }
+
+/bookings/{id}:
+  get:
+    tags: [Bookings]
+    summary: Get one booking
+    description: Readable only by the customer or the provider on the booking.
+    parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+    responses:
+      '200': { description: The booking with its full negotiation history }
+      '403': { $ref: '#/components/responses/Forbidden' }
+      '404': { $ref: '#/components/responses/NotFound' }
+
+/bookings/{id}/negotiate:
+  post:
+    tags: [Bookings]
+    summary: Submit a counter-offer
+    description: >
+      Either party may counter while the booking is `pending` or `negotiating`.
+      The previous price moves to `lastPrice` and a new entry is appended to the
+      history. Guarded by optimistic concurrency, so simultaneous counters from
+      both parties cannot corrupt the thread.
+    parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [price]
+            properties:
+              price: { type: number, exclusiveMinimum: 0 }
+              message: { type: string, maxLength: 500 }
+    responses:
+      '200': { description: Updated booking }
+      '409': { description: Booking already settled, or modified concurrently }
+
+/bookings/{id}/accept:
+  put:
+    tags: [Bookings]
+    summary: Accept the offer on the table
+    parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+    responses:
+      '200': { description: Booking confirmed }
+
+/bookings/{id}/reject:
+  put:
+    tags: [Bookings]
+    summary: Reject the booking
+    parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+    responses:
+      '200': { description: Booking rejected }
+
+/bookings/{id}/dispute:
+  post:
+    tags: [Bookings]
+    summary: Raise a dispute on a confirmed booking
+    description: Either party may escalate. An administrator then rules on the outcome.
+    parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [reason]
+            properties: { reason: { type: string, minLength: 10, maxLength: 1000 } }
+    responses:
+      '200': { description: Dispute opened }
+      '403': { description: Not a party to this booking }
+      '409': { description: Only a confirmed or completed booking can be disputed }
+
+/tickets/purchase:
+  post:
+    tags: [Tickets]
+    summary: Issue a digital pass with a QR payload
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [eventId]
+            properties:
+              eventId: { type: string }
+              ticketType: { type: string, enum: [Free, General, VIP, Student, Early Bird] }
+              price: { type: number }
+    responses:
+      '201': { description: Ticket issued }
+
+/tickets/my:
+  get:
+    tags: [Tickets]
+    summary: The signed-in user's ticket wallet
+    responses:
+      '200': { description: Tickets with populated events }
+
+/tickets/scan:
+  post:
+    tags: [Tickets]
+    summary: Check a guest in at the gate
+    description: Rejects a second scan of the same ticket, reporting the original check-in time.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ticketNumber]
+            properties: { ticketNumber: { type: string } }
+    responses:
+      '200': { description: Valid ticket, guest checked in }
+      '400': { description: Duplicate entry detected }
+      '404': { description: Unknown ticket code }
+
+/reviews:
+  post:
+    tags: [Reviews]
+    summary: Leave a review
+    description: Requires a confirmed booking for the event, and one review per user per event.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [eventId, rating, comment]
+            properties:
+              eventId: { type: string }
+              rating: { type: integer, minimum: 1, maximum: 5 }
+              comment: { type: string, minLength: 3 }
+    responses:
+      '201': { description: Review created; event rating and provider trust score recalculated }
+      '403': { description: No confirmed booking for this event }
+
+/ai/query:
+  post:
+    tags: [AI]
+    summary: Ask Smartie
+    description: >
+      Answers using the caller's live business data, assembled fresh from the
+      database on each request (full-context injection rather than vector
+      retrieval). May append a machine-readable `[ACTION_*]` block proposing a
+      concrete next step, which the client turns into a confirmation prompt.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [query]
+            properties: { query: { type: string } }
+    responses:
+      '200': { description: Assistant reply }
+
+/ai/rfp:
+  post:
+    tags: [AI]
+    summary: Turn a plain-English description into a structured RFP
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [query]
+            properties: { query: { type: string } }
+    responses:
+      '200': { description: Title, theme, budget, services required and recommendations }
+
+/ai/timeline:
+  post:
+    tags: [AI]
+    summary: Generate planning milestones for an event
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [eventDetails]
+            properties:
+              eventDetails:
+                type: object
+                required: [date]
+                properties:
+                  title: { type: string }
+                  type: { type: string }
+                  date: { type: string, format: date-time }
+    responses:
+      '200': { description: Ordered milestones with lead times }
+
+/ai/budget/analyze:
+  post:
+    tags: [AI]
+    summary: Break down a budget and flag overspending
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [totalBudget, services]
+            properties:
+              totalBudget: { type: number }
+              services: { type: array, items: { type: object } }
+    responses:
+      '200': { description: Analysis, percentage breakdown and warnings }
+
+/admin/users:
+  get:
+    tags: [Admin]
+    summary: List users
+    parameters:
+      - { in: query, name: role, schema: { type: string } }
+      - { in: query, name: status, schema: { type: string } }
+      - { in: query, name: search, schema: { type: string } }
+    responses:
+      '200': { description: Users, password excluded }
+      '403': { $ref: '#/components/responses/Forbidden' }
+
+/admin/users/{id}/ban:
+  put:
+    tags: [Admin]
+    summary: Set an account status
+    parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [status]
+            properties: { status: { type: string, enum: [active, restricted, banned] } }
+    responses:
+      '200': { description: Status updated and recorded in the audit ledger }
+      '400': { description: Invalid status, or attempting to change your own account }
+
+/admin/bookings/{id}/resolve-dispute:
+  put:
+    tags: [Admin]
+    summary: Rule on a dispute
+    parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [resolution]
+            properties: { resolution: { type: string, enum: [refunded_customer, released_vendor] } }
+    responses:
+      '200': { description: Dispute settled, both parties notified, trust score recalculated }
+      '400': { description: Not under dispute, or already resolved }
+
+/super-admin/stats:
+  get:
+    tags: [SuperAdmin]
+    summary: Platform-wide metrics
+    responses:
+      '200': { description: Users, revenue, active bookings, disputes }
+      '403': { $ref: '#/components/responses/Forbidden' }
+
+/super-admin/revenue-series:
+  get:
+    tags: [SuperAdmin]
+    summary: Six-month revenue and booking volume
+    responses:
+      '200': { description: Continuous monthly series with no gaps }
+
+/super-admin/fraud-risks:
+  get:
+    tags: [SuperAdmin]
+    summary: Behavioural risk score per provider
+    description: Derived from cancellation velocity, dispute frequency, no-shows and account flags.
+    responses:
+      '200': { description: Providers sorted by risk, highest first }
+
+/super-admin/disputes:
+  get:
+    tags: [SuperAdmin]
+    summary: Open disputes awaiting mediation
+    responses:
+      '200': { description: Disputed bookings with both parties populated }
+
+/super-admin/user-governance:
+  post:
+    tags: [SuperAdmin]
+    summary: Ban, restrict or reinstate an account
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [userId, action]
+            properties:
+              userId: { type: string }
+              action: { type: string, enum: [ban, restrict, reinstate] }
+    responses:
+      '200': { description: Status changed, audit entry written, user notified over the socket }
+
+/super-admin/logs:
+  get:
+    tags: [SuperAdmin]
+    summary: Audit ledger
+    responses:
+      '200': { description: Governance actions, newest first }

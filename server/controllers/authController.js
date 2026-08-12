@@ -1,4 +1,5 @@
 const authService = require('../services/authService');
+const env = require('../config/env');
 const { asyncHandler } = require('../middleware/errors');
 
 exports.signup = asyncHandler(async (req, res, next) => {
@@ -33,7 +34,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
         return res.json(genericResponse);
     }
 
-    const resetLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+    const resetLink = `${env.CLIENT_URL}/reset-password/${resetToken}`;
 
     try {
         const { sendEmail } = require('../services/mailService');
@@ -51,7 +52,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 
     // Development convenience only. The token must never leave the server in
     // the response body — anyone could then reset any account they can name.
-    if (process.env.NODE_ENV !== 'production') {
+    if (!env.isProduction) {
         console.log(`[DEV] Password reset link for ${email}: ${resetLink}`);
     }
 

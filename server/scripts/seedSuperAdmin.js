@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/smart_events';
+const MONGODB_URI = require('../config/env').MONGODB_URI;
 
 const seed = async () => {
     try {

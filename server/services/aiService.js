@@ -5,12 +5,15 @@ const Booking = require('../models/Booking');
 const User = require('../models/User');
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const env = require('../config/env');
+// Placeholder key keeps construction from throwing when AI is not configured;
+// calls then fail gracefully and the controllers fall back to static content.
+const groq = new Groq({ apiKey: env.GROQ_API_KEY || 'not-configured' });
 
 // 1. Real Gemini Embeddings Generation
 async function createEmbedding(text) {
     try {
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = env.GEMINI_API_KEY;
         if (!apiKey || apiKey === 'your_gemini_api_key_here') {
             console.warn('[RAG] No valid GEMINI_API_KEY. Defaulting to empty array.');
             return new Array(768).fill(0);

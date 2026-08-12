@@ -1,13 +1,8 @@
 const jwt = require('jsonwebtoken');
+const env = require('../config/env');
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-    throw new Error(
-        'FATAL: JWT_SECRET is not set. Refusing to start — a default signing key ' +
-        'would let anyone forge an admin token. Set it in server/.env.'
-    );
-}
+// Validated at boot by config/env.js, which refuses to start without it.
+const JWT_SECRET = env.JWT_SECRET;
 
 const verifyToken = (req, res, next) => {
     const authHeader = req.headers.authorization;
