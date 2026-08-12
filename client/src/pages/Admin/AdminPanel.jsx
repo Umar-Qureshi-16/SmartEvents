@@ -69,6 +69,18 @@ export default function AdminPanel({ user }) {
         fetchAdminData();
     }, []);
 
+    // PUT /admin/users/:id/role existed but nothing on the client called it,
+    // so roles could only be changed directly in the database.
+    const handleRoleChange = async (id, role, name) => {
+        try {
+            await axios.put(`/admin/users/${id}/role`, { role });
+            toast.success(`${name} is now a ${role}.`);
+            fetchAdminData();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not change that role.');
+        }
+    };
+
     const toggleUserStatus = async (id, currentStatus) => {
         const nextStatus = currentStatus === 'active' || currentStatus === 'Active' ? 'restricted' : 'active';
         try {
@@ -103,7 +115,19 @@ export default function AdminPanel({ user }) {
                 <div className="text-muted font-mono text-[11px]">{row.email}</div>
             </div>
         )},
-        { header: 'Role', cell: (row) => <span className="uppercase font-mono font-bold text-success">{row.role}</span> },
+        { header: 'Role', cell: (row) => (
+            <select
+                value={row.role}
+                aria-label={`Change role for ${row.name}`}
+                disabled={row._id === user?._id || row._id === user?.id}
+                onChange={(e) => handleRoleChange(row._id, e.target.value, row.name)}
+                className="bg-surface-2 border border-border rounded-lg px-2 py-1 text-[11px] font-mono font-bold uppercase text-fg outline-none focus:border-brand disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {['customer', 'provider', 'admin', 'superadmin'].map(r => (
+                    <option key={r} value={r}>{r}</option>
+                ))}
+            </select>
+        )},
         { header: 'Trust Score', cell: (row) => {
             if (row.role !== 'provider') return <span className="text-muted font-bold">-</span>;
             const score = row.trustScore ?? 100;

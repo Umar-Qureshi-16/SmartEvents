@@ -179,6 +179,7 @@ function App() {
                       <Route path="/calendar" element={<AvailabilityCalendar />} />
                       <Route path="/portfolio" element={<PortfolioManager />} />
                       <Route path="/reviews" element={<ProviderReviews />} />
+                      <Route path="/my-events" element={<ManageEvents />} />
                       <Route path="/staff/scanner" element={<StaffScanner user={user} />} />
                     </Route>
 

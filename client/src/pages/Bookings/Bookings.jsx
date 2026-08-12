@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
     Calendar, DollarSign, MapPin, CheckCircle2, ArrowRight,
-    MessageSquare, FileText, AlertTriangle
+    MessageSquare, FileText, AlertTriangle, XCircle
 } from 'lucide-react';
 
 import axios from '../../api/axios';
@@ -25,6 +25,7 @@ export default function Bookings({ user }) {
     const [disputeTarget, setDisputeTarget] = useState(null);
     const [disputeReason, setDisputeReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [cancelTarget, setCancelTarget] = useState(null);
 
     const fetchBookings = useCallback(async () => {
         setLoading(true);
@@ -55,6 +56,22 @@ export default function Bookings({ user }) {
             await fetchBookings();
         } catch (err) {
             toast.error(err.response?.data?.message || 'Could not raise the dispute.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // PUT /bookings/:id/cancel existed but nothing on the client called it,
+    // so a customer could never withdraw an offer they had made.
+    const cancelBooking = async () => {
+        setSubmitting(true);
+        try {
+            await axios.put(`/bookings/${cancelTarget._id}/cancel`);
+            toast.success('Booking cancelled.');
+            setCancelTarget(null);
+            await fetchBookings();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not cancel the booking.');
         } finally {
             setSubmitting(false);
         }
@@ -195,6 +212,13 @@ export default function Bookings({ user }) {
                                                 </Button>
                                             </>
                                         )}
+                                        {canNegotiate && (
+                                            <Button size="sm" variant="ghost" icon={XCircle}
+                                                    onClick={() => setCancelTarget(booking)}
+                                                    className="!text-danger hover:!bg-danger/10">
+                                                Withdraw
+                                            </Button>
+                                        )}
                                         <Button size="sm" onClick={() => navigate(`/negotiate/${booking._id}`)}>
                                             {canNegotiate ? 'Negotiate' : 'View'} <ArrowRight size={12} />
                                         </Button>
@@ -205,6 +229,25 @@ export default function Bookings({ user }) {
                     })}
                 </div>
             )}
+
+            <Modal
+                open={Boolean(cancelTarget)}
+                onClose={() => setCancelTarget(null)}
+                title="Withdraw this offer?"
+                size="sm"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setCancelTarget(null)}>Keep it</Button>
+                        <Button variant="danger" loading={submitting} onClick={cancelBooking}>Withdraw</Button>
+                    </>
+                }
+            >
+                <p className="text-sm text-muted">
+                    Your offer on <strong className="text-fg">
+                        {cancelTarget?.eventId?.title || cancelTarget?.eventDetails?.eventType || 'this booking'}
+                    </strong> will be cancelled and the provider notified. You can always make a new offer later.
+                </p>
+            </Modal>
 
             <Modal
                 open={Boolean(disputeTarget)}

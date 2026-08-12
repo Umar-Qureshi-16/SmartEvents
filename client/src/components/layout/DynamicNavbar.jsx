@@ -91,6 +91,7 @@ const NAV_BY_ROLE = {
         {
             label: 'My Services', path: '/services', icon: Package,
             subOptions: [
+                { label: 'My events', desc: 'Publish and manage event listings', path: '/my-events' },
                 { label: 'Service packages', desc: 'Manage your offerings and prices', path: '/services' },
                 { label: 'Portfolio', desc: 'Showcase your past work', path: '/portfolio' },
                 { label: 'Availability', desc: 'Block dates you cannot take', path: '/calendar' },

@@ -18,6 +18,7 @@ const EventDetail = () => {
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [buyingTicket, setBuyingTicket] = useState(false);
     const [reviews, setReviews] = useState([]);
     const [hasConfirmedBooking, setHasConfirmedBooking] = useState(false);
 
@@ -124,6 +125,28 @@ const EventDetail = () => {
 
     if (!event) return null;
 
+    const handleBuyTicket = async () => {
+        if (!user) {
+            toast.error('Please sign in to get a pass.');
+            navigate('/login');
+            return;
+        }
+        setBuyingTicket(true);
+        try {
+            await axios.post('/tickets/purchase', {
+                eventId: event._id,
+                ticketType: 'General',
+                price: event.price,
+            });
+            toast.success('Pass issued. Find the QR code in your wallet.');
+            navigate('/tickets');
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not issue your pass.');
+        } finally {
+            setBuyingTicket(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#030712] text-fg pt-24 pb-20 px-6">
             <div className="max-w-6xl mx-auto space-y-12">
@@ -192,13 +215,29 @@ const EventDetail = () => {
                         </div>
 
                         {/* Actions */}
-                        <div className="pt-6">
+                        <div className="pt-6 space-y-3">
                             <button
                                 onClick={() => setIsModalOpen(true)}
-                                className="w-full grad-indigo py-6 rounded-2xl flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all text-fg"
+                                className="w-full grad-primary py-5 rounded-2xl flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm shadow-glow hover:scale-[1.01] active:scale-95 transition-all text-white"
                             >
-                                Make an Offer <Send size={18} />
+                                Make an Offer <Send size={18} aria-hidden="true" />
                             </button>
+
+                            {/* POST /tickets/purchase existed but nothing on the
+                                client ever called it, so the pass wallet could
+                                never be filled. */}
+                            <button
+                                onClick={handleBuyTicket}
+                                disabled={buyingTicket}
+                                className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-xs border border-border text-fg hover:bg-fg/5 transition-all disabled:opacity-50"
+                            >
+                                {buyingTicket
+                                    ? 'Issuing your pass...'
+                                    : <>Get an entry pass &middot; {`$${(event.price || 0).toLocaleString()}`}</>}
+                            </button>
+                            <p className="text-[11px] text-muted text-center">
+                                A pass admits you at the gate. Making an offer negotiates the service price.
+                            </p>
                         </div>
                     </motion.div>
                 </div>
