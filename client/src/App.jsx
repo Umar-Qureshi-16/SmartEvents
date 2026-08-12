@@ -109,11 +109,12 @@ function App() {
         {loading && <CustomLoader />}
         <ParticleBackground />
         <WebSocketProvider user={user}>
-          <div className="app-shell min-h-screen bg-[#F8F9FA] text-[#111827]">
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+          <div className="app-shell min-h-screen bg-bg text-fg">
             <DynamicNavbar user={user} onLogout={handleLogout} />
 
-            <div className="w-full min-h-screen bg-[#F8F9FA] text-[#111827] pt-20">
-              <main className="relative z-10 h-full">
+            <div className="w-full min-h-screen bg-bg text-fg pt-20">
+              <main id="main-content" className="relative z-10 h-full">
                 <AnimatePresence mode="wait">
                   <Routes location={location} key={location.pathname}>
                     {/* ---------- Public ---------- */}

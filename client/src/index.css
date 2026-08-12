@@ -3,43 +3,164 @@
 @import "tailwindcss/utilities";
 
 /* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+/* ---------------------------------------------------------------------------
+   Design tokens
+   One source of truth for both themes. Values are space-separated RGB channels
+   so Tailwind can apply opacity modifiers (e.g. `bg-surface/50`).
+   --------------------------------------------------------------------------- */
 
 :root {
-  --color-ink: #14171F;
-  --color-paper: #FAF9F6;
-  --color-emerald: #10B981;   /* emerald */
-  --color-gold: #F59E0B;      /* gold */
-  --color-coral: #F87171;     /* coral */
-  --color-slate: #64748B;    /* slate */
-  --font-primary: 'Fraunces', serif;
-  --font-secondary: 'Instrument Sans', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* Light */
+  --bg: 248 249 251;
+  --surface: 255 255 255;
+  --surface-2: 244 246 249;
+  --border: 226 232 240;
+  --fg: 15 23 42;
+  --muted: 100 116 139;
+  --brand: 79 70 229;
+  --brand-hover: 67 56 202;
+  --success: 5 150 105;
+  --warning: 217 119 6;
+  --danger: 220 38 38;
+  --shadow: 15 23 42;
+
+  --font-primary: 'Instrument Sans', system-ui, sans-serif;
+  --font-secondary: 'Fraunces', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.dark {
+  /* Dark — brand and status colours are lightened so they stay legible
+     against a dark surface and keep AA contrast. */
+  --bg: 13 16 24;
+  --surface: 23 27 38;
+  --surface-2: 31 36 50;
+  --border: 44 51 68;
+  --fg: 241 245 249;
+  --muted: 148 163 184;
+  --brand: 129 140 248;
+  --brand-hover: 165 180 252;
+  --success: 52 211 153;
+  --warning: 251 191 36;
+  --danger: 248 113 113;
+  --shadow: 0 0 0;
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-[#FAFAFC] text-[#0F172A] antialiased selection:bg-[#4F46E5] selection:text-white font-sans;
+    @apply bg-bg text-fg antialiased;
     font-family: var(--font-primary);
+    /* Prevents a flash of the wrong ground colour before React mounts. */
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  ::selection {
+    @apply bg-brand text-white;
+  }
+
+  /* Visible keyboard focus everywhere. The app previously had zero
+     focus-visible styling, making it unusable without a mouse. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Respect the OS "reduce motion" setting. The app runs GSAP, Framer Motion
+     and a constantly-animating particle canvas. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
+@layer components {
+  /* Screen-reader-only text (labels for icon-only controls). */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
 
+  /* Skip link — first tab stop, visible only when focused. */
+  .skip-link {
+    @apply sr-only;
+  }
+  .skip-link:focus {
+    @apply not-sr-only fixed top-4 left-4 z-[200] px-4 py-2 rounded-lg bg-brand text-white font-bold text-sm shadow-lg;
+    position: fixed;
+    width: auto;
+    height: auto;
+    clip: auto;
+    margin: 0;
+  }
 
+  .glass {
+    @apply bg-surface/80 backdrop-blur-xl border border-border;
+  }
 
-/* Modern Luxury Palette Utilities */
-.btn-adyen-primary {
-  @apply bg-[#4F46E5] hover:bg-[#4338CA] text-white font-extrabold rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 shadow-[0_8px_25px_-5px_rgba(79,70,229,0.4)];
+  .card {
+    @apply bg-surface border border-border rounded-3xl shadow-card transition-all duration-300;
+  }
+
+  .grad-primary {
+    background-image: linear-gradient(135deg, rgb(var(--brand)), rgb(var(--brand-hover)));
+  }
+
+  /* Legacy class names retained so existing markup keeps rendering while
+     pages migrate to the tokens above. */
+  .adyen-card {
+    @apply card;
+  }
+
+  .adyen-badge {
+    @apply inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold font-mono tracking-wider bg-brand/10 text-brand border border-brand/20;
+  }
+
+  .btn-adyen-primary {
+    @apply bg-brand hover:bg-brand-hover text-white font-extrabold rounded-full transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 shadow-glow;
+  }
+
+  .btn-adyen-outline {
+    @apply border border-border text-fg hover:bg-fg hover:text-bg font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2;
+  }
+
+  .text-muted-foreground {
+    @apply text-muted;
+  }
 }
 
-.btn-adyen-outline {
-  @apply border border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2;
+/* Scrollbars that match the theme rather than the OS default. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
-
-.adyen-card {
-  @apply bg-white border border-[#E2E8F0] rounded-3xl shadow-[0_4px_20px_-2px_rgba(15,23,42,0.04)] transition-all duration-300;
+::-webkit-scrollbar-track {
+  background: rgb(var(--bg));
 }
-
-.adyen-badge {
-  @apply inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold font-mono tracking-wider bg-[#4F46E5]/10 text-[#4F46E5] border border-[#4F46E5]/20;
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--border));
+  border-radius: 8px;
+  border: 2px solid rgb(var(--bg));
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--muted));
 }
