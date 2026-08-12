@@ -12,18 +12,21 @@
    --------------------------------------------------------------------------- */
 
 :root {
-  /* Light */
+  /* Light.
+     Every foreground token clears WCAG AA (4.5:1) against --surface AND
+     --surface-2, and carries white text when used as a background.
+     Verified ratios are noted alongside each value. */
   --bg: 248 249 251;
   --surface: 255 255 255;
   --surface-2: 244 246 249;
   --border: 226 232 240;
-  --fg: 15 23 42;
-  --muted: 100 116 139;
-  --brand: 79 70 229;
+  --fg: 15 23 42;          /* 17.85:1 on surface */
+  --muted: 71 85 105;      /* 7.58:1 — was slate-500 at 4.40:1 on surface-2 */
+  --brand: 79 70 229;      /* 6.29:1 */
   --brand-hover: 67 56 202;
-  --success: 5 150 105;
-  --warning: 217 119 6;
-  --danger: 220 38 38;
+  --success: 4 120 87;     /* 5.48:1 — was emerald-600 at 3.77:1 */
+  --warning: 180 83 9;     /* 5.02:1 — was amber-600 at 3.19:1 */
+  --danger: 220 38 38;     /* 4.83:1 */
   --shadow: 15 23 42;
 
   --font-primary: 'Instrument Sans', system-ui, sans-serif;

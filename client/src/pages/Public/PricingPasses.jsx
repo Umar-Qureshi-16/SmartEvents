@@ -6,13 +6,13 @@ export default function PricingPasses() {
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] text-[#111827] p-6 max-w-[1280px] mx-auto space-y-12 pt-6">
+        <div className="min-h-screen bg-bg text-fg p-6 max-w-[1280px] mx-auto space-y-12 pt-6">
             <div className="text-center space-y-4 max-w-3xl mx-auto">
                 <span className="adyen-badge">TICKET PASS TIERS & FEES</span>
-                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-[#111827]">
+                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-fg">
                     Simple, Transparent Pricing
                 </h1>
-                <p className="text-base text-slate-600 font-medium">
+                <p className="text-base text-muted font-medium">
                     No hidden charges. Free for basic attendee passes with low 2.5% platform escrow fees on vendor transactions.
                 </p>
             </div>
@@ -47,24 +47,24 @@ export default function PricingPasses() {
                 ].map((tier, idx) => (
                     <div
                         key={idx}
-                        className={`adyen-card p-8 flex flex-col justify-between space-y-8 ${tier.highlight ? 'border-[#0ABF53] shadow-xl relative' : 'border-[#E5E7EB]'}`}
+                        className={`adyen-card p-8 flex flex-col justify-between space-y-8 ${tier.highlight ? 'border-success shadow-xl relative' : 'border-border'}`}
                     >
                         {tier.highlight && (
-                            <span className="absolute -top-3 right-6 bg-[#0ABF53] text-white text-[10px] font-mono font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                            <span className="absolute -top-3 right-6 bg-success text-white text-[10px] font-mono font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                                 MOST POPULAR
                             </span>
                         )}
 
                         <div className="space-y-4">
-                            <h3 className="text-xl font-bold text-[#111827]">{tier.name}</h3>
+                            <h3 className="text-xl font-bold text-fg">{tier.name}</h3>
                             <div>
-                                <span className="text-3xl font-black text-[#111827]">{tier.price}</span>
-                                <span className="text-xs text-slate-500 block font-medium mt-1">{tier.subtitle}</span>
+                                <span className="text-3xl font-black text-fg">{tier.price}</span>
+                                <span className="text-xs text-muted block font-medium mt-1">{tier.subtitle}</span>
                             </div>
-                            <ul className="space-y-2.5 pt-4 border-t border-[#E5E7EB]">
+                            <ul className="space-y-2.5 pt-4 border-t border-border">
                                 {tier.features.map((f, fIdx) => (
-                                    <li key={fIdx} className="flex items-center gap-2.5 text-xs text-slate-600 font-semibold">
-                                        <Check size={16} className="text-[#0ABF53] shrink-0" />
+                                    <li key={fIdx} className="flex items-center gap-2.5 text-xs text-muted font-semibold">
+                                        <Check size={16} className="text-success shrink-0" />
                                         <span>{f}</span>
                                     </li>
                                 ))}
@@ -73,7 +73,7 @@ export default function PricingPasses() {
 
                         <button
                             onClick={() => navigate('/signup')}
-                            className={`w-full py-3.5 rounded-full text-xs font-bold transition-all ${tier.highlight ? 'btn-adyen-primary shadow-adyen-glow justify-center' : 'btn-adyen-outline justify-center'}`}
+                            className={`w-full py-3.5 rounded-full text-xs font-bold transition-all ${tier.highlight ? 'btn-adyen-primary shadow-glow justify-center' : 'btn-adyen-outline justify-center'}`}
                         >
                             {tier.cta}
                         </button>

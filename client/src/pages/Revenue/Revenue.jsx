@@ -147,15 +147,15 @@ export default function Revenue({ user }) {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] text-[#111827] space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#E5E7EB]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
                     <span className="adyen-badge">REVENUE & ESCROW LEDGER</span>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#111827]">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-fg">
                         Earnings & Payment Settlements
                     </h1>
-                    <p className="text-xs text-slate-600 font-medium">Track total escrow volume, pending releases, and Stripe bank payouts.</p>
+                    <p className="text-xs text-muted font-medium">Track total escrow volume, pending releases, and Stripe bank payouts.</p>
                 </div>
 
                 <button
@@ -169,25 +169,25 @@ export default function Revenue({ user }) {
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="adyen-card p-6 space-y-2 bg-white border border-[#E5E7EB] shadow-sm">
-                    <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">TOTAL ESCROW VOLUME</span>
-                    <div className="text-3xl font-black text-[#0ABF53]">${totalVolume.toLocaleString()}</div>
+                <div className="adyen-card p-6 space-y-2 bg-surface border border-border shadow-sm">
+                    <span className="text-[10px] font-mono text-muted uppercase font-bold">TOTAL ESCROW VOLUME</span>
+                    <div className="text-3xl font-black text-success">${totalVolume.toLocaleString()}</div>
                 </div>
 
-                <div className="adyen-card p-6 space-y-2 bg-white border border-[#E5E7EB] shadow-sm">
-                    <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">HELD IN ESCROW (PENDING)</span>
-                    <div className="text-3xl font-black text-[#111827]">${pendingEscrow.toLocaleString()}</div>
+                <div className="adyen-card p-6 space-y-2 bg-surface border border-border shadow-sm">
+                    <span className="text-[10px] font-mono text-muted uppercase font-bold">HELD IN ESCROW (PENDING)</span>
+                    <div className="text-3xl font-black text-fg">${pendingEscrow.toLocaleString()}</div>
                 </div>
 
-                <div className="adyen-card p-6 space-y-2 bg-white border border-[#E5E7EB] shadow-sm">
-                    <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">PAID OUT TO BANK</span>
+                <div className="adyen-card p-6 space-y-2 bg-surface border border-border shadow-sm">
+                    <span className="text-[10px] font-mono text-muted uppercase font-bold">PAID OUT TO BANK</span>
                     <div className="text-3xl font-black text-cyan-600">${paidOut.toLocaleString()}</div>
                 </div>
             </div>
 
             {/* Analytics Breakdown chart */}
-            <div className="adyen-card p-6 bg-white border border-slate-200 rounded-3xl shadow-sm space-y-4">
-                <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider">Earnings Performance Metrics</h3>
+            <div className="adyen-card p-6 bg-surface border border-border rounded-3xl shadow-sm space-y-4">
+                <h3 className="text-sm font-black text-fg uppercase tracking-wider">Earnings Performance Metrics</h3>
                 <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={getChartData()}>
@@ -207,24 +207,24 @@ export default function Revenue({ user }) {
             </div>
 
             {/* Transactions Table */}
-            <div className="adyen-card rounded-3xl overflow-hidden border border-[#E5E7EB] bg-white shadow-sm">
-                <div className="p-6 border-b border-[#E5E7EB]">
-                    <h3 className="text-lg font-bold text-[#111827]">Escrow Transaction History</h3>
+            <div className="adyen-card rounded-3xl overflow-hidden border border-border bg-surface shadow-sm">
+                <div className="p-6 border-b border-border">
+                    <h3 className="text-lg font-bold text-fg">Escrow Transaction History</h3>
                 </div>
 
                 {loading ? (
-                    <div className="p-8 text-center text-slate-400 font-mono text-[10px] uppercase font-bold animate-pulse">
+                    <div className="p-8 text-center text-muted font-mono text-[10px] uppercase font-bold animate-pulse">
                         Loading financial transaction ledger...
                     </div>
                 ) : confirmedBookings.length === 0 ? (
-                    <div className="p-12 text-center text-slate-400 font-mono text-[10px] uppercase font-bold">
+                    <div className="p-12 text-center text-muted font-mono text-[10px] uppercase font-bold">
                         No transactions registered.
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs font-semibold">
                             <thead>
-                                <tr className="bg-slate-50 text-slate-500 font-mono text-[10px] uppercase border-b border-[#E5E7EB]">
+                                <tr className="bg-surface-2 text-muted font-mono text-[10px] uppercase border-b border-border">
                                     <th className="p-4">Transaction ID</th>
                                     <th className="p-4">Client</th>
                                     <th className="p-4">Amount ($)</th>
@@ -234,16 +234,16 @@ export default function Revenue({ user }) {
                             </thead>
                             <tbody className="divide-y divide-[#E5E7EB]">
                                 {confirmedBookings.map(tx => (
-                                    <tr key={tx._id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="p-4 font-mono font-bold text-slate-500">{`TX-${tx._id.substring(18).toUpperCase()}`}</td>
-                                        <td className="p-4 font-bold text-[#111827]">{tx.customerId?.name || 'Client'}</td>
-                                        <td className="p-4 font-black font-mono text-[#0ABF53]">${tx.offerPrice.toLocaleString()}</td>
+                                    <tr key={tx._id} className="hover:bg-surface-2 transition-colors">
+                                        <td className="p-4 font-mono font-bold text-muted">{`TX-${tx._id.substring(18).toUpperCase()}`}</td>
+                                        <td className="p-4 font-bold text-fg">{tx.customerId?.name || 'Client'}</td>
+                                        <td className="p-4 font-black font-mono text-success">${tx.offerPrice.toLocaleString()}</td>
                                         <td className="p-4">
                                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase ${tx.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                                                 {tx.status === 'completed' ? 'Released Payout' : 'Held in Escrow'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-slate-500">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                                        <td className="p-4 text-muted">{new Date(tx.createdAt).toLocaleDateString()}</td>
                                     </tr>
                                 ))}
                             </tbody>

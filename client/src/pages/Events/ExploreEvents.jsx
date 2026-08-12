@@ -103,28 +103,28 @@ export default function ExploreEvents({ user }) {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] text-[#111827] p-6 max-w-[1280px] mx-auto space-y-8 pt-6">
+        <div className="min-h-screen bg-bg text-fg p-6 max-w-[1280px] mx-auto space-y-8 pt-6">
             {/* Header */}
             <div className="space-y-3">
                 <span className="adyen-badge uppercase tracking-wider">SEGREGATED EVENT DIRECTORY</span>
-                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-[#111827]">
+                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-fg">
                     {selectedCategory === 'All' ? 'Live Event Marketplace' : `${selectedCategory} Directory`}
                 </h1>
-                <p className="text-sm text-slate-600 max-w-2xl font-medium">
-                    Showing events segregated specifically by category: <strong className="text-[#0ABF53]">{selectedCategory}</strong>. Filter by target budget, location, or search keywords.
+                <p className="text-sm text-muted max-w-2xl font-medium">
+                    Showing events segregated specifically by category: <strong className="text-success">{selectedCategory}</strong>. Filter by target budget, location, or search keywords.
                 </p>
             </div>
 
             {/* Search & Filter Bar */}
             <div className="adyen-card p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3.5 top-3.5 text-slate-400" size={18} />
+                    <Search className="absolute left-3.5 top-3.5 text-muted" size={18} />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search events, cities, or venues..."
-                        className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-full pl-10 pr-4 py-2.5 text-xs text-[#111827] outline-none focus:border-[#0ABF53]"
+                        className="w-full bg-bg border border-border rounded-full pl-10 pr-4 py-2.5 text-xs text-fg outline-none focus:border-success"
                     />
                 </div>
 
@@ -135,8 +135,8 @@ export default function ExploreEvents({ user }) {
                             key={cat}
                             onClick={() => handleCategoryClick(cat)}
                             className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${selectedCategory === cat
-                                    ? 'bg-[#0ABF53] text-white shadow-adyen-glow'
-                                    : 'bg-[#F8F9FA] text-slate-600 hover:text-[#111827] border border-[#E5E7EB]'
+                                    ? 'bg-success text-white shadow-glow'
+                                    : 'bg-bg text-muted hover:text-fg border border-border'
                                 }`}
                         >
                             {cat}
@@ -149,21 +149,21 @@ export default function ExploreEvents({ user }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {filteredEvents.length === 0 ? (
                     <div className="col-span-2 adyen-card p-12 text-center space-y-3">
-                        <h3 className="text-lg font-bold text-[#111827]">No events found for category "{selectedCategory}"</h3>
-                        <p className="text-xs text-slate-500">Try selecting another category pill above.</p>
+                        <h3 className="text-lg font-bold text-fg">No events found for category "{selectedCategory}"</h3>
+                        <p className="text-xs text-muted">Try selecting another category pill above.</p>
                     </div>
                 ) : (
                     filteredEvents.map(event => (
-                        <div key={event.id} className="adyen-card rounded-3xl overflow-hidden flex flex-col justify-between hover:border-[#0ABF53]">
+                        <div key={event.id} className="adyen-card rounded-3xl overflow-hidden flex flex-col justify-between hover:border-success">
                             <div className="relative h-56 overflow-hidden">
                                 <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
                                 <div className="absolute top-4 left-4">
-                                    <span className="adyen-badge bg-white text-[#111827] border-none shadow-md font-bold">
+                                    <span className="adyen-badge bg-surface text-fg border-none shadow-md font-bold">
                                         {event.category}
                                     </span>
                                 </div>
                                 <div className="absolute top-4 right-4">
-                                    <span className="px-3 py-1 rounded-full bg-[#0ABF53] text-white text-[11px] font-black shadow-md">
+                                    <span className="px-3 py-1 rounded-full bg-success text-white text-[11px] font-black shadow-md">
                                         {event.status}
                                     </span>
                                 </div>
@@ -171,23 +171,23 @@ export default function ExploreEvents({ user }) {
 
                             <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
                                 <div className="space-y-2">
-                                    <h3 className="text-xl font-bold text-[#111827] leading-snug">{event.title}</h3>
-                                    <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-500 pt-1">
+                                    <h3 className="text-xl font-bold text-fg leading-snug">{event.title}</h3>
+                                    <div className="flex flex-wrap gap-4 text-xs font-semibold text-muted pt-1">
                                         <div className="flex items-center gap-1.5">
-                                            <Calendar size={14} className="text-[#0ABF53]" />
+                                            <Calendar size={14} className="text-success" />
                                             <span>{event.date}</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
-                                            <MapPin size={14} className="text-[#0ABF53]" />
+                                            <MapPin size={14} className="text-success" />
                                             <span>{event.location}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="pt-4 border-t border-[#E5E7EB] flex items-center justify-between">
+                                <div className="pt-4 border-t border-border flex items-center justify-between">
                                     <div>
-                                        <span className="text-[10px] font-mono text-slate-400 block uppercase font-bold">BUDGET RANGE</span>
-                                        <span className="text-base font-black text-[#0ABF53]">
+                                        <span className="text-[10px] font-mono text-muted block uppercase font-bold">BUDGET RANGE</span>
+                                        <span className="text-base font-black text-success">
                                             ${event.budgetMin.toLocaleString()} - ${event.budgetMax.toLocaleString()}
                                         </span>
                                     </div>
@@ -199,7 +199,7 @@ export default function ExploreEvents({ user }) {
                                                     toast.success(`Counter-bid portal opened for ${event.title}`);
                                                     navigate('/bookings');
                                                 }}
-                                                className="btn-adyen-primary py-2 px-5 text-xs shadow-adyen-glow"
+                                                className="btn-adyen-primary py-2 px-5 text-xs shadow-glow"
                                             >
                                                 Submit Bid
                                             </button>
@@ -209,7 +209,7 @@ export default function ExploreEvents({ user }) {
                                                     toast.success(`Registering ticket pass for ${event.title}`);
                                                     navigate('/tickets');
                                                 }}
-                                                className="btn-adyen-primary py-2 px-5 text-xs shadow-adyen-glow"
+                                                className="btn-adyen-primary py-2 px-5 text-xs shadow-glow"
                                             >
                                                 Get Pass
                                             </button>

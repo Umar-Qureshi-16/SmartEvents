@@ -31,24 +31,24 @@ export default function ProviderReviews() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] text-[#111827] space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#E5E7EB]">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
                     <span className="adyen-badge">VENDOR PERFORMANCE</span>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#111827]">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-fg">
                         Client Reviews & Feedback
                     </h1>
-                    <p className="text-xs text-slate-600 font-medium">Read testimonials, ratings, and feedback left on your completed events.</p>
+                    <p className="text-xs text-muted font-medium">Read testimonials, ratings, and feedback left on your completed events.</p>
                 </div>
             </div>
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="adyen-card p-6 bg-white border border-slate-200 rounded-3xl flex justify-between items-center shadow-sm">
+                <div className="adyen-card p-6 bg-surface border border-border rounded-3xl flex justify-between items-center shadow-sm">
                     <div>
-                        <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">AVERAGE RATING</span>
-                        <span className="text-3xl font-black text-[#111827]">{getAverageRating()} ★</span>
+                        <span className="text-[10px] font-mono text-muted uppercase font-bold block">AVERAGE RATING</span>
+                        <span className="text-3xl font-black text-fg">{getAverageRating()} ★</span>
                     </div>
                     <div className="flex items-center gap-0.5 text-amber-500">
                         {[...Array(5)].map((_, i) => (
@@ -57,12 +57,12 @@ export default function ProviderReviews() {
                     </div>
                 </div>
 
-                <div className="adyen-card p-6 bg-white border border-slate-200 rounded-3xl flex justify-between items-center shadow-sm">
+                <div className="adyen-card p-6 bg-surface border border-border rounded-3xl flex justify-between items-center shadow-sm">
                     <div>
-                        <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">TOTAL REVIEWS</span>
-                        <span className="text-3xl font-black text-[#0ABF53]">{reviews.length} Feedbacks</span>
+                        <span className="text-[10px] font-mono text-muted uppercase font-bold block">TOTAL REVIEWS</span>
+                        <span className="text-3xl font-black text-success">{reviews.length} Feedbacks</span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-[#0ABF53]/10 border border-[#0ABF53]/20 flex items-center justify-center text-[#0ABF53]">
+                    <div className="w-12 h-12 rounded-2xl bg-success/10 border border-success/20 flex items-center justify-center text-success">
                         <MessageSquare size={20} />
                     </div>
                 </div>
@@ -72,27 +72,27 @@ export default function ProviderReviews() {
             <div className="max-w-3xl space-y-4">
                 {loading ? (
                     <div className="space-y-4 animate-pulse">
-                        <div className="h-24 bg-white border border-slate-200 rounded-3xl"></div>
-                        <div className="h-24 bg-white border border-slate-200 rounded-3xl"></div>
+                        <div className="h-24 bg-surface border border-border rounded-3xl"></div>
+                        <div className="h-24 bg-surface border border-border rounded-3xl"></div>
                     </div>
                 ) : reviews.length === 0 ? (
-                    <div className="adyen-card p-12 text-center text-slate-400 bg-white border border-slate-200">
-                        <MessageSquare size={48} className="mx-auto mb-4 opacity-20 text-slate-500" />
-                        <h3 className="text-base font-bold text-[#111827]">No reviews yet</h3>
-                        <p className="text-xs text-slate-500 font-semibold mt-1">Once clients complete bookings, their reviews will appear here.</p>
+                    <div className="adyen-card p-12 text-center text-muted bg-surface border border-border">
+                        <MessageSquare size={48} className="mx-auto mb-4 opacity-20 text-muted" />
+                        <h3 className="text-base font-bold text-fg">No reviews yet</h3>
+                        <p className="text-xs text-muted font-semibold mt-1">Once clients complete bookings, their reviews will appear here.</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
                         {reviews.map(r => (
-                            <div key={r._id} className="adyen-card p-6 bg-white border border-[#E5E7EB] rounded-3xl space-y-3 hover:border-[#0ABF53] transition-all">
+                            <div key={r._id} className="adyen-card p-6 bg-surface border border-border rounded-3xl space-y-3 hover:border-success transition-all">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+                                        <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-muted shrink-0">
                                             <User size={14} />
                                         </div>
                                         <div>
-                                            <h4 className="text-xs font-bold text-[#111827]">{r.user?.name}</h4>
-                                            <span className="text-[9px] text-slate-400 font-mono font-bold block">{new Date(r.createdAt).toLocaleDateString()}</span>
+                                            <h4 className="text-xs font-bold text-fg">{r.user?.name}</h4>
+                                            <span className="text-[9px] text-muted font-mono font-bold block">{new Date(r.createdAt).toLocaleDateString()}</span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-0.5 text-amber-500">
@@ -101,8 +101,8 @@ export default function ProviderReviews() {
                                         ))}
                                     </div>
                                 </div>
-                                <p className="text-xs text-slate-600 leading-relaxed font-medium">"{r.comment}"</p>
-                                <div className="pt-2 border-t border-slate-100 flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">
+                                <p className="text-xs text-muted leading-relaxed font-medium">"{r.comment}"</p>
+                                <div className="pt-2 border-t border-border flex items-center gap-1 text-[10px] text-muted font-bold uppercase tracking-wider font-mono">
                                     <Calendar size={12} />
                                     <span>Event: {r.event?.title || 'Custom booking'}</span>
                                 </div>

@@ -176,12 +176,12 @@ export default function SuperAdminDashboard({ user }) {
         return (
             <div className="min-h-screen bg-ink px-6 py-10">
                 <div className="max-w-7xl mx-auto space-y-6 animate-pulse">
-                    <div className="h-10 w-72 bg-white/5 rounded-xl" />
+                    <div className="h-10 w-72 bg-fg/5 rounded-xl" />
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-28 bg-white/5 rounded-3xl" />)}
+                        {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-28 bg-fg/5 rounded-3xl" />)}
                     </div>
-                    <div className="h-14 bg-white/5 rounded-2xl" />
-                    <div className="h-[420px] bg-white/5 rounded-3xl" />
+                    <div className="h-14 bg-fg/5 rounded-2xl" />
+                    <div className="h-[420px] bg-fg/5 rounded-3xl" />
                 </div>
             </div>
         );
@@ -191,8 +191,8 @@ export default function SuperAdminDashboard({ user }) {
         return (
             <div className="min-h-screen bg-ink flex flex-col items-center justify-center gap-4 px-6 text-center">
                 <AlertTriangle size={48} className="text-rose-400" />
-                <h2 className="text-xl font-bold text-white">Governance console unavailable</h2>
-                <p className="text-sm text-slate-400 max-w-md">{error}</p>
+                <h2 className="text-xl font-bold text-fg">Governance console unavailable</h2>
+                <p className="text-sm text-muted max-w-md">{error}</p>
                 <button
                     onClick={() => loadAll()}
                     className="px-5 py-3 rounded-xl bg-indigo-500 text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2"
@@ -204,7 +204,7 @@ export default function SuperAdminDashboard({ user }) {
     }
 
     return (
-        <div className="min-h-screen bg-ink text-white px-4 sm:px-6 py-10">
+        <div className="min-h-screen bg-ink text-fg px-4 sm:px-6 py-10">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -215,13 +215,13 @@ export default function SuperAdminDashboard({ user }) {
                         <h1 className="text-3xl font-extrabold tracking-tight mt-1">
                             Welcome back, {user?.name?.split(' ')[0] || 'Administrator'}
                         </h1>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="text-sm text-muted mt-1">
                             Oversight across users, revenue, risk, and disputes.
                         </p>
                     </div>
                     <button
                         onClick={() => loadAll()}
-                        className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2 w-fit"
+                        className="px-4 py-2.5 rounded-xl bg-fg/5 border border-border text-xs font-bold uppercase tracking-widest hover:bg-surface/10 transition-all flex items-center gap-2 w-fit"
                     >
                         <RefreshCw size={14} /> Refresh
                     </button>
@@ -236,7 +236,7 @@ export default function SuperAdminDashboard({ user }) {
                          sub="pending, negotiating, confirmed" />
                     <Kpi icon={AlertTriangle} label="Open Disputes" value={(stats.disputes ?? 0).toLocaleString()}
                          sub={`${stats.bannedUsers ?? 0} suspended accounts`}
-                         tone={stats.disputes > 0 ? 'text-amber-400' : 'text-slate-400'} />
+                         tone={stats.disputes > 0 ? 'text-amber-400' : 'text-muted'} />
                 </section>
 
                 <nav aria-label="Console sections" className="flex gap-2 overflow-x-auto pb-1">
@@ -253,7 +253,7 @@ export default function SuperAdminDashboard({ user }) {
                                 className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap flex items-center gap-2 transition-all border ${
                                     active
                                         ? 'bg-indigo-500 text-white border-indigo-400 shadow-lg shadow-indigo-500/20'
-                                        : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white'
+                                        : 'bg-fg/5 text-muted border-border hover:bg-surface/10 hover:text-white'
                                 }`}
                             >
                                 <Icon size={14} /> {label}
@@ -295,12 +295,12 @@ export default function SuperAdminDashboard({ user }) {
 }
 
 const Kpi = ({ icon: Icon, label, value, sub, tone = 'text-white' }) => (
-    <div className="glass p-5 rounded-3xl border-white/5 space-y-2">
-        <div className="flex items-center gap-2 text-muted-foreground">
+    <div className="glass p-5 rounded-3xl border-border space-y-2">
+        <div className="flex items-center gap-2 text-muted">
             <Icon size={14} aria-hidden="true" />
             <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
         </div>
         <p className={`text-2xl font-black ${tone}`}>{value}</p>
-        <p className="text-[10px] text-slate-500">{sub}</p>
+        <p className="text-[10px] text-muted">{sub}</p>
     </div>
 );

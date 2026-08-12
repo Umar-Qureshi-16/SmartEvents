@@ -13,21 +13,21 @@ const DisputeResolutionCenter = ({ disputes = [], onResolve, busyId }) => {
     const label = (r) => (r === 'refunded_customer' ? 'refund the customer' : 'release funds to the provider');
 
     return (
-        <div className="glass p-8 rounded-3xl border-white/5 space-y-8">
+        <div className="glass p-8 rounded-3xl border-border space-y-8">
             <div>
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <h3 className="text-xl font-bold text-fg flex items-center gap-2">
                     <Gavel className="text-amber-400" size={20} /> Resolution Hub
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted mt-1">
                     Mediation for bookings escalated by either party
                 </p>
             </div>
 
             <div className="grid grid-cols-1 gap-6">
                 {disputes.length === 0 ? (
-                    <div className="p-12 text-center rounded-3xl border border-dashed border-white/10 text-slate-500">
+                    <div className="p-12 text-center rounded-3xl border border-dashed border-border text-muted">
                         <CheckCircle size={48} className="mx-auto mb-4 opacity-40" />
-                        <h4 className="text-white font-bold">No open disputes</h4>
+                        <h4 className="text-fg font-bold">No open disputes</h4>
                         <p className="text-xs mt-1">Escalated bookings will appear here for review.</p>
                     </div>
                 ) : (
@@ -43,7 +43,7 @@ const DisputeResolutionCenter = ({ disputes = [], onResolve, busyId }) => {
                         return (
                             <div
                                 key={d._id}
-                                className="p-6 rounded-3xl bg-white/5 border border-white/5 flex flex-col gap-5 hover:border-white/10 transition-all"
+                                className="p-6 rounded-3xl bg-fg/5 border border-border flex flex-col gap-5 hover:border-border transition-all"
                             >
                                 <div className="flex flex-col md:flex-row justify-between gap-6">
                                     <div className="flex items-start gap-4">
@@ -51,22 +51,22 @@ const DisputeResolutionCenter = ({ disputes = [], onResolve, busyId }) => {
                                             <AlertTriangle size={24} />
                                         </div>
                                         <div className="min-w-0">
-                                            <h4 className="font-bold text-white">
+                                            <h4 className="font-bold text-fg">
                                                 {d.eventId?.title || d.eventDetails?.eventType || 'Custom booking'}
                                             </h4>
-                                            <p className="text-xs text-muted-foreground mt-1">
+                                            <p className="text-xs text-muted mt-1">
                                                 Case <span className="font-mono">{d._id}</span> · {money(d.offerPrice)}
                                             </p>
-                                            <p className="text-xs text-slate-400 mt-2">
+                                            <p className="text-xs text-muted mt-2">
                                                 <span className="text-indigo-400 font-semibold">{d.customerId?.name || 'Customer'}</span>
                                                 {' vs '}
                                                 <span className="text-emerald-400 font-semibold">{d.vendorId?.name || 'Provider'}</span>
                                                 {d.vendorId?.trustScore != null && (
-                                                    <span className="text-slate-500"> · provider trust {d.vendorId.trustScore}</span>
+                                                    <span className="text-muted"> · provider trust {d.vendorId.trustScore}</span>
                                                 )}
                                             </p>
                                             {reason && (
-                                                <p className="text-sm text-slate-300 mt-3 p-3 rounded-xl bg-black/20 border border-white/5">
+                                                <p className="text-sm text-muted mt-3 p-3 rounded-xl bg-fg/20 border border-border">
                                                     “{reason}”
                                                 </p>
                                             )}
@@ -104,7 +104,7 @@ const DisputeResolutionCenter = ({ disputes = [], onResolve, busyId }) => {
                                             <button
                                                 type="button"
                                                 onClick={() => setConfirming(null)}
-                                                className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:bg-white/10"
+                                                className="px-4 py-2 rounded-lg bg-fg/5 border border-border text-xs font-bold text-muted hover:bg-surface/10"
                                             >
                                                 Cancel
                                             </button>

@@ -58,50 +58,50 @@ export default function BudgetTracker() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] text-[#111827] space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#E5E7EB]">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
                     <span className="adyen-badge">SMARTIE AI BUDGETING</span>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#111827]">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-fg">
                         Event Budget Analyzer
                     </h1>
-                    <p className="text-xs text-slate-600 font-medium">Audit allocation estimates, detect overspending patterns, and generate breakdowns.</p>
+                    <p className="text-xs text-muted font-medium">Audit allocation estimates, detect overspending patterns, and generate breakdowns.</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Left: Input parameters */}
                 <div className="lg:col-span-6 space-y-6">
-                    <div className="adyen-card p-6 bg-white border border-[#E5E7EB] space-y-4">
-                        <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider">Configure Budget Boundaries</h3>
+                    <div className="adyen-card p-6 bg-surface border border-border space-y-4">
+                        <h3 className="text-sm font-black text-fg uppercase tracking-wider">Configure Budget Boundaries</h3>
 
                         <div className="space-y-4 text-xs font-semibold">
                             <div>
-                                <label className="text-slate-600 block mb-1">Total Target Budget ($)</label>
+                                <label className="text-muted block mb-1">Total Target Budget ($)</label>
                                 <div className="relative">
-                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted font-bold">$</span>
                                     <input
                                         type="number"
                                         value={totalBudget}
                                         onChange={(e) => setTotalBudget(Number(e.target.value))}
-                                        className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl pl-8 pr-3.5 py-2.5 outline-none focus:border-[#0ABF53] font-mono text-sm font-bold"
+                                        className="w-full bg-bg border border-border rounded-xl pl-8 pr-3.5 py-2.5 outline-none focus:border-success font-mono text-sm font-bold"
                                     />
                                 </div>
                             </div>
 
                             {/* Cost Tracker Status bar */}
-                            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                            <div className="p-4 rounded-2xl bg-surface-2 border border-border space-y-2">
                                 <div className="flex justify-between font-mono font-bold text-[11px]">
-                                    <span className="text-slate-500">Total Allocated:</span>
-                                    <span className={currentSpent > totalBudget ? 'text-rose-600' : 'text-[#0ABF53]'}>
+                                    <span className="text-muted">Total Allocated:</span>
+                                    <span className={currentSpent > totalBudget ? 'text-rose-600' : 'text-success'}>
                                         ${currentSpent.toLocaleString()} / ${totalBudget.toLocaleString()}
                                     </span>
                                 </div>
-                                <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                <div className="w-full bg-surface-2 h-2 rounded-full overflow-hidden">
                                     <div
                                         style={{ width: `${Math.min(100, (currentSpent / totalBudget) * 100)}%` }}
-                                        className={`h-full transition-all ${currentSpent > totalBudget ? 'bg-rose-500' : 'bg-[#0ABF53]'}`}
+                                        className={`h-full transition-all ${currentSpent > totalBudget ? 'bg-rose-500' : 'bg-success'}`}
                                     />
                                 </div>
                             </div>
@@ -109,8 +109,8 @@ export default function BudgetTracker() {
                     </div>
 
                     {/* Services Line Items */}
-                    <div className="adyen-card p-6 bg-white border border-slate-200 rounded-3xl space-y-4">
-                        <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider">Line Item Estimates</h3>
+                    <div className="adyen-card p-6 bg-surface border border-border rounded-3xl space-y-4">
+                        <h3 className="text-sm font-black text-fg uppercase tracking-wider">Line Item Estimates</h3>
 
                         <form onSubmit={handleAddItem} className="flex gap-2 text-xs font-semibold">
                             <input
@@ -119,7 +119,7 @@ export default function BudgetTracker() {
                                 placeholder="Service description (e.g. Florals)"
                                 value={newItem.name}
                                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                                className="flex-1 bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0ABF53]"
+                                className="flex-1 bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
                             />
                             <input
                                 type="number"
@@ -127,9 +127,9 @@ export default function BudgetTracker() {
                                 placeholder="Cost ($)"
                                 value={newItem.cost}
                                 onChange={(e) => setNewItem({ ...newItem, cost: e.target.value })}
-                                className="w-24 bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0ABF53]"
+                                className="w-24 bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
                             />
-                            <button type="submit" className="p-2.5 bg-[#0ABF53] text-white rounded-xl">
+                            <button type="submit" className="p-2.5 bg-success text-white rounded-xl">
                                 <Plus size={16} />
                             </button>
                         </form>
@@ -137,9 +137,9 @@ export default function BudgetTracker() {
                         <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto pr-1">
                             {services.map((item, idx) => (
                                 <div key={idx} className="flex items-center justify-between py-2 text-xs font-semibold">
-                                    <span className="text-[#111827]">{item.name}</span>
+                                    <span className="text-fg">{item.name}</span>
                                     <div className="flex items-center gap-3">
-                                        <span className="font-mono text-slate-600">${item.cost.toLocaleString()}</span>
+                                        <span className="font-mono text-muted">${item.cost.toLocaleString()}</span>
                                         <button onClick={() => handleDeleteItem(idx)} className="text-rose-500 hover:text-rose-700">
                                             <Trash2 size={14} />
                                         </button>
@@ -151,7 +151,7 @@ export default function BudgetTracker() {
                         <button
                             onClick={handleAnalyze}
                             disabled={loading || services.length === 0}
-                            className="w-full btn-adyen-primary py-3 rounded-full text-xs justify-center shadow-adyen-glow disabled:opacity-50"
+                            className="w-full btn-adyen-primary py-3 rounded-full text-xs justify-center shadow-glow disabled:opacity-50"
                         >
                             <Sparkles size={16} />
                             <span>{loading ? 'Analyzing Budget...' : 'Audit Budget Allocation'}</span>
@@ -162,19 +162,19 @@ export default function BudgetTracker() {
                 {/* Right: AI Report & Charts */}
                 <div className="lg:col-span-6">
                     {!report ? (
-                        <div className="h-full adyen-card p-12 bg-white border border-slate-200 text-center flex flex-col justify-center items-center text-slate-400">
-                            <PieIcon size={48} className="opacity-15 mb-3 text-slate-500 animate-bounce" />
-                            <h4 className="text-sm font-bold text-[#111827]">Audit Report Pending</h4>
-                            <p className="text-xs text-slate-500 font-semibold max-w-xs mt-1">Configure your target budget parameters and run Smartie AI audit to display allocation charts.</p>
+                        <div className="h-full adyen-card p-12 bg-surface border border-border text-center flex flex-col justify-center items-center text-muted">
+                            <PieIcon size={48} className="opacity-15 mb-3 text-muted animate-bounce" />
+                            <h4 className="text-sm font-bold text-fg">Audit Report Pending</h4>
+                            <p className="text-xs text-muted font-semibold max-w-xs mt-1">Configure your target budget parameters and run Smartie AI audit to display allocation charts.</p>
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            <div className="adyen-card p-6 bg-white border border-[#E5E7EB] space-y-4">
-                                <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider flex items-center gap-1.5">
-                                    <Sparkles size={16} className="text-[#0ABF53]" />
+                            <div className="adyen-card p-6 bg-surface border border-border space-y-4">
+                                <h3 className="text-sm font-black text-fg uppercase tracking-wider flex items-center gap-1.5">
+                                    <Sparkles size={16} className="text-success" />
                                     <span>Smartie Audit Synthesis</span>
                                 </h3>
-                                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                                <p className="text-xs text-muted leading-relaxed font-medium">
                                     {report.analysis}
                                 </p>
                             </div>
@@ -194,8 +194,8 @@ export default function BudgetTracker() {
 
                             {/* Allocation Chart */}
                             {report.breakdown && (
-                                <div className="adyen-card p-6 bg-white border border-slate-200 space-y-4">
-                                    <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider">Breakdown Percentage Allocation</h3>
+                                <div className="adyen-card p-6 bg-surface border border-border space-y-4">
+                                    <h3 className="text-sm font-black text-fg uppercase tracking-wider">Breakdown Percentage Allocation</h3>
                                     <div className="h-56 flex justify-center">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <PieChart>

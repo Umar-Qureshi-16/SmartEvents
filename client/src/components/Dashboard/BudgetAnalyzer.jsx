@@ -36,16 +36,16 @@ const BudgetAnalyzer = ({ totalBudget, services }) => {
     if (!totalBudget) return null;
 
     return (
-        <div className="glass p-6 rounded-3xl border-white/5 flex flex-col h-full">
+        <div className="glass p-6 rounded-3xl border-border flex flex-col h-full">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                         <DollarSign size={20} />
                     </div>
-                    <h3 className="font-bold text-white">Smart Budget</h3>
+                    <h3 className="font-bold text-fg">Smart Budget</h3>
                 </div>
                 <div className="text-right">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Total Allocated</p>
+                    <p className="text-[10px] text-muted uppercase font-bold tracking-widest">Total Allocated</p>
                     <p className="text-lg font-bold text-emerald-400">${(totalBudget ?? 0).toLocaleString()}</p>
                 </div>
             </div>
@@ -53,17 +53,17 @@ const BudgetAnalyzer = ({ totalBudget, services }) => {
             {loading ? (
                 <div className="flex-1 flex flex-col items-center justify-center space-y-3 opacity-50">
                     <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-                    <p className="text-xs text-muted-foreground">Analyzing expenditures...</p>
+                    <p className="text-xs text-muted">Analyzing expenditures...</p>
                 </div>
             ) : analysis ? (
                 <div className="space-y-6">
                     {/* Progress Bar */}
                     <div className="space-y-2">
-                        <div className="flex justify-between text-xs font-bold text-muted-foreground">
+                        <div className="flex justify-between text-xs font-bold text-muted">
                             <span>Spending Efficiency</span>
                             <span>{analysis.efficiency || '85%'}</span>
                         </div>
-                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-2 w-full bg-fg/5 rounded-full overflow-hidden">
                             <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: '85%' }}
@@ -87,19 +87,19 @@ const BudgetAnalyzer = ({ totalBudget, services }) => {
                     {/* Breakdown */}
                     <div className="grid grid-cols-2 gap-3">
                         {Object.entries(analysis?.breakdown || {}).map(([cat, val], i) => (
-                            <div key={i} className="bg-white/5 p-3 rounded-2xl border border-white/5">
-                                <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter mb-1">{cat}</p>
-                                <p className="text-sm font-bold text-white">{val}%</p>
+                            <div key={i} className="bg-fg/5 p-3 rounded-2xl border border-border">
+                                <p className="text-[9px] uppercase font-bold text-muted tracking-tighter mb-1">{cat}</p>
+                                <p className="text-sm font-bold text-fg">{val}%</p>
                             </div>
                         ))}
                     </div>
 
-                    <p className="text-[11px] text-slate-400 leading-relaxed italic border-t border-white/5 pt-4">
+                    <p className="text-[11px] text-muted leading-relaxed italic border-t border-border pt-4">
                         "{analysis?.analysis || ''}"
                     </p>
                 </div>
             ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-muted">
                     <PieChart size={32} className="mb-2 opacity-20" />
                     <p className="text-xs">Add services to generate a smart budget breakdown.</p>
                 </div>

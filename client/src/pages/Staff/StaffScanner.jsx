@@ -66,15 +66,15 @@ export default function StaffScanner({ user }) {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] text-[#111827] space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#E5E7EB]">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
                     <span className="adyen-badge">GATE SCANNER COMMAND</span>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#111827]">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-fg">
                         Staff Entry QR Scanner
                     </h1>
-                    <p className="text-xs text-slate-600 font-medium">Verify dynamic, encrypted attendee tickets at gate terminals.</p>
+                    <p className="text-xs text-muted font-medium">Verify dynamic, encrypted attendee tickets at gate terminals.</p>
                 </div>
             </div>
 
@@ -89,12 +89,12 @@ export default function StaffScanner({ user }) {
             {/* Scanner form */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-6 space-y-6">
-                    <div className="adyen-card p-6 bg-white border border-[#E5E7EB] space-y-4">
-                        <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider">Gate Check Terminal</h3>
+                    <div className="adyen-card p-6 bg-surface border border-border space-y-4">
+                        <h3 className="text-sm font-black text-fg uppercase tracking-wider">Gate Check Terminal</h3>
                         
                         <form onSubmit={handleScanTicket} className="space-y-3 text-xs font-semibold">
                             <div>
-                                <label className="text-slate-700 block mb-1 font-bold">Input Serial Ticket Number / QR String</label>
+                                <label className="text-fg block mb-1 font-bold">Input Serial Ticket Number / QR String</label>
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
@@ -102,9 +102,9 @@ export default function StaffScanner({ user }) {
                                         value={ticketInput}
                                         onChange={(e) => setTicketInput(e.target.value)}
                                         placeholder="e.g. TKT-1718290291-3819"
-                                        className="flex-1 bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl px-4 py-3 outline-none focus:border-[#0ABF53] font-mono text-sm font-bold uppercase"
+                                        className="flex-1 bg-bg border border-border rounded-xl px-4 py-3 outline-none focus:border-success font-mono text-sm font-bold uppercase"
                                     />
-                                    <button type="submit" disabled={loading} className="btn-adyen-primary px-6 py-3 font-bold shadow-adyen-glow">
+                                    <button type="submit" disabled={loading} className="btn-adyen-primary px-6 py-3 font-bold shadow-glow">
                                         Scan Gate
                                     </button>
                                 </div>
@@ -137,10 +137,10 @@ export default function StaffScanner({ user }) {
                 </div>
 
                 <div className="lg:col-span-6 space-y-4">
-                    <div className="adyen-card p-6 bg-white border border-[#E5E7EB] space-y-4">
-                        <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider">Gate Access Policy</h3>
+                    <div className="adyen-card p-6 bg-surface border border-border space-y-4">
+                        <h3 className="text-sm font-black text-fg uppercase tracking-wider">Gate Access Policy</h3>
                         
-                        <div className="space-y-3 text-xs font-medium text-slate-600 leading-relaxed">
+                        <div className="space-y-3 text-xs font-medium text-muted leading-relaxed">
                             <div className="flex gap-2.5">
                                 <div className="w-5 h-5 rounded bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
                                     <Check size={12} className="text-emerald-600" />

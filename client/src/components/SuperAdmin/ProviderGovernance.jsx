@@ -9,20 +9,20 @@ const trustTone = (score) => {
 
 /** Provider roster with trust standing, from GET /super-admin/providers. */
 const ProviderGovernance = ({ providers = [], onGovern, busyId }) => (
-    <div className="glass p-8 rounded-3xl border-white/5 space-y-8 h-full">
+    <div className="glass p-8 rounded-3xl border-border space-y-8 h-full">
         <div>
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <h3 className="text-xl font-bold text-fg flex items-center gap-2">
                 <Users className="text-indigo-400" size={20} /> Provider Oversight
             </h3>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted mt-1">
                 Ranked by trust score — computed from completion rate, ratings, disputes and no-shows
             </p>
         </div>
 
         {providers.length === 0 ? (
-            <div className="p-12 text-center rounded-3xl border border-dashed border-white/10 text-slate-500">
+            <div className="p-12 text-center rounded-3xl border border-dashed border-border text-muted">
                 <Users size={40} className="mx-auto mb-3 opacity-40" />
-                <p className="text-sm font-bold text-white">No providers registered yet</p>
+                <p className="text-sm font-bold text-fg">No providers registered yet</p>
             </div>
         ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -33,7 +33,7 @@ const ProviderGovernance = ({ providers = [], onGovern, busyId }) => (
                     return (
                         <div
                             key={p._id}
-                            className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-4 hover:bg-white/10 transition-all"
+                            className="p-5 rounded-2xl bg-fg/5 border border-border space-y-4 hover:bg-surface/10 transition-all"
                         >
                             <div className="flex justify-between items-start gap-3">
                                 <div className="flex items-center gap-3 min-w-0">
@@ -41,8 +41,8 @@ const ProviderGovernance = ({ providers = [], onGovern, busyId }) => (
                                         {p.name?.charAt(0) || '?'}
                                     </div>
                                     <div className="min-w-0">
-                                        <h4 className="text-sm font-bold text-white truncate">{p.name}</h4>
-                                        <p className="text-[10px] text-muted-foreground truncate">{p.email}</p>
+                                        <h4 className="text-sm font-bold text-fg truncate">{p.name}</h4>
+                                        <p className="text-[10px] text-muted truncate">{p.email}</p>
                                     </div>
                                 </div>
                                 <div className="text-right shrink-0">
@@ -50,13 +50,13 @@ const ProviderGovernance = ({ providers = [], onGovern, busyId }) => (
                                         <Star size={12} fill="currentColor" aria-hidden="true" />
                                         <span className="text-xs font-black">{p.trustScore ?? '—'}</span>
                                     </div>
-                                    <p className="text-[8px] text-muted-foreground uppercase font-black tracking-tighter mt-0.5">
+                                    <p className="text-[8px] text-muted uppercase font-black tracking-tighter mt-0.5">
                                         Trust
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="flex gap-4 text-[10px] text-muted-foreground">
+                            <div className="flex gap-4 text-[10px] text-muted">
                                 <span>{p.analytics?.completedEvents ?? 0} completed</span>
                                 <span>
                                     {p.analytics?.averageRating ? `${p.analytics.averageRating}★ avg` : 'unrated'}

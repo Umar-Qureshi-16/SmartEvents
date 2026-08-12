@@ -75,49 +75,49 @@ export default function PortfolioManager() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] text-[#111827] space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#E5E7EB]">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
                     <span className="adyen-badge">VENDOR BRANDING</span>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#111827]">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-fg">
                         Portfolio & Profile Manager
                     </h1>
-                    <p className="text-xs text-slate-600 font-medium">Manage your public brand, location coverage, and image catalogs.</p>
+                    <p className="text-xs text-muted font-medium">Manage your public brand, location coverage, and image catalogs.</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Profile form */}
                 <div className="lg:col-span-7">
-                    <div className="adyen-card p-6 bg-white border border-[#E5E7EB] space-y-6 shadow-sm">
-                        <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider">Public Brand Settings</h3>
+                    <div className="adyen-card p-6 bg-surface border border-border space-y-6 shadow-sm">
+                        <h3 className="text-sm font-black text-fg uppercase tracking-wider">Public Brand Settings</h3>
                         
                         {loading && !profile.businessName ? (
                             <div className="space-y-4 animate-pulse">
-                                <div className="h-10 bg-slate-100 rounded-xl"></div>
-                                <div className="h-10 bg-slate-100 rounded-xl"></div>
-                                <div className="h-24 bg-slate-100 rounded-xl"></div>
+                                <div className="h-10 bg-surface-2 rounded-xl"></div>
+                                <div className="h-10 bg-surface-2 rounded-xl"></div>
+                                <div className="h-24 bg-surface-2 rounded-xl"></div>
                             </div>
                         ) : (
                             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs font-semibold">
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="text-slate-700 block mb-1">Business Name</label>
+                                        <label className="text-fg block mb-1">Business Name</label>
                                         <input
                                             type="text"
                                             required
                                             value={profile.businessName}
                                             onChange={(e) => setProfile({ ...profile, businessName: e.target.value })}
-                                            className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0ABF53]"
+                                            className="w-full bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-slate-700 block mb-1">Category type</label>
+                                        <label className="text-fg block mb-1">Category type</label>
                                         <select
                                             value={profile.category}
                                             onChange={(e) => setProfile({ ...profile, category: e.target.value })}
-                                            className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0ABF53]"
+                                            className="w-full bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
                                         >
                                             <option value="venue">Venue & Hall</option>
                                             <option value="catering">Catering & Dining</option>
@@ -130,29 +130,29 @@ export default function PortfolioManager() {
                                 </div>
 
                                 <div>
-                                    <label className="text-slate-700 block mb-1">Business Location / Region</label>
+                                    <label className="text-fg block mb-1">Business Location / Region</label>
                                     <input
                                         type="text"
                                         required
                                         value={profile.location}
                                         onChange={(e) => setProfile({ ...profile, location: e.target.value })}
                                         placeholder="e.g. Chicago, IL"
-                                        className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0ABF53]"
+                                        className="w-full bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="text-slate-700 block mb-1">Brand Description</label>
+                                    <label className="text-fg block mb-1">Brand Description</label>
                                     <textarea
                                         rows="4"
                                         value={profile.description}
                                         onChange={(e) => setProfile({ ...profile, description: e.target.value })}
                                         placeholder="Introduce your business background and event highlights..."
-                                        className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl p-3 outline-none focus:border-[#0ABF53]"
+                                        className="w-full bg-bg border border-border rounded-xl p-3 outline-none focus:border-success"
                                     />
                                 </div>
 
-                                <button type="submit" disabled={loading} className="w-full btn-adyen-primary py-3 rounded-full text-xs justify-center shadow-adyen-glow">
+                                <button type="submit" disabled={loading} className="w-full btn-adyen-primary py-3 rounded-full text-xs justify-center shadow-glow">
                                     {loading ? 'Saving Profile...' : 'Save & Publish Profile'}
                                 </button>
                             </form>
@@ -162,8 +162,8 @@ export default function PortfolioManager() {
 
                 {/* Portfolio catalog */}
                 <div className="lg:col-span-5 space-y-6">
-                    <div className="adyen-card p-6 bg-white border border-[#E5E7EB] space-y-4">
-                        <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider">Portfolio Image Link</h3>
+                    <div className="adyen-card p-6 bg-surface border border-border space-y-4">
+                        <h3 className="text-sm font-black text-fg uppercase tracking-wider">Portfolio Image Link</h3>
 
                         <form onSubmit={handleAddImage} className="flex gap-2 text-xs font-semibold">
                             <input
@@ -172,22 +172,22 @@ export default function PortfolioManager() {
                                 placeholder="Paste image URL..."
                                 value={newImageUrl}
                                 onChange={(e) => setNewImageUrl(e.target.value)}
-                                className="flex-1 bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0ABF53]"
+                                className="flex-1 bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
                             />
-                            <button type="submit" className="btn-adyen-primary p-2.5 rounded-xl shadow-adyen-glow">
+                            <button type="submit" className="btn-adyen-primary p-2.5 rounded-xl shadow-glow">
                                 <Plus size={16} />
                             </button>
                         </form>
 
                         <div className="space-y-3 pt-2">
                             {profile.portfolioImages.length === 0 ? (
-                                <div className="p-8 text-center text-slate-400 font-mono text-[10px] uppercase font-bold border-2 border-dashed border-slate-200 rounded-2xl">
+                                <div className="p-8 text-center text-muted font-mono text-[10px] uppercase font-bold border-2 border-dashed border-border rounded-2xl">
                                     No showcase links staged.
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
                                     {profile.portfolioImages.map((img, idx) => (
-                                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100 group">
+                                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-border group">
                                             <img src={img} alt="Showcase" className="w-full h-full object-cover" />
                                             <button
                                                 onClick={() => handleDeleteImage(idx)}

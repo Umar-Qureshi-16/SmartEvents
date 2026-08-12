@@ -57,12 +57,12 @@ const EventReadiness = ({ booking }) => {
     const circumference = 2 * Math.PI * 58;
 
     return (
-        <div className="glass p-6 rounded-3xl border-white/5 flex flex-col items-center text-center relative overflow-hidden h-full">
+        <div className="glass p-6 rounded-3xl border-border flex flex-col items-center text-center relative overflow-hidden h-full">
             <div className={`absolute inset-0 opacity-10 blur-3xl bg-${color}-500`} />
 
             <div className="relative z-10 w-full">
                 <div className="flex items-center justify-between mb-6">
-                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Event Readiness</p>
+                    <p className="text-[10px] uppercase font-bold text-muted tracking-widest">Event Readiness</p>
                     {loading
                         ? <Loader2 size={16} className="text-indigo-400 animate-spin" />
                         : <ShieldCheck size={18} className={`text-${color}-400`} />
@@ -72,7 +72,7 @@ const EventReadiness = ({ booking }) => {
                 {/* Circular Progress */}
                 <div className="relative inline-flex items-center justify-center mb-6">
                     <svg className="w-32 h-32 -rotate-90">
-                        <circle cx="64" cy="64" r="58" strokeWidth="8" fill="transparent" className="text-white/5" stroke="currentColor" />
+                        <circle cx="64" cy="64" r="58" strokeWidth="8" fill="transparent" className="text-fg/5" stroke="currentColor" />
                         <motion.circle
                             cx="64" cy="64" r="58" strokeWidth="8" fill="transparent"
                             strokeDasharray={circumference}
@@ -88,11 +88,11 @@ const EventReadiness = ({ booking }) => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.5 }}
-                            className="text-3xl font-extrabold text-white"
+                            className="text-3xl font-extrabold text-fg"
                         >
                             {score}%
                         </motion.span>
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                        <span className="text-[10px] font-bold text-muted uppercase">
                             {score >= 80 ? 'Optimal' : score >= 50 ? 'In Progress' : 'Needs Attention'}
                         </span>
                     </div>
@@ -102,15 +102,15 @@ const EventReadiness = ({ booking }) => {
                 <div className="space-y-2 text-left w-full">
                     {checks.map((c, i) => (
                         <div key={i} className="flex items-center justify-between py-1">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                                <span className={c.status === 'pass' ? 'text-emerald-400' : 'text-slate-600'}>
+                            <div className="flex items-center gap-2 text-muted">
+                                <span className={c.status === 'pass' ? 'text-emerald-400' : 'text-muted'}>
                                     {CHECK_ICONS[c.label] || <Calendar size={12} />}
                                 </span>
                                 <span className="text-[11px] font-medium">{c.label}</span>
                             </div>
                             {c.status === 'pass'
                                 ? <CheckCircle2 size={14} className="text-emerald-500" />
-                                : <XCircle size={14} className="text-white/10" />
+                                : <XCircle size={14} className="text-fg/10" />
                             }
                         </div>
                     ))}
@@ -119,7 +119,7 @@ const EventReadiness = ({ booking }) => {
                 {liveData && (
                     <button
                         onClick={fetchLiveScore}
-                        className="w-full mt-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-white transition-all border border-white/5 flex items-center justify-center gap-2"
+                        className="w-full mt-5 py-2.5 rounded-xl bg-fg/5 hover:bg-surface/10 text-xs font-bold text-fg transition-all border border-border flex items-center justify-center gap-2"
                     >
                         Refresh Score
                     </button>

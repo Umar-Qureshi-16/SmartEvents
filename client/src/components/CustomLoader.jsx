@@ -53,7 +53,7 @@ const CustomLoader = () => {
     return (
         <div
             ref={loaderRef}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950 text-white overflow-hidden"
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950 text-fg overflow-hidden"
         >
             {/* Ambient Background Particles */}
             {[...Array(20)].map((_, i) => (
@@ -78,7 +78,7 @@ const CustomLoader = () => {
                     className="absolute inset-0 flex items-center justify-center"
                 >
                     <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg shadow-[0_0_20px_rgba(79,70,229,0.5)] transform rotate-45 flex items-center justify-center">
-                        <span className="text-white font-bold text-xl -rotate-45">S</span>
+                        <span className="text-fg font-bold text-xl -rotate-45">S</span>
                     </div>
                 </div>
             </div>
@@ -87,12 +87,12 @@ const CustomLoader = () => {
                 <h2 className="text-2xl font-bold tracking-tighter bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                     SmartEvents
                 </h2>
-                <p className="text-slate-500 font-medium text-sm mt-1 tracking-widest uppercase">
+                <p className="text-muted font-medium text-sm mt-1 tracking-widest uppercase">
                     Initializing Ecosystem
                 </p>
 
                 {/* Percentage Loading Bar */}
-                <div className="w-48 h-1 bg-slate-900 rounded-full mt-6 overflow-hidden">
+                <div className="w-48 h-1 bg-surface rounded-full mt-6 overflow-hidden">
                     <MotionBar className="h-full bg-gradient-to-r from-indigo-500 to-purple-500" />
                 </div>
             </div>

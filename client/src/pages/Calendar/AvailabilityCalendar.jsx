@@ -100,32 +100,32 @@ export default function AvailabilityCalendar() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] text-[#111827] space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#E5E7EB]">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
                     <span className="adyen-badge">VENDOR CALENDAR</span>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#111827]">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-fg">
                         Availability Schedule
                     </h1>
-                    <p className="text-xs text-slate-600 font-medium">Block or unblock dates in your schedule. Locked dates block customers from booking your services.</p>
+                    <p className="text-xs text-muted font-medium">Block or unblock dates in your schedule. Locked dates block customers from booking your services.</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Calendar Grid */}
                 <div className="lg:col-span-8 space-y-6">
-                    <div className="adyen-card bg-white border border-[#E5E7EB] p-6 space-y-6 shadow-sm">
+                    <div className="adyen-card bg-surface border border-border p-6 space-y-6 shadow-sm">
                         {/* Month Selector */}
-                        <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-                            <h3 className="text-lg font-bold text-[#111827]">
+                        <div className="flex justify-between items-center pb-3 border-b border-border">
+                            <h3 className="text-lg font-bold text-fg">
                                 {monthNames[month]} {year}
                             </h3>
                             <div className="flex items-center gap-2">
-                                <button onClick={prevMonth} className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                                <button onClick={prevMonth} className="p-2 border border-border rounded-xl hover:bg-surface-2 transition-colors">
                                     <ArrowLeft size={16} />
                                 </button>
-                                <button onClick={nextMonth} className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                                <button onClick={nextMonth} className="p-2 border border-border rounded-xl hover:bg-surface-2 transition-colors">
                                     <ArrowRight size={16} />
                                 </button>
                             </div>
@@ -134,7 +134,7 @@ export default function AvailabilityCalendar() {
                         {/* Calendar Grid */}
                         <div className="space-y-2">
                             {/* Weekday headers */}
-                            <div className="grid grid-cols-7 text-center text-xs font-mono font-bold text-slate-400 py-2">
+                            <div className="grid grid-cols-7 text-center text-xs font-mono font-bold text-muted py-2">
                                 <span>SUN</span>
                                 <span>MON</span>
                                 <span>TUE</span>
@@ -157,8 +157,8 @@ export default function AvailabilityCalendar() {
                                                 isBlocked 
                                                     ? 'bg-rose-50 border-rose-200 text-rose-800 hover:bg-rose-100'
                                                     : day.isCurrentMonth
-                                                        ? 'bg-white border-[#E5E7EB] hover:border-[#0ABF53]'
-                                                        : 'bg-slate-50 border-slate-100 text-slate-400 hover:border-slate-300'
+                                                        ? 'bg-surface border-border hover:border-success'
+                                                        : 'bg-surface-2 border-border text-muted hover:border-slate-300'
                                             } ${isToday ? 'ring-2 ring-[#0ABF53] ring-offset-2' : ''}`}
                                         >
                                             <span className="text-xs font-bold font-mono">
@@ -183,10 +183,10 @@ export default function AvailabilityCalendar() {
 
                 {/* Calendar Legend & Policy */}
                 <div className="lg:col-span-4 space-y-4">
-                    <div className="adyen-card p-6 bg-white border border-[#E5E7EB] space-y-4">
-                        <h3 className="text-sm font-bold text-[#111827] uppercase tracking-wider">Calendar Settings</h3>
+                    <div className="adyen-card p-6 bg-surface border border-border space-y-4">
+                        <h3 className="text-sm font-bold text-fg uppercase tracking-wider">Calendar Settings</h3>
                         
-                        <div className="space-y-3 text-xs font-medium text-slate-600 leading-relaxed">
+                        <div className="space-y-3 text-xs font-medium text-muted leading-relaxed">
                             <div className="flex gap-2.5">
                                 <div className="w-5 h-5 rounded bg-rose-100 border border-rose-200 flex items-center justify-center shrink-0">
                                     <ShieldAlert size={12} className="text-rose-600" />

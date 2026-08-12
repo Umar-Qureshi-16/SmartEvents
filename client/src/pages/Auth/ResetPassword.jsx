@@ -47,7 +47,7 @@ const ResetPassword = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 relative overflow-hidden selection:bg-indigo-500/30">
+        <div className="min-h-screen bg-bg flex items-center justify-center p-6 relative overflow-hidden selection:bg-indigo-500/30">
             <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.02] pointer-events-none" />
             <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full animate-pulse" />
 
@@ -56,7 +56,7 @@ const ResetPassword = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="w-full max-w-md relative z-10"
             >
-                <div className="glass p-8 md:p-10 rounded-[2.5rem] border-white/5 space-y-8 relative overflow-hidden">
+                <div className="glass p-8 md:p-10 rounded-[2.5rem] border-border space-y-8 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/5 blur-3xl -ml-16 -mt-16" />
 
                     <div className="text-center space-y-3">
@@ -64,10 +64,10 @@ const ResetPassword = () => {
                             <ShieldCheck className="text-white" size={32} />
                         </div>
                         <div className="space-y-1">
-                            <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">
+                            <h2 className="text-3xl font-black text-fg tracking-tighter uppercase italic">
                                 Reset<span className="text-indigo-500">_Secure</span>
                             </h2>
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Update enterprise credentials</p>
+                            <p className="text-xs text-muted font-medium uppercase tracking-widest">Update enterprise credentials</p>
                         </div>
                     </div>
 
@@ -89,7 +89,7 @@ const ResetPassword = () => {
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
+                                    <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2 px-1">
                                         <Lock size={12} className="text-indigo-400" /> New Secure Token
                                     </label>
                                     <input
@@ -97,13 +97,13 @@ const ResetPassword = () => {
                                         value={newPassword}
                                         onChange={e => setNewPassword(e.target.value)}
                                         placeholder="••••••••"
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white placeholder:text-slate-600 outline-none focus:border-indigo-500/50 transition-all"
+                                        className="w-full bg-fg/5 border border-border rounded-2xl px-5 py-4 text-sm text-fg placeholder:text-muted outline-none focus:border-indigo-500/50 transition-all"
                                         required
                                     />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
+                                    <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2 px-1">
                                         <Lock size={12} className="text-indigo-400" /> Confirm Token
                                     </label>
                                     <input
@@ -111,7 +111,7 @@ const ResetPassword = () => {
                                         value={confirmPassword}
                                         onChange={e => setConfirmPassword(e.target.value)}
                                         placeholder="••••••••"
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white placeholder:text-slate-600 outline-none focus:border-indigo-500/50 transition-all"
+                                        className="w-full bg-fg/5 border border-border rounded-2xl px-5 py-4 text-sm text-fg placeholder:text-muted outline-none focus:border-indigo-500/50 transition-all"
                                         required
                                     />
                                 </div>

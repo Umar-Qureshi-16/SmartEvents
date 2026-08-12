@@ -39,7 +39,7 @@ const ForgotPassword = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 relative overflow-hidden selection:bg-indigo-500/30">
+        <div className="min-h-screen bg-bg flex items-center justify-center p-6 relative overflow-hidden selection:bg-indigo-500/30">
             <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.02] pointer-events-none" />
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full animate-pulse" />
 
@@ -48,12 +48,12 @@ const ForgotPassword = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 className="w-full max-w-md relative z-10"
             >
-                <div className="glass p-8 md:p-10 rounded-[2.5rem] border-white/5 space-y-8 relative overflow-hidden">
+                <div className="glass p-8 md:p-10 rounded-[2.5rem] border-border space-y-8 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl -mr-16 -mt-16" />
 
                     <button
                         onClick={() => navigate('/login')}
-                        className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
+                        className="flex items-center gap-2 text-[10px] font-black text-muted uppercase tracking-widest hover:text-fg transition-all group"
                     >
                         <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> Back to Terminal
                     </button>
@@ -63,10 +63,10 @@ const ForgotPassword = () => {
                             <KeyRound className="text-amber-400 group-hover:rotate-12 transition-transform" size={32} />
                         </div>
                         <div className="space-y-1">
-                            <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">
+                            <h2 className="text-3xl font-black text-fg tracking-tighter uppercase italic">
                                 Access<span className="text-amber-500">_Recovery</span>
                             </h2>
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Restore secure identity link</p>
+                            <p className="text-xs text-muted font-medium uppercase tracking-widest">Restore secure identity link</p>
                         </div>
                     </div>
 
@@ -87,7 +87,7 @@ const ForgotPassword = () => {
                     {!success && (
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
+                                <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2 px-1">
                                     <Mail size={12} className="text-amber-400" /> Identity Link
                                 </label>
                                 <input
@@ -95,7 +95,7 @@ const ForgotPassword = () => {
                                     value={email}
                                     onChange={e => setEmail(e.target.value)}
                                     placeholder="your_email@enterprise.com"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white placeholder:text-slate-600 outline-none focus:border-amber-500/50 transition-all font-medium"
+                                    className="w-full bg-fg/5 border border-border rounded-2xl px-5 py-4 text-sm text-fg placeholder:text-muted outline-none focus:border-amber-500/50 transition-all font-medium"
                                     required
                                 />
                             </div>

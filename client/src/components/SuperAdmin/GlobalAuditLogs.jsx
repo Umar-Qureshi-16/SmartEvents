@@ -17,24 +17,24 @@ const GlobalAuditLogs = ({ logs = [] }) => {
     );
 
     return (
-        <div className="glass p-8 rounded-3xl border-white/5 space-y-6">
+        <div className="glass p-8 rounded-3xl border-border space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-fg flex items-center gap-2">
                         <Database className="text-emerald-400" size={20} /> Audit Ledger
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted mt-1">
                         Every governance action, with actor and timestamp
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Filter size={14} className="text-muted-foreground" />
+                    <Filter size={14} className="text-muted" />
                     <label htmlFor="audit-severity" className="sr-only">Filter by severity</label>
                     <select
                         id="audit-severity"
                         value={severity}
                         onChange={(e) => setSeverity(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:ring-1 ring-emerald-500/50"
+                        className="bg-fg/5 border border-border rounded-lg px-3 py-2 text-xs text-fg outline-none focus:ring-1 ring-emerald-500/50"
                     >
                         <option value="all">All severities</option>
                         <option value="critical">Critical</option>
@@ -45,9 +45,9 @@ const GlobalAuditLogs = ({ logs = [] }) => {
             </div>
 
             {filtered.length === 0 ? (
-                <div className="p-12 text-center rounded-3xl border border-dashed border-white/10 text-slate-500">
+                <div className="p-12 text-center rounded-3xl border border-dashed border-border text-muted">
                     <Database size={40} className="mx-auto mb-3 opacity-40" />
-                    <p className="text-sm font-bold text-white">
+                    <p className="text-sm font-bold text-fg">
                         {logs.length === 0 ? 'No audit entries yet' : 'Nothing at this severity'}
                     </p>
                     <p className="text-xs mt-1">
@@ -59,7 +59,7 @@ const GlobalAuditLogs = ({ logs = [] }) => {
                     {filtered.map((log) => (
                         <div
                             key={log._id}
-                            className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between gap-4 hover:bg-white/10 transition-all"
+                            className="p-4 rounded-2xl bg-fg/5 border border-border flex items-center justify-between gap-4 hover:bg-surface/10 transition-all"
                         >
                             <div className="flex items-center gap-4 min-w-0">
                                 <span
@@ -67,10 +67,10 @@ const GlobalAuditLogs = ({ logs = [] }) => {
                                     aria-hidden="true"
                                 />
                                 <div className="min-w-0">
-                                    <p className="text-xs font-bold text-white truncate">
+                                    <p className="text-xs font-bold text-fg truncate">
                                         {String(log.action).replace(/_/g, ' ')}
                                     </p>
-                                    <p className="text-[10px] text-muted-foreground font-mono truncate">
+                                    <p className="text-[10px] text-muted font-mono truncate">
                                         {log.targetType}
                                         {log.metadata?.resolution ? ` · ${log.metadata.resolution}` : ''}
                                         {log.metadata?.newRole ? ` · ${log.metadata.newRole}` : ''}
@@ -78,7 +78,7 @@ const GlobalAuditLogs = ({ logs = [] }) => {
                                 </div>
                             </div>
                             <div className="text-right shrink-0">
-                                <p className="text-[10px] font-mono text-slate-500 flex items-center gap-1 justify-end">
+                                <p className="text-[10px] font-mono text-muted flex items-center gap-1 justify-end">
                                     <Clock size={10} aria-hidden="true" />
                                     {new Date(log.createdAt).toLocaleString()}
                                 </p>

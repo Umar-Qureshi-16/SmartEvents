@@ -96,26 +96,26 @@ const EventDetail = () => {
     if (loading) return (
         <div className="min-h-screen bg-[#030712] pt-24 pb-20 px-6 animate-pulse">
             <div className="max-w-6xl mx-auto space-y-12">
-                <div className="w-32 h-6 bg-slate-800/50 rounded-md"></div>
+                <div className="w-32 h-6 bg-fg/5 rounded-md"></div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
                     <div className="space-y-8">
-                        <div className="aspect-[4/5] bg-slate-800/50 rounded-[40px]"></div>
+                        <div className="aspect-[4/5] bg-fg/5 rounded-[40px]"></div>
                         <div className="grid grid-cols-3 gap-6">
-                            <div className="h-24 bg-slate-800/50 rounded-3xl"></div>
-                            <div className="h-24 bg-slate-800/50 rounded-3xl"></div>
-                            <div className="h-24 bg-slate-800/50 rounded-3xl"></div>
+                            <div className="h-24 bg-fg/5 rounded-3xl"></div>
+                            <div className="h-24 bg-fg/5 rounded-3xl"></div>
+                            <div className="h-24 bg-fg/5 rounded-3xl"></div>
                         </div>
                     </div>
                     <div className="space-y-10">
                         <div className="space-y-4">
-                            <div className="h-16 w-3/4 bg-slate-800/50 rounded-2xl"></div>
+                            <div className="h-16 w-3/4 bg-fg/5 rounded-2xl"></div>
                             <div className="flex gap-6">
-                                <div className="h-6 w-32 bg-slate-800/50 rounded-md"></div>
-                                <div className="h-6 w-32 bg-slate-800/50 rounded-md"></div>
+                                <div className="h-6 w-32 bg-fg/5 rounded-md"></div>
+                                <div className="h-6 w-32 bg-fg/5 rounded-md"></div>
                             </div>
                         </div>
-                        <div className="h-48 bg-slate-800/50 rounded-3xl"></div>
-                        <div className="h-16 bg-slate-800/50 rounded-2xl"></div>
+                        <div className="h-48 bg-fg/5 rounded-3xl"></div>
+                        <div className="h-16 bg-fg/5 rounded-2xl"></div>
                     </div>
                 </div>
             </div>
@@ -125,9 +125,9 @@ const EventDetail = () => {
     if (!event) return null;
 
     return (
-        <div className="min-h-screen bg-[#030712] text-white pt-24 pb-20 px-6">
+        <div className="min-h-screen bg-[#030712] text-fg pt-24 pb-20 px-6">
             <div className="max-w-6xl mx-auto space-y-12">
-                <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors group">
+                <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-muted hover:text-fg transition-colors group">
                     <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
                     <span className="text-xs font-bold uppercase tracking-widest">Return to Grid</span>
                 </button>
@@ -135,7 +135,7 @@ const EventDetail = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
                     {/* Visual Section */}
                     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
-                        <div className="aspect-[4/5] rounded-[40px] overflow-hidden border border-white/5 relative glass">
+                        <div className="aspect-[4/5] rounded-[40px] overflow-hidden border border-border relative glass">
                             {event.image ? (
                                 <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
                             ) : (
@@ -143,7 +143,7 @@ const EventDetail = () => {
                                     <Calendar size={120} />
                                 </div>
                             )}
-                            <div className="absolute top-8 left-8 bg-black/60 backdrop-blur-xl border border-white/10 px-6 py-2 rounded-2xl">
+                            <div className="absolute top-8 left-8 bg-fg/60 backdrop-blur-xl border border-border px-6 py-2 rounded-2xl">
                                 <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">{event.category}</span>
                             </div>
                         </div>
@@ -159,7 +159,7 @@ const EventDetail = () => {
                     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10">
                         <div className="space-y-4">
                             <h1 className="text-6xl font-black tracking-tighter leading-none">{event.title}</h1>
-                            <div className="flex items-center gap-6 text-slate-400">
+                            <div className="flex items-center gap-6 text-muted">
                                 <div className="flex items-center gap-2 text-sm font-bold">
                                     <Calendar className="text-indigo-500" size={16} />
                                     {new Date(event.date).toLocaleDateString(undefined, { dateStyle: 'full' })}
@@ -171,12 +171,12 @@ const EventDetail = () => {
                             </div>
                         </div>
 
-                        <div className="p-8 glass rounded-3xl border-white/5 bg-white/[0.02] space-y-4">
-                            <div className="flex justify-between items-center pb-3 border-b border-white/10">
+                        <div className="p-8 glass rounded-3xl border-border bg-surface/[0.02] space-y-4">
+                            <div className="flex justify-between items-center pb-3 border-b border-border">
                                 <div>
                                     <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest block">EVENT PROVIDER</span>
-                                    <span className="text-base font-bold text-white">{event.createdBy?.name || 'Verified Provider'}</span>
-                                    <span className="text-xs text-slate-400 block">{event.createdBy?.email}</span>
+                                    <span className="text-base font-bold text-fg">{event.createdBy?.name || 'Verified Provider'}</span>
+                                    <span className="text-xs text-muted block">{event.createdBy?.email}</span>
                                 </div>
                                 <button
                                     onClick={() => navigate(`/vendor/${event.createdBy?._id || event.createdBy}`)}
@@ -186,8 +186,8 @@ const EventDetail = () => {
                                 </button>
                             </div>
                             <div>
-                                <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">Transmission Content</h4>
-                                <p className="text-slate-300 leading-relaxed text-sm">{event.description}</p>
+                                <h4 className="text-[10px] font-black uppercase text-muted tracking-widest mb-2">Transmission Content</h4>
+                                <p className="text-muted leading-relaxed text-sm">{event.description}</p>
                             </div>
                         </div>
 
@@ -195,7 +195,7 @@ const EventDetail = () => {
                         <div className="pt-6">
                             <button
                                 onClick={() => setIsModalOpen(true)}
-                                className="w-full grad-indigo py-6 rounded-2xl flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all text-white"
+                                className="w-full grad-indigo py-6 rounded-2xl flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all text-fg"
                             >
                                 Make an Offer <Send size={18} />
                             </button>
@@ -205,15 +205,15 @@ const EventDetail = () => {
 
                 {/* Reviews Section */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
-                    <div className="flex items-center justify-between border-b border-white/10 pb-6">
+                    <div className="flex items-center justify-between border-b border-border pb-6">
                         <h2 className="text-3xl font-black">Reviews</h2>
                         {event.numberOfReviews > 0 && (
-                            <div className="flex items-center gap-3 glass px-5 py-2 rounded-xl border-white/5 bg-white/[0.02]">
+                            <div className="flex items-center gap-3 glass px-5 py-2 rounded-xl border-border bg-surface/[0.02]">
                                 <span className="text-xl font-black text-amber-400">{event.averageRating?.toFixed(1)}</span>
                                 <div className="flex items-center gap-1">
                                     <Star size={16} className="text-amber-400 fill-amber-400" />
                                 </div>
-                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">({event.numberOfReviews} reviews)</span>
+                                <span className="text-xs font-bold text-muted uppercase tracking-widest">({event.numberOfReviews} reviews)</span>
                             </div>
                         )}
                     </div>
@@ -230,10 +230,10 @@ const EventDetail = () => {
                                     }}
                                 />
                             ) : (
-                                <div className="p-6 glass rounded-2xl border-white/5 bg-white/[0.01] flex flex-col items-center justify-center text-center gap-3 h-full min-h-[200px]">
+                                <div className="p-6 glass rounded-2xl border-border bg-surface/[0.01] flex flex-col items-center justify-center text-center gap-3 h-full min-h-[200px]">
                                     <ShieldCheck size={32} className="text-indigo-500/50" />
-                                    <h4 className="text-sm font-black text-white">Verified Reviews Only</h4>
-                                    <p className="text-xs text-slate-400">You must have a confirmed booking for this event to leave a review.</p>
+                                    <h4 className="text-sm font-black text-fg">Verified Reviews Only</h4>
+                                    <p className="text-xs text-muted">You must have a confirmed booking for this event to leave a review.</p>
                                 </div>
                             )}
                         </div>
@@ -245,9 +245,9 @@ const EventDetail = () => {
                                     <ReviewCard key={review._id} review={review} />
                                 ))
                             ) : (
-                                <div className="p-10 glass rounded-2xl border-white/5 flex flex-col items-center justify-center text-center gap-4">
-                                    <Star size={40} className="text-slate-600" />
-                                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">No reviews yet.</p>
+                                <div className="p-10 glass rounded-2xl border-border flex flex-col items-center justify-center text-center gap-4">
+                                    <Star size={40} className="text-muted" />
+                                    <p className="text-sm font-bold text-muted uppercase tracking-widest">No reviews yet.</p>
                                 </div>
                             )}
                         </div>
@@ -262,41 +262,41 @@ const EventDetail = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-fg/60 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="w-full max-w-lg glass bg-[#0f172a] rounded-3xl border border-white/10 p-8 shadow-2xl relative"
+                            className="w-full max-w-lg glass bg-[#0f172a] rounded-3xl border border-border p-8 shadow-2xl relative"
                         >
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors"
+                                className="absolute top-6 right-6 text-muted hover:text-fg transition-colors"
                             >
                                 <XCircle size={24} />
                             </button>
 
-                            <h3 className="text-2xl font-black mb-2 text-white">Make an Offer</h3>
-                            <p className="text-slate-400 text-sm mb-6">Propose your price and terms for this awesome event.</p>
+                            <h3 className="text-2xl font-black mb-2 text-fg">Make an Offer</h3>
+                            <p className="text-muted text-sm mb-6">Propose your price and terms for this awesome event.</p>
 
-                            <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl mb-6 border border-white/10">
+                            <div className="flex justify-between items-center bg-fg/5 p-4 rounded-2xl mb-6 border border-border">
                                 <div>
                                     <p className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Base Rate</p>
-                                    <p className="text-2xl font-black text-white">${event.price}</p>
+                                    <p className="text-2xl font-black text-fg">${event.price}</p>
                                 </div>
                             </div>
 
                             <form onSubmit={handleBooking} className="space-y-5">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Your Offer Price</label>
+                                    <label className="text-[10px] font-black uppercase text-muted tracking-widest ml-1">Your Offer Price</label>
                                     <div className="relative">
                                         <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" />
                                         <input
                                             type="number"
                                             value={offerPrice}
                                             onChange={(e) => setOfferPrice(e.target.value)}
-                                            className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-xl font-black text-white outline-none focus:ring-2 ring-indigo-500/50 transition-all"
+                                            className="w-full bg-fg/40 border border-border rounded-2xl py-4 pl-12 pr-6 text-xl font-black text-fg outline-none focus:ring-2 ring-indigo-500/50 transition-all"
                                             placeholder={event.price}
                                             required
                                             min="1"
@@ -305,12 +305,12 @@ const EventDetail = () => {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Message to organizer (optional)</label>
+                                    <label className="text-[10px] font-black uppercase text-muted tracking-widest ml-1">Message to organizer (optional)</label>
                                     <textarea
                                         rows="3"
                                         value={message}
                                         onChange={(e) => setMessage(e.target.value)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-medium text-white outline-none focus:ring-2 ring-indigo-500/50 transition-all resize-none"
+                                        className="w-full bg-fg/40 border border-border rounded-2xl p-4 text-sm font-medium text-fg outline-none focus:ring-2 ring-indigo-500/50 transition-all resize-none"
                                         placeholder="Outline your requirements or propose a schedule..."
                                     />
                                 </div>
@@ -332,11 +332,11 @@ const EventDetail = () => {
 };
 
 const Stat = ({ label, value, icon }) => (
-    <div className="glass p-5 rounded-3xl border-white/5 text-center flex flex-col items-center gap-2">
+    <div className="glass p-5 rounded-3xl border-border text-center flex flex-col items-center gap-2">
         <div className="text-indigo-400">{icon}</div>
         <div>
-            <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{label}</p>
-            <p className="text-sm font-black text-white">{value}</p>
+            <p className="text-[8px] font-black text-muted uppercase tracking-widest">{label}</p>
+            <p className="text-sm font-black text-fg">{value}</p>
         </div>
     </div>
 );

@@ -44,11 +44,11 @@ const ReviewForm = ({ eventId, onSuccess }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="p-6 glass rounded-2xl border-white/10 bg-white/[0.03] flex flex-col gap-5">
-            <h4 className="text-sm font-black uppercase tracking-widest text-white">Leave a Review</h4>
+        <form onSubmit={handleSubmit} className="p-6 glass rounded-2xl border-border bg-surface/[0.03] flex flex-col gap-5">
+            <h4 className="text-sm font-black uppercase tracking-widest text-fg">Leave a Review</h4>
 
             <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Rate your experience</label>
+                <label className="text-[10px] font-black uppercase text-muted tracking-widest">Rate your experience</label>
                 <div className="flex items-center gap-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -61,7 +61,7 @@ const ReviewForm = ({ eventId, onSuccess }) => {
                         >
                             <Star
                                 size={24}
-                                className={`transition-colors ${(hover || rating) >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}`}
+                                className={`transition-colors ${(hover || rating) >= star ? 'text-amber-400 fill-amber-400' : 'text-muted'}`}
                             />
                         </button>
                     ))}
@@ -69,12 +69,12 @@ const ReviewForm = ({ eventId, onSuccess }) => {
             </div>
 
             <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Your Comments</label>
+                <label className="text-[10px] font-black uppercase text-muted tracking-widest">Your Comments</label>
                 <textarea
                     rows="3"
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-medium text-white outline-none focus:ring-2 ring-indigo-500/50 transition-all resize-none"
+                    className="w-full bg-fg/40 border border-border rounded-2xl p-4 text-sm font-medium text-fg outline-none focus:ring-2 ring-indigo-500/50 transition-all resize-none"
                     placeholder="Share details of your experience..."
                 />
             </div>

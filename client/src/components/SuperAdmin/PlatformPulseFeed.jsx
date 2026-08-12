@@ -7,14 +7,14 @@ import { Terminal, Shield, Zap, UserPlus, Gavel, Radio } from 'lucide-react';
  * arriving in real time while the console is open.
  */
 const PlatformPulseFeed = ({ events = [], connected = false }) => (
-    <div className="glass p-6 rounded-3xl border-white/5 flex flex-col h-full overflow-hidden min-h-[400px]">
+    <div className="glass p-6 rounded-3xl border-border flex flex-col h-full overflow-hidden min-h-[400px]">
         <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+            <h3 className="text-sm font-bold text-fg uppercase tracking-widest flex items-center gap-2">
                 <Terminal className="text-indigo-400" size={18} /> Event Stream
             </h3>
             <span
                 className={`text-[10px] font-mono flex items-center gap-1.5 ${
-                    connected ? 'text-emerald-400' : 'text-slate-500'
+                    connected ? 'text-emerald-400' : 'text-muted'
                 }`}
             >
                 <Radio size={11} className={connected ? 'animate-pulse' : ''} aria-hidden="true" />
@@ -24,7 +24,7 @@ const PlatformPulseFeed = ({ events = [], connected = false }) => (
 
         <div className="flex-1 overflow-y-auto space-y-3 pr-2">
             {events.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 gap-3">
+                <div className="h-full flex flex-col items-center justify-center text-center text-muted gap-3">
                     <Terminal size={36} className="opacity-30" />
                     <p className="text-xs">Platform activity will stream in here.</p>
                 </div>
@@ -36,24 +36,24 @@ const PlatformPulseFeed = ({ events = [], connected = false }) => (
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0 }}
-                            className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-start gap-4 hover:bg-white/10 transition-all"
+                            className="p-4 rounded-2xl bg-fg/5 border border-border flex items-start gap-4 hover:bg-surface/10 transition-all"
                         >
-                            <div className={`p-2 rounded-xl bg-white/5 shrink-0 ${severityTone(ev.severity)}`}>
+                            <div className={`p-2 rounded-xl bg-fg/5 shrink-0 ${severityTone(ev.severity)}`}>
                                 {iconFor(ev.action)}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start gap-2">
-                                    <p className="text-xs font-bold text-white uppercase tracking-tighter truncate">
+                                    <p className="text-xs font-bold text-fg uppercase tracking-tighter truncate">
                                         {String(ev.action || 'EVENT').replace(/_/g, ' ')}
                                     </p>
-                                    <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                                    <span className="text-[10px] text-muted font-mono shrink-0">
                                         {ev.at ? new Date(ev.at).toLocaleTimeString() : 'now'}
                                     </span>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                                <p className="text-[10px] text-muted mt-1 leading-relaxed">
                                     <span className="text-indigo-400 font-bold">{ev.actor || 'system'}</span>
                                     {' · '}
-                                    <span className="text-slate-300">{ev.detail || ev.targetType || 'platform'}</span>
+                                    <span className="text-muted">{ev.detail || ev.targetType || 'platform'}</span>
                                 </p>
                             </div>
                         </motion.div>

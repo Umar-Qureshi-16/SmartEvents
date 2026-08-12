@@ -109,10 +109,10 @@ export default function VendorProfilePage({ user }) {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
+            <div className="min-h-screen flex items-center justify-center bg-bg">
                 <div className="text-center space-y-4">
-                    <Sparkles className="animate-spin text-[#0ABF53] mx-auto" size={32} />
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Loading provider profile...</p>
+                    <Sparkles className="animate-spin text-success mx-auto" size={32} />
+                    <p className="text-xs text-muted font-bold uppercase tracking-wider">Loading provider profile...</p>
                 </div>
             </div>
         );
@@ -120,9 +120,9 @@ export default function VendorProfilePage({ user }) {
 
     if (!profile) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
+            <div className="min-h-screen flex items-center justify-center bg-bg">
                 <div className="text-center space-y-3">
-                    <h3 className="text-lg font-bold text-[#111827]">Provider profile not found</h3>
+                    <h3 className="text-lg font-bold text-fg">Provider profile not found</h3>
                     <button onClick={() => navigate('/')} className="btn-adyen-outline py-2 px-4 text-xs">Return Home</button>
                 </div>
             </div>
@@ -130,12 +130,12 @@ export default function VendorProfilePage({ user }) {
     }
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] text-[#111827] space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
             {/* Header / Cover */}
-            <div className="adyen-card bg-white border border-[#E5E7EB] p-8 rounded-3xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="adyen-card bg-surface border border-border p-8 rounded-3xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="space-y-4">
                     <div className="flex items-center gap-2">
-                        <span className="adyen-badge bg-[#0ABF53]/10 text-[#0ABF53] border-none font-bold uppercase">{profile.category}</span>
+                        <span className="adyen-badge bg-success/10 text-success border-none font-bold uppercase">{profile.category}</span>
                         {(() => {
                             const score = profile.userId?.trustScore ?? 100;
                             const badgeColor = score >= 80 ? 'text-emerald-600 bg-emerald-100/60' : score >= 50 ? 'text-amber-600 bg-amber-100/60' : 'text-rose-600 bg-rose-100/60';
@@ -148,13 +148,13 @@ export default function VendorProfilePage({ user }) {
                         })()}
                     </div>
 
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#111827]">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-fg">
                         {profile.businessName}
                     </h1>
 
-                    <div className="flex flex-wrap items-center gap-6 text-xs text-slate-500 font-semibold">
+                    <div className="flex flex-wrap items-center gap-6 text-xs text-muted font-semibold">
                         <div className="flex items-center gap-1">
-                            <MapPin size={14} className="text-[#0ABF53]" />
+                            <MapPin size={14} className="text-success" />
                             <span>{profile.location}</span>
                         </div>
                         <div className="flex items-center gap-1">
@@ -182,38 +182,38 @@ export default function VendorProfilePage({ user }) {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Left: About and Services list */}
                 <div className="lg:col-span-8 space-y-6">
-                    <div className="adyen-card p-6 bg-white border border-slate-200 rounded-3xl space-y-4">
-                        <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider">About Business</h3>
-                        <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                    <div className="adyen-card p-6 bg-surface border border-border rounded-3xl space-y-4">
+                        <h3 className="text-sm font-black text-fg uppercase tracking-wider">About Business</h3>
+                        <p className="text-xs text-muted leading-relaxed font-medium">
                             {profile.description || 'No business description provided.'}
                         </p>
                     </div>
 
                     {/* Services Catalog */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider px-1">Service packages</h3>
+                        <h3 className="text-sm font-black text-fg uppercase tracking-wider px-1">Service packages</h3>
                         
                         {services.length === 0 ? (
-                            <div className="adyen-card p-12 text-center text-slate-400 bg-white border border-slate-200">
+                            <div className="adyen-card p-12 text-center text-muted bg-surface border border-border">
                                 No active service listings.
                             </div>
                         ) : (
                             <div className="space-y-4">
                                 {services.map(srv => (
-                                    <div key={srv._id} className="adyen-card p-6 bg-white border border-[#E5E7EB] hover:border-[#0ABF53] transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                    <div key={srv._id} className="adyen-card p-6 bg-surface border border-border hover:border-success transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                         <div className="space-y-2 max-w-xl">
-                                            <h4 className="text-base font-bold text-[#111827]">{srv.title}</h4>
-                                            <p className="text-xs text-slate-500 leading-relaxed font-medium">{srv.description}</p>
+                                            <h4 className="text-base font-bold text-fg">{srv.title}</h4>
+                                            <p className="text-xs text-muted leading-relaxed font-medium">{srv.description}</p>
                                         </div>
 
-                                        <div className="flex md:flex-col items-end gap-3 justify-between w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-slate-100">
+                                        <div className="flex md:flex-col items-end gap-3 justify-between w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-border">
                                             <div className="text-right">
-                                                <span className="text-[10px] font-mono text-slate-400 block uppercase font-bold">STARTING PRICE</span>
-                                                <span className="text-lg font-black text-[#0ABF53]">${srv.price.toLocaleString()}</span>
+                                                <span className="text-[10px] font-mono text-muted block uppercase font-bold">STARTING PRICE</span>
+                                                <span className="text-lg font-black text-success">${srv.price.toLocaleString()}</span>
                                             </div>
                                             <button
                                                 onClick={() => handleNegotiateStart(srv)}
-                                                className="btn-adyen-primary text-[10px] px-4 py-2 font-bold shadow-adyen-glow flex items-center gap-1.5"
+                                                className="btn-adyen-primary text-[10px] px-4 py-2 font-bold shadow-glow flex items-center gap-1.5"
                                             >
                                                 <span>Book & Negotiate</span>
                                                 <ArrowRight size={12} />
@@ -228,18 +228,18 @@ export default function VendorProfilePage({ user }) {
 
                 {/* Right: Portfolio Gallery */}
                 <div className="lg:col-span-4 space-y-4">
-                    <div className="adyen-card p-6 bg-white border border-slate-200 rounded-3xl space-y-4">
-                        <h3 className="text-sm font-black text-[#111827] uppercase tracking-wider">Portfolio Showcase</h3>
+                    <div className="adyen-card p-6 bg-surface border border-border rounded-3xl space-y-4">
+                        <h3 className="text-sm font-black text-fg uppercase tracking-wider">Portfolio Showcase</h3>
                         {profile.portfolioImages?.length > 0 ? (
                             <div className="grid grid-cols-2 gap-2">
                                 {profile.portfolioImages.map((img, idx) => (
-                                    <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-slate-100">
+                                    <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-border">
                                         <img src={img} alt="portfolio" className="w-full h-full object-cover" />
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-xs text-slate-400 font-semibold italic">No portfolio images uploaded.</p>
+                            <p className="text-xs text-muted font-semibold italic">No portfolio images uploaded.</p>
                         )}
                     </div>
                 </div>
@@ -248,53 +248,53 @@ export default function VendorProfilePage({ user }) {
             {/* Negotiation Offer Modal */}
             {bookingModalOpen && selectedService && (
                 <div className="fixed inset-0 z-50 bg-[#111827]/40 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="adyen-card max-w-md w-full bg-white p-6 border border-slate-200 rounded-3xl space-y-4 shadow-2xl">
-                        <h3 className="text-base font-bold text-[#111827]">InDrive Negotiation Quote</h3>
-                        <p className="text-[11px] text-slate-500 font-semibold">Service: {selectedService.title}</p>
+                    <div className="adyen-card max-w-md w-full bg-surface p-6 border border-border rounded-3xl space-y-4 shadow-2xl">
+                        <h3 className="text-base font-bold text-fg">InDrive Negotiation Quote</h3>
+                        <p className="text-[11px] text-muted font-semibold">Service: {selectedService.title}</p>
 
                         <form onSubmit={handleCreateBooking} className="space-y-3 text-xs font-semibold">
                             <div>
-                                <label className="text-slate-700 block mb-1">Your Proposed Budget ($)</label>
+                                <label className="text-fg block mb-1">Your Proposed Budget ($)</label>
                                 <input
                                     type="number"
                                     required
                                     value={bookingDetails.offerPrice}
                                     onChange={(e) => setBookingDetails({ ...bookingDetails, offerPrice: e.target.value })}
                                     placeholder={selectedService.price}
-                                    className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0ABF53] font-mono text-sm font-bold text-[#0ABF53]"
+                                    className="w-full bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success font-mono text-sm font-bold text-success"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-slate-700 block mb-1">Event Date</label>
+                                    <label className="text-fg block mb-1">Event Date</label>
                                     <input
                                         type="date"
                                         required
                                         value={bookingDetails.date}
                                         onChange={(e) => setBookingDetails({ ...bookingDetails, date: e.target.value })}
-                                        className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0ABF53]"
+                                        className="w-full bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-slate-700 block mb-1">Location</label>
+                                    <label className="text-fg block mb-1">Location</label>
                                     <input
                                         type="text"
                                         required
                                         value={bookingDetails.location}
                                         onChange={(e) => setBookingDetails({ ...bookingDetails, location: e.target.value })}
-                                        className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0ABF53]"
+                                        className="w-full bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="text-slate-700 block mb-1">Cover Note / Instructions</label>
+                                <label className="text-fg block mb-1">Cover Note / Instructions</label>
                                 <textarea
                                     rows="3"
                                     value={bookingDetails.message}
                                     onChange={(e) => setBookingDetails({ ...bookingDetails, message: e.target.value })}
-                                    className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl p-3 outline-none focus:border-[#0ABF53]"
+                                    className="w-full bg-bg border border-border rounded-xl p-3 outline-none focus:border-success"
                                 />
                             </div>
 
@@ -302,7 +302,7 @@ export default function VendorProfilePage({ user }) {
                                 <button type="button" onClick={() => setBookingModalOpen(false)} className="flex-1 btn-adyen-outline py-2.5 rounded-full justify-center">
                                     Cancel
                                 </button>
-                                <button type="submit" className="flex-1 btn-adyen-primary py-2.5 rounded-full justify-center shadow-adyen-glow">
+                                <button type="submit" className="flex-1 btn-adyen-primary py-2.5 rounded-full justify-center shadow-glow">
                                     Send Bid Proposal
                                 </button>
                             </div>

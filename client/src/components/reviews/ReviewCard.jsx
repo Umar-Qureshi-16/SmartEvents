@@ -12,7 +12,7 @@ const ReviewCard = ({ review }) => {
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-5 glass rounded-2xl border-white/5 bg-white/[0.01] flex flex-col gap-3"
+            className="p-5 glass rounded-2xl border-border bg-surface/[0.01] flex flex-col gap-3"
         >
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
@@ -20,7 +20,7 @@ const ReviewCard = ({ review }) => {
                         <img
                             src={user.avatar || user.profileImage}
                             alt={user.name || 'User'}
-                            className="w-8 h-8 rounded-full border border-white/10 object-cover"
+                            className="w-8 h-8 rounded-full border border-border object-cover"
                         />
                     ) : (
                         <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs uppercase">
@@ -28,8 +28,8 @@ const ReviewCard = ({ review }) => {
                         </div>
                     )}
                     <div>
-                        <p className="text-sm font-bold text-white">{user?.name || 'Anonymous User'}</p>
-                        <p className="text-[10px] font-black tracking-widest text-slate-500 uppercase">
+                        <p className="text-sm font-bold text-fg">{user?.name || 'Anonymous User'}</p>
+                        <p className="text-[10px] font-black tracking-widest text-muted uppercase">
                             {new Date(createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                         </p>
                     </div>
@@ -39,13 +39,13 @@ const ReviewCard = ({ review }) => {
                         <Star
                             key={star}
                             size={14}
-                            className={star <= rating ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}
+                            className={star <= rating ? 'text-amber-400 fill-amber-400' : 'text-muted'}
                         />
                     ))}
                 </div>
             </div>
 
-            <p className="text-sm text-slate-300 leading-relaxed">
+            <p className="text-sm text-muted leading-relaxed">
                 {comment}
             </p>
         </motion.div>

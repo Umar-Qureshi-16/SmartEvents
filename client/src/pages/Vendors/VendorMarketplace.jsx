@@ -108,14 +108,14 @@ export default function VendorMarketplace({ user }) {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] text-[#111827] p-6 max-w-[1280px] mx-auto space-y-8 pt-6 relative">
+        <div className="min-h-screen bg-bg text-fg p-6 max-w-[1280px] mx-auto space-y-8 pt-6 relative">
             {/* Header */}
             <div className="space-y-3">
                 <span className="adyen-badge uppercase tracking-wider">SEGREGATED VENDOR DIRECTORY</span>
-                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-[#111827]">
+                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-fg">
                     {selectedCategory === 'All' ? 'Vendor Directory & Marketplace' : `${selectedCategory} Directory`}
                 </h1>
-                <p className="text-sm text-slate-600 max-w-2xl font-medium">
+                <p className="text-sm text-muted max-w-2xl font-medium">
                     Select vendors to compare starting rates, inclusions, ratings, and trust scores side-by-side.
                 </p>
             </div>
@@ -123,13 +123,13 @@ export default function VendorMarketplace({ user }) {
             {/* Search & Categories */}
             <div className="adyen-card p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3.5 top-3.5 text-slate-400" size={18} />
+                    <Search className="absolute left-3.5 top-3.5 text-muted" size={18} />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search vendor name, category, or city..."
-                        className="w-full bg-[#F8F9FA] border border-[#E5E7EB] rounded-full pl-10 pr-4 py-2.5 text-xs text-[#111827] outline-none focus:border-[#0ABF53]"
+                        className="w-full bg-bg border border-border rounded-full pl-10 pr-4 py-2.5 text-xs text-fg outline-none focus:border-success"
                     />
                 </div>
 
@@ -139,8 +139,8 @@ export default function VendorMarketplace({ user }) {
                             key={cat}
                             onClick={() => handleCategoryClick(cat)}
                             className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${selectedCategory === cat
-                                    ? 'bg-[#0ABF53] text-white shadow-adyen-glow'
-                                    : 'bg-[#F8F9FA] text-slate-600 hover:text-[#111827] border border-[#E5E7EB]'
+                                    ? 'bg-success text-white shadow-glow'
+                                    : 'bg-bg text-muted hover:text-fg border border-border'
                                 }`}
                         >
                             {cat}
@@ -153,22 +153,22 @@ export default function VendorMarketplace({ user }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {filteredVendors.length === 0 ? (
                     <div className="col-span-2 adyen-card p-12 text-center space-y-3">
-                        <h3 className="text-lg font-bold text-[#111827]">No vendors found for category "{selectedCategory}"</h3>
-                        <p className="text-xs text-slate-500">Try selecting another category pill above.</p>
+                        <h3 className="text-lg font-bold text-fg">No vendors found for category "{selectedCategory}"</h3>
+                        <p className="text-xs text-muted">Try selecting another category pill above.</p>
                     </div>
                 ) : (
                     filteredVendors.map(vendor => (
-                        <div key={vendor.id} className="adyen-card rounded-3xl overflow-hidden flex flex-col justify-between hover:border-[#0ABF53] relative">
+                        <div key={vendor.id} className="adyen-card rounded-3xl overflow-hidden flex flex-col justify-between hover:border-success relative">
                             <div className="p-6 space-y-4">
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-start gap-4">
-                                        <img src={vendor.image} alt={vendor.name} className="w-16 h-16 rounded-2xl object-cover border border-slate-200" />
+                                        <img src={vendor.image} alt={vendor.name} className="w-16 h-16 rounded-2xl object-cover border border-border" />
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
-                                                <h3 className="text-lg font-bold text-[#111827]">{vendor.name}</h3>
-                                                <ShieldCheck size={16} className="text-[#0ABF53]" />
+                                                <h3 className="text-lg font-bold text-fg">{vendor.name}</h3>
+                                                <ShieldCheck size={16} className="text-success" />
                                             </div>
-                                            <div className="flex items-center gap-3 text-xs text-slate-500 font-semibold">
+                                            <div className="flex items-center gap-3 text-xs text-muted font-semibold">
                                                 <span className="flex items-center gap-1 text-amber-500 font-bold">
                                                     <Star size={14} className="fill-amber-500" /> {vendor.rating} ({vendor.reviewsCount})
                                                 </span>
@@ -181,44 +181,44 @@ export default function VendorMarketplace({ user }) {
                                     </div>
 
                                     {/* Compare Checkbox */}
-                                    <label className="flex items-center gap-1.5 cursor-pointer bg-slate-100 px-3 py-1.5 rounded-full select-none hover:bg-slate-200">
+                                    <label className="flex items-center gap-1.5 cursor-pointer bg-surface-2 px-3 py-1.5 rounded-full select-none hover:bg-surface-2">
                                         <input
                                             type="checkbox"
                                             checked={!!selectedCompare.find(v => v.id === vendor.id)}
                                             onChange={() => toggleCompare(vendor)}
                                             className="rounded accent-[#0ABF53]"
                                         />
-                                        <span className="text-[10px] font-bold text-slate-600 uppercase">Compare</span>
+                                        <span className="text-[10px] font-bold text-muted uppercase">Compare</span>
                                     </label>
                                 </div>
 
-                                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                                <p className="text-xs text-muted leading-relaxed font-medium">
                                     {vendor.bio}
                                 </p>
 
-                                <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 pt-2 border-t border-[#E5E7EB]">
+                                <div className="flex items-center gap-4 text-xs font-semibold text-muted pt-2 border-t border-border">
                                     <div>
-                                        <span className="text-[10px] text-slate-400 block font-mono">COMPLETED JOBS</span>
-                                        <span className="font-bold text-[#111827]">{vendor.completedJobs} Events</span>
+                                        <span className="text-[10px] text-muted block font-mono">COMPLETED JOBS</span>
+                                        <span className="font-bold text-fg">{vendor.completedJobs} Events</span>
                                     </div>
                                     <div>
-                                        <span className="text-[10px] text-slate-400 block font-mono">STARTING FROM</span>
-                                        <span className="font-black text-[#0ABF53]">{vendor.startingPrice}</span>
+                                        <span className="text-[10px] text-muted block font-mono">STARTING FROM</span>
+                                        <span className="font-black text-success">{vendor.startingPrice}</span>
                                     </div>
                                     <div>
-                                        <span className="text-[10px] text-slate-400 block font-mono">TRUST SCORE</span>
+                                        <span className="text-[10px] text-muted block font-mono">TRUST SCORE</span>
                                         <span className="font-bold text-emerald-600">{vendor.trustScore}%</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="p-4 bg-slate-50 border-t border-[#E5E7EB] flex items-center justify-between">
-                                <span className="text-xs font-bold text-[#111827]">{vendor.category}</span>
+                            <div className="p-4 bg-surface-2 border-t border-border flex items-center justify-between">
+                                <span className="text-xs font-bold text-fg">{vendor.category}</span>
                                 <button
                                     onClick={() => {
                                         navigate(`/vendor/${vendor.id}`);
                                     }}
-                                    className="btn-adyen-primary py-2 px-5 text-xs shadow-adyen-glow"
+                                    className="btn-adyen-primary py-2 px-5 text-xs shadow-glow"
                                 >
                                     Request Quote
                                 </button>
@@ -230,21 +230,21 @@ export default function VendorMarketplace({ user }) {
 
             {/* Floating Comparison Tray */}
             {selectedCompare.length > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#111827] text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-6 border border-white/10 backdrop-blur-md">
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#111827] text-fg px-6 py-4 rounded-full shadow-2xl flex items-center gap-6 border border-border backdrop-blur-md">
                     <span className="text-xs font-bold uppercase tracking-wider">{selectedCompare.length} Vendor Shortlisted</span>
                     <div className="flex items-center gap-2">
                         {selectedCompare.map(v => (
-                            <span key={v.id} className="text-[10px] font-bold bg-[#0ABF53]/15 text-[#0ABF53] border border-[#0ABF53]/25 px-2.5 py-0.5 rounded-full">{v.name.substring(0, 12)}...</span>
+                            <span key={v.id} className="text-[10px] font-bold bg-success/15 text-success border border-success/25 px-2.5 py-0.5 rounded-full">{v.name.substring(0, 12)}...</span>
                         ))}
                     </div>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setCompareModalOpen(true)}
-                            className="bg-[#0ABF53] hover:bg-[#0ABF53]/90 text-white font-bold text-xs px-5 py-2.5 rounded-full shadow-adyen-glow uppercase"
+                            className="bg-success hover:bg-success/90 text-white font-bold text-xs px-5 py-2.5 rounded-full shadow-glow uppercase"
                         >
                             Compare side-by-side
                         </button>
-                        <button onClick={() => setSelectedCompare([])} className="text-slate-400 hover:text-white">
+                        <button onClick={() => setSelectedCompare([])} className="text-muted hover:text-fg">
                             <X size={16} />
                         </button>
                     </div>
@@ -253,23 +253,23 @@ export default function VendorMarketplace({ user }) {
 
             {/* Comparison Grid Modal */}
             {compareModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="w-full max-w-5xl bg-white border border-[#E5E7EB] p-8 rounded-[40px] shadow-2xl relative max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-fg/60 backdrop-blur-sm">
+                    <div className="w-full max-w-5xl bg-surface border border-border p-8 rounded-[40px] shadow-2xl relative max-h-[90vh] overflow-y-auto">
                         <button
                             onClick={() => setCompareModalOpen(false)}
-                            className="absolute top-6 right-6 text-slate-400 hover:text-[#111827]"
+                            className="absolute top-6 right-6 text-muted hover:text-fg"
                         >
                             <X size={24} />
                         </button>
 
                         <div className="space-y-2 mb-6">
                             <span className="adyen-badge">VENDOR COMPARISON GRID</span>
-                            <h3 className="text-2xl font-black text-[#111827]">Comparison Matrix</h3>
+                            <h3 className="text-2xl font-black text-fg">Comparison Matrix</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 border border-border rounded-3xl overflow-hidden shadow-sm">
                             {/* Matrix Labels Column */}
-                            <div className="bg-slate-50 p-6 flex flex-col justify-between font-mono text-[10px] uppercase font-bold text-slate-400 divide-y divide-slate-100">
+                            <div className="bg-surface-2 p-6 flex flex-col justify-between font-mono text-[10px] uppercase font-bold text-muted divide-y divide-slate-100">
                                 <div className="pb-4 h-24 flex items-end">Vendor Name</div>
                                 <div className="py-4">Starting Rate</div>
                                 <div className="py-4">Rating Index</div>
@@ -280,12 +280,12 @@ export default function VendorMarketplace({ user }) {
 
                             {/* Vendor Comparison Cards */}
                             {selectedCompare.map(v => (
-                                <div key={v.id} className="p-6 bg-white flex flex-col justify-between text-xs font-semibold text-slate-700 divide-y divide-slate-100 text-center">
+                                <div key={v.id} className="p-6 bg-surface flex flex-col justify-between text-xs font-semibold text-fg divide-y divide-slate-100 text-center">
                                     <div className="pb-4 h-24 flex flex-col items-center justify-center gap-2">
                                         <img src={v.image} alt={v.name} className="w-10 h-10 rounded-xl object-cover" />
-                                        <h4 className="font-bold text-sm text-[#111827]">{v.name}</h4>
+                                        <h4 className="font-bold text-sm text-fg">{v.name}</h4>
                                     </div>
-                                    <div className="py-4 text-[#0ABF53] font-black text-sm">{v.startingPrice}</div>
+                                    <div className="py-4 text-success font-black text-sm">{v.startingPrice}</div>
                                     <div className="py-4 flex items-center justify-center gap-1">
                                         <Star size={13} className="text-amber-500 fill-amber-500" />
                                         <span>{v.rating} ({v.reviewsCount} reviews)</span>
@@ -296,7 +296,7 @@ export default function VendorMarketplace({ user }) {
                                         </span>
                                     </div>
                                     <div className="py-4">{v.location}</div>
-                                    <div className="py-4 space-y-1 text-slate-500 font-medium">
+                                    <div className="py-4 space-y-1 text-muted font-medium">
                                         {v.inclusions.map((inc, i) => (
                                             <p key={i}>• {inc}</p>
                                         ))}
@@ -306,7 +306,7 @@ export default function VendorMarketplace({ user }) {
 
                             {/* Empty filler cards */}
                             {[...Array(3 - selectedCompare.length)].map((_, i) => (
-                                <div key={i} className="p-6 bg-slate-50/50 flex items-center justify-center border-l border-slate-100 text-slate-400 font-mono text-[10px] uppercase font-bold text-center">
+                                <div key={i} className="p-6 bg-surface-2/50 flex items-center justify-center border-l border-border text-muted font-mono text-[10px] uppercase font-bold text-center">
                                     Slot {selectedCompare.length + i + 1} Empty
                                 </div>
                             ))}

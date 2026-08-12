@@ -137,15 +137,15 @@ export default function Leads({ user }) {
     });
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] text-[#111827] space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#E5E7EB]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
                     <span className="adyen-badge">VENDOR NEGOTIATION CENTER</span>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[#111827]">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-fg">
                         Incoming Leads & Counter-Bids
                     </h1>
-                    <p className="text-xs text-slate-600 font-medium">Respond to organizer RFP proposals and exchange counter-offers in real-time.</p>
+                    <p className="text-xs text-muted font-medium">Respond to organizer RFP proposals and exchange counter-offers in real-time.</p>
                 </div>
             </div>
 
@@ -158,7 +158,7 @@ export default function Leads({ user }) {
             </div>
 
             {/* Status Filter Tab row */}
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-3 overflow-x-auto">
+            <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto">
                 {[
                     { label: 'All Proposals', value: 'all' },
                     { label: 'Active Negotiations', value: 'active' },
@@ -168,7 +168,7 @@ export default function Leads({ user }) {
                     <button
                         key={tab.value}
                         onClick={() => setFilterStatus(tab.value)}
-                        className={`px-4 py-2 rounded-full text-xs font-bold uppercase transition-all whitespace-nowrap ${filterStatus === tab.value ? 'bg-[#0ABF53] text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:text-[#111827]'}`}
+                        className={`px-4 py-2 rounded-full text-xs font-bold uppercase transition-all whitespace-nowrap ${filterStatus === tab.value ? 'bg-success text-white shadow-sm' : 'bg-surface border border-border text-muted hover:text-fg'}`}
                     >
                         {tab.label}
                     </button>
@@ -178,25 +178,25 @@ export default function Leads({ user }) {
             {/* Leads list grid */}
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
-                    <div className="h-44 bg-white border border-slate-200 rounded-3xl"></div>
-                    <div className="h-44 bg-white border border-slate-200 rounded-3xl"></div>
+                    <div className="h-44 bg-surface border border-border rounded-3xl"></div>
+                    <div className="h-44 bg-surface border border-border rounded-3xl"></div>
                 </div>
             ) : filteredLeads.length === 0 ? (
-                <div className="adyen-card p-12 text-center text-slate-400 bg-white border border-slate-200 max-w-xl">
-                    <MessageSquare size={48} className="mx-auto mb-4 opacity-15 text-slate-500" />
-                    <h3 className="text-base font-bold text-[#111827]">No leads found</h3>
-                    <p className="text-xs text-slate-500 font-semibold mt-1">Once event organizers send you custom bids, they will show up in this center.</p>
+                <div className="adyen-card p-12 text-center text-muted bg-surface border border-border max-w-xl">
+                    <MessageSquare size={48} className="mx-auto mb-4 opacity-15 text-muted" />
+                    <h3 className="text-base font-bold text-fg">No leads found</h3>
+                    <p className="text-xs text-muted font-semibold mt-1">Once event organizers send you custom bids, they will show up in this center.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {filteredLeads.map(lead => (
                         <div
                             key={lead._id}
-                            className="adyen-card p-6 bg-white border border-[#E5E7EB] rounded-3xl flex flex-col justify-between space-y-4 hover:border-[#0ABF53] shadow-sm transition-all"
+                            className="adyen-card p-6 bg-surface border border-border rounded-3xl flex flex-col justify-between space-y-4 hover:border-success shadow-sm transition-all"
                         >
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="adyen-badge bg-[#0ABF53]/10 text-[#0ABF53] border-none font-bold uppercase">
+                                    <span className="adyen-badge bg-success/10 text-success border-none font-bold uppercase">
                                         {lead.eventDetails?.eventType || 'RFP Counter-offer'}
                                     </span>
                                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase ${
@@ -208,26 +208,26 @@ export default function Leads({ user }) {
                                     </span>
                                 </div>
 
-                                <h3 className="text-lg font-bold text-[#111827] truncate">
+                                <h3 className="text-lg font-bold text-fg truncate">
                                     Lead from {lead.customerId?.name || 'Verified Organizer'}
                                 </h3>
 
-                                <div className="space-y-1 text-xs text-slate-600 font-semibold">
+                                <div className="space-y-1 text-xs text-muted font-semibold">
                                     <div className="flex items-center gap-1.5">
-                                        <Calendar size={13} className="text-[#0ABF53]" />
+                                        <Calendar size={13} className="text-success" />
                                         <span>{new Date(lead.eventDetails?.date).toLocaleDateString()}</span>
                                     </div>
                                     <div className="flex items-center gap-1.5">
-                                        <MapPin size={13} className="text-[#0ABF53]" />
+                                        <MapPin size={13} className="text-success" />
                                         <span>{lead.eventDetails?.location}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                            <div className="pt-3 border-t border-border flex items-center justify-between">
                                 <div>
-                                    <span className="text-[10px] font-mono text-slate-400 block uppercase font-bold">PROPOSED PRICE</span>
-                                    <span className="text-xl font-black text-[#0ABF53]">${lead.offerPrice.toLocaleString()}</span>
+                                    <span className="text-[10px] font-mono text-muted block uppercase font-bold">PROPOSED PRICE</span>
+                                    <span className="text-xl font-black text-success">${lead.offerPrice.toLocaleString()}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {['confirmed', 'completed'].includes(lead.status) && (
@@ -240,7 +240,7 @@ export default function Leads({ user }) {
                                     )}
                                     <button
                                         onClick={() => navigate(`/negotiate/${lead._id}`)}
-                                        className="btn-adyen-primary text-[10px] px-4 py-2 font-bold shadow-adyen-glow flex items-center gap-1.5"
+                                        className="btn-adyen-primary text-[10px] px-4 py-2 font-bold shadow-glow flex items-center gap-1.5"
                                     >
                                         <span>Open Bid Negotiation</span>
                                         <ArrowRight size={12} />

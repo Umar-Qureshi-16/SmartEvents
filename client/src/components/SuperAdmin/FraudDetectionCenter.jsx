@@ -19,33 +19,33 @@ const FraudDetectionCenter = ({ risks = [], onGovern, busyId }) => {
     }, [risks, query]);
 
     return (
-        <div className="glass p-8 rounded-3xl border-white/5 space-y-8">
+        <div className="glass p-8 rounded-3xl border-border space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-fg flex items-center gap-2">
                         <ShieldAlert className="text-rose-500" size={20} /> Fraud Governance
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted mt-1">
                         Behavioural risk scoring from cancellation velocity, disputes, and no-shows
                     </p>
                 </div>
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={14} />
                     <label htmlFor="fraud-filter" className="sr-only">Filter providers</label>
                     <input
                         id="fraud-filter"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Filter by name or email…"
-                        className="bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white outline-none focus:ring-1 ring-rose-500/50 w-full sm:w-64"
+                        className="bg-fg/5 border border-border rounded-xl pl-9 pr-4 py-2 text-xs text-fg outline-none focus:ring-1 ring-rose-500/50 w-full sm:w-64"
                     />
                 </div>
             </div>
 
             {filtered.length === 0 ? (
-                <div className="p-12 text-center rounded-3xl border border-dashed border-white/10 text-slate-500">
+                <div className="p-12 text-center rounded-3xl border border-dashed border-border text-muted">
                     <ShieldAlert size={40} className="mx-auto mb-3 opacity-40" />
-                    <p className="text-sm font-bold text-white">
+                    <p className="text-sm font-bold text-fg">
                         {risks.length === 0 ? 'No providers to score yet' : 'No providers match that filter'}
                     </p>
                 </div>
@@ -53,7 +53,7 @@ const FraudDetectionCenter = ({ risks = [], onGovern, busyId }) => {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left min-w-[640px]">
                         <thead>
-                            <tr className="text-[10px] uppercase tracking-widest text-muted-foreground font-black border-b border-white/5">
+                            <tr className="text-[10px] uppercase tracking-widest text-muted font-black border-b border-border">
                                 <th scope="col" className="pb-4 px-2">Provider</th>
                                 <th scope="col" className="pb-4 px-2">Risk</th>
                                 <th scope="col" className="pb-4 px-2">Risk score</th>
@@ -61,21 +61,21 @@ const FraudDetectionCenter = ({ risks = [], onGovern, busyId }) => {
                                 <th scope="col" className="pb-4 px-2 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody className="divide-y divide-border">
                             {filtered.map((risk) => {
                                 const isBusy = busyId === risk.userId;
                                 const suspended = risk.status === 'banned' || risk.status === 'restricted';
 
                                 return (
-                                    <tr key={risk.userId} className="group hover:bg-white/5 transition-all">
+                                    <tr key={risk.userId} className="group hover:bg-surface/5 transition-all">
                                         <td className="py-4 px-2">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg ${getRiskBg(risk.classification)}`}>
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-fg shadow-lg ${getRiskBg(risk.classification)}`}>
                                                     <Fingerprint size={18} />
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <span className="font-bold text-white text-sm block truncate">{risk.name}</span>
-                                                    <span className="text-[10px] text-muted-foreground font-mono truncate block">{risk.email}</span>
+                                                    <span className="font-bold text-fg text-sm block truncate">{risk.name}</span>
+                                                    <span className="text-[10px] text-muted font-mono truncate block">{risk.email}</span>
                                                 </div>
                                             </div>
                                         </td>
@@ -90,13 +90,13 @@ const FraudDetectionCenter = ({ risks = [], onGovern, busyId }) => {
                                             )}
                                         </td>
                                         <td className="py-4 px-2">
-                                            <div className="w-full max-w-[100px] h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                            <div className="w-full max-w-[100px] h-1.5 bg-fg/5 rounded-full overflow-hidden">
                                                 <div className={`h-full ${getScoreColor(risk.score)}`} style={{ width: `${risk.score}%` }} />
                                             </div>
-                                            <span className="text-[10px] font-mono text-muted-foreground mt-1 block">{risk.score}/100</span>
+                                            <span className="text-[10px] font-mono text-muted mt-1 block">{risk.score}/100</span>
                                         </td>
                                         <td className="py-4 px-2">
-                                            <span className="text-sm font-black text-white">{risk.trustScore ?? '—'}</span>
+                                            <span className="text-sm font-black text-fg">{risk.trustScore ?? '—'}</span>
                                         </td>
                                         <td className="py-4 px-2 text-right">
                                             <div className="flex items-center justify-end gap-2">
@@ -117,7 +117,7 @@ const FraudDetectionCenter = ({ risks = [], onGovern, busyId }) => {
                                                             disabled={isBusy}
                                                             onClick={() => onGovern?.(risk.userId, 'restrict', risk.name)}
                                                             aria-label={`Restrict ${risk.name}`}
-                                                            className="p-2 rounded-lg bg-white/5 text-muted-foreground hover:text-amber-400 transition-all border border-white/5 disabled:opacity-40"
+                                                            className="p-2 rounded-lg bg-fg/5 text-muted hover:text-amber-400 transition-all border border-border disabled:opacity-40"
                                                         >
                                                             <Lock size={14} />
                                                         </button>

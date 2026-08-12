@@ -20,13 +20,13 @@ const SystemHealthMonitor = ({ health = {}, samples = [] }) => {
     const healthy = health.status === 'healthy';
 
     return (
-        <div className="glass p-6 rounded-3xl border-white/5 space-y-8 relative overflow-hidden">
+        <div className="glass p-6 rounded-3xl border-border space-y-8 relative overflow-hidden">
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-fg uppercase tracking-widest flex items-center gap-2">
                         <Activity className="text-emerald-400" size={18} /> Operational Vitals
                     </h3>
-                    <p className="text-[10px] text-muted-foreground mt-1">
+                    <p className="text-[10px] text-muted mt-1">
                         {health.environment ? `${health.environment} · Node ${health.nodeVersion}` : 'Awaiting first sample…'}
                     </p>
                 </div>
@@ -67,7 +67,7 @@ const SystemHealthMonitor = ({ health = {}, samples = [] }) => {
 
             <div className="h-[200px] w-full">
                 {samples.length < 2 ? (
-                    <div className="h-full flex items-center justify-center text-xs text-muted-foreground rounded-2xl border border-dashed border-white/10">
+                    <div className="h-full flex items-center justify-center text-xs text-muted rounded-2xl border border-dashed border-border">
                         Sampling latency…
                     </div>
                 ) : (
@@ -101,14 +101,14 @@ const SystemHealthMonitor = ({ health = {}, samples = [] }) => {
 };
 
 const HealthCard = ({ icon, label, value, status, tone }) => (
-    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2 group hover:border-white/10 transition-all">
-        <div className="flex items-center justify-between text-muted-foreground">
+    <div className="p-4 rounded-2xl bg-fg/5 border border-border space-y-2 group hover:border-border transition-all">
+        <div className="flex items-center justify-between text-muted">
             <span className="text-[10px] uppercase font-bold tracking-tighter flex items-center gap-1">
                 {icon} {label}
             </span>
             <span className={`text-[8px] font-black ${tone}`}>{status}</span>
         </div>
-        <div className="text-xl font-black text-white">{value}</div>
+        <div className="text-xl font-black text-fg">{value}</div>
     </div>
 );
 
