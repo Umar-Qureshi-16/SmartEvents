@@ -33,7 +33,7 @@ const ThemeToggle = ({ className = '' }) => {
                         transition={{ duration: 0.15 }}
                         className="block"
                     >
-                        <Sun className="w-5 h-5 text-amber-500" aria-hidden="true" />
+                        <Sun className="w-5 h-5 text-white" aria-hidden="true" />
                     </motion.span>
                 ) : (
                     <motion.span
@@ -44,7 +44,7 @@ const ThemeToggle = ({ className = '' }) => {
                         transition={{ duration: 0.15 }}
                         className="block"
                     >
-                        <Moon className="w-5 h-5 text-indigo-300" aria-hidden="true" />
+                        <Moon className="w-5 h-5 text-white" aria-hidden="true" />
                     </motion.span>
                 )}
             </AnimatePresence>

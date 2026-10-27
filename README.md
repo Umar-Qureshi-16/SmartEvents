@@ -68,10 +68,17 @@ Simultaneous counters from both parties are handled with **optimistic concurrenc
 
 ## Screens
 
-> Add screenshots here before submission. Suggested captures:
-> `docs/screenshots/negotiation.png` — two browsers side by side mid-negotiation
-> `docs/screenshots/superadmin.png` — the governance console
-> `docs/screenshots/concierge.png` — Smartie proposing an action
+### Home — public landing page
+![SmartEvents home page](docs/screenshots/home.png)
+
+### Dashboard — SuperAdmin after sign-in
+![SuperAdmin dashboard](docs/screenshots/dashboard.png)
+
+### AI Concierge — Smartie chat
+![AI Concierge (Smartie)](docs/screenshots/ai_concierge.png)
+
+### Bookings — negotiation list
+![Bookings and negotiation](docs/screenshots/bookings.png)
 
 ---
 
@@ -95,12 +102,12 @@ Simultaneous counters from both parties are handled with **optimistic concurrenc
 │  │ ROUTES → MIDDLEWARE → CONTROLLERS → SERVICES → MODELS    │  │
 │  │   verifyToken · authorize(roles) · validate(zodSchema)   │  │
 │  └──────────────────────────────────────────────────────────┘  │
-└──────┬──────────────────┬────────────────────┬─────────────────┘
-       │                  │                    │
-┌──────▼─────┐   ┌────────▼────────┐  ┌────────▼────────┐
-│  MongoDB   │   │  Groq           │  │  Google Gemini  │
-│            │   │  llama-3.3-70b  │  │  embeddings     │
-└────────────┘   └─────────────────┘  └─────────────────┘
+└──────┬──────────────────┬─────────────────────────────────────┘
+       │                  │
+┌──────▼─────┐   ┌────────▼────────┐
+│  MongoDB   │   │  Groq           │
+│  Atlas     │   │  llama-3.1-8b   │
+└────────────┘   └─────────────────┘
 ```
 
 **Layering:** `route → middleware → controller → service → model`. Controllers handle HTTP shape only; business logic lives in `services/`.
@@ -197,7 +204,6 @@ Server config is **validated at boot** (`server/config/env.js`). A missing or ma
 | `ALLOWED_ORIGINS` | | Comma-separated CORS whitelist |
 | `CLIENT_URL` | | Base URL used in password-reset links |
 | `GROQ_API_KEY` | | Smartie chat, RFPs, timelines, budgets |
-| `GEMINI_API_KEY` | | Embeddings |
 | `SMTP_*` | | Transactional email; logs to console if unset |
 
 Client config lives in `client/.env` (see `client/.env.example`): `VITE_API_URL`, `VITE_SOCKET_URL`.
