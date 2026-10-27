@@ -6,6 +6,7 @@ import {
     QrCode, DollarSign, UserCheck, Calendar, ArrowUpRight, HelpCircle, Star, MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from '../api/axios';
 
 function Home({ user }) {
     const navigate = useNavigate();

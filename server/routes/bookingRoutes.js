@@ -7,8 +7,8 @@ const { validate, bookingCreateSchema, negotiateSchema, disputeSchema } = requir
 
 router.post('/', verifyToken, authorize('customer'), validate(bookingCreateSchema), bookingController.createBooking);
 router.get('/my', verifyToken, authorize('customer'), bookingController.getMyBookings);
-router.get('/organizer/dashboard', verifyToken, authorize('provider', 'admin'), bookingController.getVendorDashboard);
-router.get('/organizer', verifyToken, authorize('provider', 'admin'), bookingController.getOrganizerBookings);
+router.get('/organizer/dashboard', verifyToken, authorize('provider', 'admin', 'superadmin'), bookingController.getVendorDashboard);
+router.get('/organizer', verifyToken, authorize('provider', 'admin', 'superadmin'), bookingController.getOrganizerBookings);
 router.get('/:id', verifyToken, bookingController.getBookingById);
 router.post('/:id/negotiate', verifyToken, validate(negotiateSchema), bookingController.negotiate);
 router.post('/:id/dispute', verifyToken, validate(disputeSchema), bookingController.raiseDispute);

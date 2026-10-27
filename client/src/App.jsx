@@ -47,6 +47,7 @@ const AIConcierge          = lazy(() => import('./pages/AI/AIConcierge'));
 const Favorites            = lazy(() => import('./pages/Favorites/Favorites'));
 const PortfolioManager     = lazy(() => import('./pages/Vendors/PortfolioManager'));
 const ProviderReviews      = lazy(() => import('./pages/Reviews/ProviderReviews'));
+const ManageEvents         = lazy(() => import('./pages/Events/ManageEvents'));
 
 import './feature-styles.css';
 import './gallery-styles.css';
