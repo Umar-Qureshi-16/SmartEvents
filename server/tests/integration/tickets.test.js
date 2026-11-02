@@ -112,6 +112,23 @@ describe('Ticketing', () => {
             expect(res.body.message).toMatch(/duplicate/i);
         });
 
+        it('forbids a customer from scanning tickets (role guard)', async () => {
+            const { body } = await purchase();
+            const res = await api().post('/api/v1/tickets/scan').set(auth(customer.token))
+                .send({ ticketNumber: body.data.ticketNumber });
+            expect(res.status).toBe(403);
+            const ticket = await Ticket.findOne({ ticketNumber: body.data.ticketNumber });
+            expect(ticket.status).toBe('active');
+        });
+
+        it('forbids a provider from scanning a pass for an event they do not run', async () => {
+            const { body } = await purchase();
+            const other = await makeUser('provider');
+            const res = await api().post('/api/v1/tickets/scan').set(auth(other.token))
+                .send({ ticketNumber: body.data.ticketNumber });
+            expect(res.status).toBe(403);
+        });
+
         it('rejects an unknown ticket code', async () => {
             const res = await api().post('/api/v1/tickets/scan').set(auth(provider.token))
                 .send({ ticketNumber: 'TKT-DOES-NOT-EXIST' });

@@ -115,6 +115,11 @@ exports.scanCheckInTicket = async (req, res) => {
             });
         }
 
+        // A provider may only scan passes for events they created.
+        if (req.user.role === 'provider' && ticket.event?.createdBy?.toString() !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'This pass belongs to an event you do not run.' });
+        }
+
         ticket.status = 'checked_in';
         ticket.checkInTime = new Date();
         ticket.checkedInBy = req.user.id;

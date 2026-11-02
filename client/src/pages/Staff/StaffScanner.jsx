@@ -12,10 +12,10 @@ export default function StaffScanner({ user }) {
     const [loading, setLoading] = useState(false);
     const [rosterData, setRosterData] = useState([]);
     const [stats, setStats] = useState({
-        totalCheckedIn: 412,
+        totalCheckedIn: 0,
         totalCapacity: 500,
         expectedGuests: 500,
-        duplicateAttemptsBlocked: 3
+        duplicateAttemptsBlocked: 0
     });
 
     const handleScanTicket = async (e) => {
@@ -80,9 +80,9 @@ export default function StaffScanner({ user }) {
 
             {/* Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard label="TOTAL GUESTS EXPECTED" value={stats.expectedGuests} icon={Users} />
-                <StatCard label="TOTAL CHECKED IN" value={stats.totalCheckedIn} icon={CheckCircle2} />
-                <StatCard label="DUPLICATE ATTEMPTS BLOCKED" value={stats.duplicateAttemptsBlocked} icon={AlertTriangle} />
+                <StatCard label="GATE CAPACITY" value={stats.expectedGuests} icon={Users} />
+                <StatCard label="CHECKED IN (THIS SESSION)" value={stats.totalCheckedIn} icon={CheckCircle2} />
+                <StatCard label="DUPLICATES BLOCKED (SESSION)" value={stats.duplicateAttemptsBlocked} icon={AlertTriangle} />
                 <StatCard label="GATE CAPACITY PERCENT" value={`${((stats.totalCheckedIn / stats.totalCapacity) * 100).toFixed(1)}%`} icon={Zap} />
             </div>
 

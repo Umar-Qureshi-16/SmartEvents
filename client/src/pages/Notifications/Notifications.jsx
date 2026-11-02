@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { Bell, CheckCheck, Trash2, Calendar, MessageSquare, DollarSign, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { Bell, CheckCheck, Trash2, Calendar, MessageSquare, DollarSign, ShieldAlert, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useWebSockets } from '../../context/WebSocketContext';
 import { useNavigate } from 'react-router-dom';
 
