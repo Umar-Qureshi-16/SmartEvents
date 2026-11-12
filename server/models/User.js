@@ -3,7 +3,15 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true, select: false },
+  password: { 
+    type: String, 
+    select: false, 
+    required: function() { return !this.googleId; } 
+  },
+  googleId: { type: String, sparse: true, unique: true },
+  isEmailVerified: { type: Boolean, default: false },
+  emailVerificationToken: { type: String },
+  emailVerificationExpires: { type: Date },
   role: { type: String, enum: ['customer', 'provider', 'admin', 'superadmin'], default: 'customer' },
   trustScore: { type: Number, default: 100 }, // Scaling 0-100
   analytics: {

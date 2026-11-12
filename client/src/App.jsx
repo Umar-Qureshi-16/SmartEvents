@@ -21,6 +21,7 @@ import NotFound from './pages/NotFound';
  */
 const ForgotPassword       = lazy(() => import('./pages/Auth/ForgotPassword'));
 const ResetPassword        = lazy(() => import('./pages/Auth/ResetPassword'));
+const VerifyEmail          = lazy(() => import('./pages/Auth/VerifyEmail'));
 const Inspiration          = lazy(() => import('./pages/Inspiration'));
 const Contact              = lazy(() => import('./pages/Contact'));
 const Dashboard            = lazy(() => import('./pages/Dashboard/Dashboard'));
@@ -150,6 +151,7 @@ function App() {
                     <Route path="/signup" element={<Signup onLoginSuccess={(u) => dispatch(setCredentials({ user: u, token: localStorage.getItem('token') }))} />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password/:token" element={<ResetPassword />} />
+                    <Route path="/verify-email" element={<VerifyEmail />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/events" element={<ExploreEvents user={user} />} />
                     <Route path="/events/:id" element={<EventDetail user={user} />} />

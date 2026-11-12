@@ -23,6 +23,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
+    "google-auth-library": "^11.3.4",
     "groq-sdk": "^1.2.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
@@ -30,10 +31,10 @@
     "morgan": "^1.10.1",
     "multer": "^2.2.0",
     "node-cache": "^5.1.2",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^10.5.0",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.3",
-    "swagger-jsdoc": "^6.3.0",
+    "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "zod": "^4.4.3"
   },
@@ -41,7 +42,7 @@
     "cross-env": "^10.1.0",
     "jest": "^30.4.2",
     "mongodb-memory-server": "^11.2.0",
-    "nodemon": "^3.1.14",
+    "nodemon": "^3.1.11",
     "supertest": "^7.2.2"
   }
 }

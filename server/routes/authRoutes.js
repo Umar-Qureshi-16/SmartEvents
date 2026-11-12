@@ -2,12 +2,16 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { validate, signupSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema,
+        verifyEmailSchema, resendVerificationSchema, googleAuthSchema,
         updateProfileSchema, changePasswordSchema, contactSchema } = require('../utils/validation');
 
 const { verifyToken: auth } = require('../middleware/authMiddleware');
 
 router.post('/register', validate(signupSchema), authController.signup);
 router.post('/login', validate(loginSchema), authController.login);
+router.post('/verify-email', validate(verifyEmailSchema), authController.verifyEmail);
+router.post('/resend-verification', validate(resendVerificationSchema), authController.resendVerification);
+router.post('/google', validate(googleAuthSchema), authController.googleLogin);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
 router.get('/me', auth, authController.me);

@@ -153,4 +153,75 @@ describe('Authentication', () => {
             expect(res.status).toBe(400);
         });
     });
+
+    describe('Email verification', () => {
+        it('sets isEmailVerified=false and generates a token upon registration', async () => {
+            const email = `unverified-${Date.now()}@test.com`;
+            const regRes = await api().post('/api/v1/auth/register').send({
+                name: 'Unverified User',
+                email,
+                password: PASSWORD,
+                role: 'customer'
+            });
+            expect(regRes.status).toBe(201);
+            expect(regRes.body.success).toBe(true);
+
+            const user = await User.findOne({ email });
+            expect(user.isEmailVerified).toBe(false);
+            expect(typeof user.emailVerificationToken).toBe('string');
+            expect(user.emailVerificationExpires).toBeDefined();
+
+            // Attempting to login before verifying must fail with 403
+            const loginRes = await api().post('/api/v1/auth/login').send({
+                email,
+                password: PASSWORD
+            });
+            expect(loginRes.status).toBe(403);
+            expect(loginRes.body.message).toMatch(/verify/i);
+
+            // Verifying with valid token
+            const verifyRes = await api().post('/api/v1/auth/verify-email').send({
+                token: user.emailVerificationToken
+            });
+            expect(verifyRes.status).toBe(200);
+            expect(verifyRes.body.success).toBe(true);
+            expect(verifyRes.body.token).toBeDefined();
+            expect(verifyRes.body.user.isEmailVerified).toBe(true);
+
+            // Login succeeds after verification
+            const afterLogin = await api().post('/api/v1/auth/login').send({
+                email,
+                password: PASSWORD
+            });
+            expect(afterLogin.status).toBe(200);
+        });
+
+        it('rejects an invalid verification token', async () => {
+            const res = await api().post('/api/v1/auth/verify-email').send({
+                token: 'invalid-or-fake-token'
+            });
+            expect(res.status).toBe(400);
+            expect(res.body.message).toMatch(/invalid or has expired/i);
+        });
+
+        it('resends verification link for unverified email', async () => {
+            const email = `resend-${Date.now()}@test.com`;
+            await api().post('/api/v1/auth/register').send({
+                name: 'Resend Test',
+                email,
+                password: PASSWORD,
+                role: 'customer'
+            });
+
+            const initialUser = await User.findOne({ email });
+            const initialToken = initialUser.emailVerificationToken;
+
+            const resendRes = await api().post('/api/v1/auth/resend-verification').send({ email });
+            expect(resendRes.status).toBe(200);
+
+            const updatedUser = await User.findOne({ email });
+            expect(updatedUser.emailVerificationToken).toBeDefined();
+            expect(updatedUser.emailVerificationToken).not.toBe(initialToken);
+        });
+    });
 });

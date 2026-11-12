@@ -35,7 +35,8 @@ async function seedData() {
             name: 'Muhammad Umar (Lead Provider)',
             email: 'umar_provider@example.com',
             password: hashedPassword,
-            role: 'provider'
+            role: 'provider',
+            isEmailVerified: true
         });
 
         // 1.1 Create Admin and Super Admin
@@ -43,13 +44,15 @@ async function seedData() {
             name: 'System Admin',
             email: 'admin@smartevents.com',
             password: hashedPassword,
-            role: 'admin'
+            role: 'admin',
+            isEmailVerified: true
         });
         await User.create({
             name: 'Super Admin',
             email: 'superadmin@smartevents.com',
             password: hashedPassword,
-            role: 'superadmin'
+            role: 'superadmin',
+            isEmailVerified: true
         });
 
         // 1.2 Additional providers, each with a real VendorProfile and packages,
@@ -107,7 +110,8 @@ async function seedData() {
             const providerUser = await User.create({
                 name: spec.name, email: spec.email, password: hashedPassword, role: 'provider',
                 trustScore: 70 + Math.floor(Math.random() * 25),
-                businessDetails: { companyName: spec.businessName, verified: true }
+                businessDetails: { companyName: spec.businessName, verified: true },
+                isEmailVerified: true
             });
 
             const profile = await VendorProfile.create({
@@ -159,19 +163,22 @@ async function seedData() {
             name: 'Ali Ahmed',
             email: 'ali@example.com',
             password: hashedPassword,
-            role: 'customer'
+            role: 'customer',
+            isEmailVerified: true
         });
         const customer2 = await User.create({
             name: 'Sara Khan',
             email: 'sara@example.com',
             password: hashedPassword,
-            role: 'customer'
+            role: 'customer',
+            isEmailVerified: true
         });
         const customer3 = await User.create({
             name: 'Hamza Malik',
             email: 'hamza@example.com',
             password: hashedPassword,
-            role: 'customer'
+            role: 'customer',
+            isEmailVerified: true
         });
 
         // 3. Create Diverse Events

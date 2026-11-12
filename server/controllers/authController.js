@@ -6,9 +6,31 @@ exports.signup = asyncHandler(async (req, res, next) => {
     const user = await authService.signup(req.body);
     res.status(201).json({ 
         success: true, 
-        message: 'Identity established in the global registry.', 
+        message: 'Registration successful! Please check your email to verify your account.', 
         user: { id: user._id, name: user.name, email: user.email } 
     });
+});
+
+exports.verifyEmail = asyncHandler(async (req, res, next) => {
+    const token = req.body.token || req.query.token;
+    const result = await authService.verifyEmail(token);
+    res.json({
+        success: true,
+        message: 'Your email has been verified successfully. Welcome to Smartie!',
+        ...result
+    });
+});
+
+exports.resendVerification = asyncHandler(async (req, res, next) => {
+    const { email } = req.body;
+    const result = await authService.resendVerification(email);
+    res.json({ success: true, ...result });
+});
+
+exports.googleLogin = asyncHandler(async (req, res, next) => {
+    const { credential, role } = req.body;
+    const result = await authService.googleAuth(credential, role);
+    res.json({ success: true, ...result });
 });
 
 exports.login = asyncHandler(async (req, res, next) => {

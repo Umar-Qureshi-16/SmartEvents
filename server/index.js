@@ -10,17 +10,25 @@ const server = http.createServer(app);
 
 async function start() {
     try {
-        await mongoose.connect(env.MONGODB_URI);
-        console.log('Connected to MongoDB');
-
         socketManager.init(server);
 
-        server.listen(env.PORT, () => {
-            console.log(`SmartEvents API listening on port ${env.PORT} (${env.NODE_ENV})`);
+        // Bind to 0.0.0.0 immediately so cloud platforms (Render, Railway, Docker)
+        // detect the open port right away during deployment health checks.
+        server.listen(env.PORT, '0.0.0.0', () => {
+            console.log(`SmartEvents API listening on port ${env.PORT} on 0.0.0.0 (${env.NODE_ENV})`);
         });
+
+        console.log('Connecting to MongoDB...');
+        await mongoose.connect(env.MONGODB_URI, {
+            serverSelectionTimeoutMS: 15000,
+        });
+        console.log('Connected to MongoDB successfully');
     } catch (err) {
-        console.error('Failed to start:', err.message);
-        process.exit(1);
+        console.error('Startup / Database connection error:', err.message);
+        console.error('Please verify MONGODB_URI in your environment variables and ensure MongoDB Atlas allows IP 0.0.0.0/0 in Network Access.');
+        if (!env.isProduction) {
+            process.exit(1);
+        }
     }
 }
 

@@ -147,9 +147,25 @@ const resetPasswordSchema = z.object({
     path: ["password"]
 });
 
+const verifyEmailSchema = z.object({
+    token: z.string().min(1, "Verification token is required")
+});
+
+const resendVerificationSchema = z.object({
+    email: z.string().email("A valid email address is required")
+});
+
+const googleAuthSchema = z.object({
+    credential: z.string().min(1, "Google credential is required"),
+    role: z.enum(['customer', 'provider']).optional()
+});
+
 module.exports = {
     signupSchema,
     loginSchema,
+    verifyEmailSchema,
+    resendVerificationSchema,
+    googleAuthSchema,
     eventSchema,
     bookingCreateSchema,
     negotiateSchema,

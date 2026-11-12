@@ -2,19 +2,50 @@ const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
+const env = require('../config/env');
 
 const { JWT_SECRET } = require('../middleware/authMiddleware');
 const { BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError, ConflictError } = require('../utils/AppError');
+const { sendVerificationEmail } = require('./mailService');
+
+const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 class AuthService {
     async signup(userData) {
         const { name, email, password, role } = userData;
-        const existingUser = await User.findOne({ email });
+        const normalizedEmail = email.toLowerCase().trim();
+        const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) throw new ConflictError('An account with this email already exists.');
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ name, email, password: hashedPassword, role });
-        return await user.save();
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        const user = new User({
+            name,
+            email: normalizedEmail,
+            password: hashedPassword,
+            role,
+            isEmailVerified: false,
+            emailVerificationToken: verificationToken,
+            emailVerificationExpires: verificationExpires
+        });
+
+        await user.save();
+
+        // Dispatch verification email asynchronously
+        try {
+            await sendVerificationEmail(normalizedEmail, name, verificationToken);
+        } catch (err) {
+            console.error('Failed to send verification email during signup:', err.message);
+        }
+
+        if (!env.isProduction) {
+            console.log(`[DEV] Verification link for ${normalizedEmail}: ${env.CLIENT_URL}/verify-email?token=${verificationToken}`);
+        }
+
+        return user;
     }
 
     generateToken(payload, expiresIn = '1d') {
@@ -22,7 +53,8 @@ class AuthService {
     }
 
     async login(email, password) {
-        const user = await User.findOne({ email }).select('+password');
+        const normalizedEmail = email.toLowerCase().trim();
+        const user = await User.findOne({ email: normalizedEmail }).select('+password');
 
         // Identical message and comparable timing for both failure modes, so
         // an attacker cannot use this endpoint to discover which emails are
@@ -39,6 +71,10 @@ class AuthService {
             throw new ForbiddenError('This account has been suspended. Please contact support.');
         }
 
+        if (!user.isEmailVerified) {
+            throw new ForbiddenError('Please verify your email address before logging in. Check your inbox for the verification link.');
+        }
+
         const token = this.generateToken({ id: user._id, role: user.role });
         const refreshToken = this.generateToken({ id: user._id, role: user.role }, '7d');
 
@@ -49,7 +85,135 @@ class AuthService {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                isEmailVerified: user.isEmailVerified
+            }
+        };
+    }
+
+    async verifyEmail(token) {
+        if (!token) throw new BadRequestError('Verification token is required.');
+
+        const user = await User.findOne({
+            emailVerificationToken: token,
+            emailVerificationExpires: { $gt: new Date() }
+        });
+
+        if (!user) {
+            throw new BadRequestError('Verification link is invalid or has expired.');
+        }
+
+        user.isEmailVerified = true;
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpires = undefined;
+        await user.save();
+
+        // Automatic authentication upon successful verification
+        const authToken = this.generateToken({ id: user._id, role: user.role });
+        const refreshToken = this.generateToken({ id: user._id, role: user.role }, '7d');
+
+        return {
+            token: authToken,
+            refreshToken,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                isEmailVerified: true
+            }
+        };
+    }
+
+    async resendVerification(email) {
+        const normalizedEmail = email.toLowerCase().trim();
+        const genericMessage = 'If an unverified account exists for that email, a verification link has been sent.';
+
+        const user = await User.findOne({ email: normalizedEmail });
+        if (!user || user.isEmailVerified) {
+            return { message: genericMessage };
+        }
+
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        user.emailVerificationToken = verificationToken;
+        user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await user.save();
+
+        try {
+            await sendVerificationEmail(normalizedEmail, user.name, verificationToken);
+        } catch (err) {
+            console.error('Failed to resend verification email:', err.message);
+        }
+
+        if (!env.isProduction) {
+            console.log(`[DEV] Resent verification link for ${normalizedEmail}: ${env.CLIENT_URL}/verify-email?token=${verificationToken}`);
+        }
+
+        return { message: genericMessage };
+    }
+
+    async googleAuth(credential, role = 'customer') {
+        if (!env.GOOGLE_CLIENT_ID) {
+            throw new BadRequestError('Google Authentication is not configured on this server.');
+        }
+
+        let ticket;
+        try {
+            ticket = await googleClient.verifyIdToken({
+                idToken: credential,
+                audience: env.GOOGLE_CLIENT_ID
+            });
+        } catch (err) {
+            console.error('Google token verification error:', err.message);
+            throw new UnauthorizedError('Google authentication failed. Invalid token.');
+        }
+
+        const payload = ticket.getPayload();
+        if (!payload || !payload.email) {
+            throw new BadRequestError('Google authentication failed: Email address not provided.');
+        }
+
+        const { sub: googleId, email, name } = payload;
+        const normalizedEmail = email.toLowerCase().trim();
+
+        let user = await User.findOne({
+            $or: [{ googleId }, { email: normalizedEmail }]
+        });
+
+        if (user) {
+            if (!user.googleId) user.googleId = googleId;
+            user.isEmailVerified = true; // Email verified by Google
+            await user.save();
+        } else {
+            const validRoles = ['customer', 'provider'];
+            const userRole = validRoles.includes(role) ? role : 'customer';
+
+            user = new User({
+                name: name || 'Google User',
+                email: normalizedEmail,
+                googleId,
+                role: userRole,
+                isEmailVerified: true
+            });
+            await user.save();
+        }
+
+        if (user.status === 'banned') {
+            throw new ForbiddenError('This account has been suspended. Please contact support.');
+        }
+
+        const token = this.generateToken({ id: user._id, role: user.role });
+        const refreshToken = this.generateToken({ id: user._id, role: user.role }, '7d');
+
+        return {
+            token,
+            refreshToken,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                isEmailVerified: true
             }
         };
     }

@@ -59,6 +59,8 @@ function createApp() {
         app.use('/api/v1/auth/login', strictAuthLimiter);
         app.use('/api/v1/auth/forgot-password', strictAuthLimiter);
         app.use('/api/v1/auth/reset-password', strictAuthLimiter);
+        app.use('/api/v1/auth/resend-verification', strictAuthLimiter);
+        app.use('/api/v1/auth/google', strictAuthLimiter);
 
         app.use('/api/v1/auth/register', rateLimit({
             windowMs: 60 * 60 * 1000,

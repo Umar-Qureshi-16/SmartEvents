@@ -38,7 +38,7 @@ const seed = async () => {
         for (const u of users) {
             await User.findOneAndUpdate(
                 { email: u.email },
-                u,
+                { ...u, isEmailVerified: true },
                 { upsert: true, new: true }
             );
             console.log(`Synced user: ${u.email} [${u.role}]`);

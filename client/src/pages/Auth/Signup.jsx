@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { UserCheck, Store, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { UserCheck, Store, ArrowRight, ShieldCheck, CheckCircle2, Mail, RefreshCw, Loader2 } from 'lucide-react';
 import EventManagerLogo from '../../components/EventManagerLogo';
 
 function Signup({ onLoginSuccess }) {
@@ -18,9 +19,45 @@ function Signup({ onLoginSuccess }) {
         location: ''
     });
     const [loading, setLoading] = useState(false);
+    const [isRegistered, setIsRegistered] = useState(false);
+    const [registeredEmail, setRegisteredEmail] = useState('');
+    const [resendLoading, setResendLoading] = useState(false);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const executeLoginSuccess = (userObj, token, refreshToken) => {
+        toast.success(`Welcome to Smartie, ${userObj.name}!`);
+        localStorage.setItem('token', token);
+        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+        localStorage.setItem('user', JSON.stringify(userObj));
+        if (onLoginSuccess) onLoginSuccess(userObj);
+        navigate('/dashboard', { replace: true });
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setLoading(true);
+        try {
+            const res = await axios.post('/auth/google', {
+                credential: credentialResponse.credential,
+                role
+            });
+            if (res.data.success) {
+                executeLoginSuccess(res.data.user, res.data.token, res.data.refreshToken);
+            } else {
+                toast.error(res.data.message || 'Google signup failed.');
+            }
+        } catch (err) {
+            const message = err.response?.data?.message || 'Google authentication failed.';
+            toast.error(message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleError = () => {
+        toast.error('Google Sign-up was cancelled or encountered an error.');
     };
 
     const handleSubmit = async (e) => {
@@ -28,35 +65,19 @@ function Signup({ onLoginSuccess }) {
         setLoading(true);
 
         try {
-            // The API only accepts these four fields, and role must be one of
-            // the schema's enum values. The selector's labels ("Organizer" /
-            // "Vendor") map onto 'customer' / 'provider'.
-            await axios.post('/auth/register', {
+            const res = await axios.post('/auth/register', {
                 name: formData.name,
                 email: formData.email,
                 password: formData.password,
                 role
             });
 
-            // /auth/register does not issue tokens, so sign in immediately to
-            // obtain a real session rather than fabricating one.
-            const loginRes = await axios.post('/auth/login', {
-                email: formData.email,
-                password: formData.password
-            });
-
-            const { user, token, refreshToken } = loginRes.data;
-            toast.success(`Welcome to SmartEvents, ${user.name}!`);
-            localStorage.setItem('token', token);
-            if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-            localStorage.setItem('user', JSON.stringify(user));
-            if (onLoginSuccess) onLoginSuccess(user);
-            navigate('/dashboard', { replace: true });
+            if (res.data.success) {
+                setRegisteredEmail(formData.email);
+                setIsRegistered(true);
+                toast.success('Registration successful! Please verify your email.');
+            }
         } catch (err) {
-            // Registration must fail closed. This previously fell back to
-            // creating a fake local session whenever the API rejected the
-            // request — which it always did, because the role values sent
-            // ('organizer' / 'vendor') are not in the User schema enum.
             const data = err.response?.data;
             const message = data?.errors?.length
                 ? data.errors.map(e => e.message).join('. ')
@@ -67,6 +88,71 @@ function Signup({ onLoginSuccess }) {
             setLoading(false);
         }
     };
+
+    const handleResendVerification = async () => {
+        if (!registeredEmail) return;
+        setResendLoading(true);
+        try {
+            const res = await axios.post('/auth/resend-verification', { email: registeredEmail });
+            toast.success(res.data.message || 'Verification link sent! Check your inbox.');
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to resend verification email.');
+        } finally {
+            setResendLoading(false);
+        }
+    };
+
+    // Screen shown after successful registration requiring email verification
+    if (isRegistered) {
+        return (
+            <div className="min-h-screen bg-bg text-fg flex flex-col justify-center items-center py-12 px-6">
+                <div className="max-w-md w-full space-y-8">
+                    <div className="text-center space-y-3">
+                        <div className="flex justify-center mb-2">
+                            <EventManagerLogo />
+                        </div>
+                    </div>
+
+                    <div className="adyen-card p-8 bg-surface border border-border text-center space-y-6">
+                        <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+                            <Mail className="w-8 h-8" />
+                        </div>
+
+                        <div className="space-y-2">
+                            <h2 className="text-2xl font-black tracking-tight text-fg">Verify your email</h2>
+                            <p className="text-xs text-muted leading-relaxed">
+                                We've sent a verification link to <br />
+                                <span className="font-semibold text-fg text-sm">{registeredEmail}</span>
+                            </p>
+                        </div>
+
+                        <p className="text-xs text-muted leading-relaxed">
+                            Please check your inbox (and spam folder) and click the link to activate your account. Once verified, you can sign in and start exploring Smartie!
+                        </p>
+
+                        <div className="pt-2 space-y-3">
+                            <button
+                                type="button"
+                                onClick={handleResendVerification}
+                                disabled={resendLoading}
+                                className="w-full py-3 px-4 rounded-xl bg-surface-2 hover:bg-surface border border-border text-xs font-bold text-fg transition-all flex items-center justify-center gap-2"
+                            >
+                                {resendLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                                Resend verification email
+                            </button>
+
+                            <Link
+                                to="/login"
+                                className="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all flex items-center justify-center gap-2"
+                            >
+                                Back to Sign In <ArrowRight size={14} />
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-bg text-fg flex flex-col justify-center items-center py-12 px-6">
@@ -105,6 +191,28 @@ function Signup({ onLoginSuccess }) {
                 </div>
 
                 <form onSubmit={handleSubmit} className="adyen-card p-6 space-y-4 bg-surface border border-border">
+                    {/* FAST GOOGLE SIGN UP */}
+                    <div className="space-y-3">
+                        <label className="text-xs font-semibold text-fg block text-center">Fast Registration</label>
+                        <div className="flex justify-center w-full">
+                            <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={handleGoogleError}
+                                theme="filled_black"
+                                shape="pill"
+                                size="large"
+                                width="360"
+                                text="signup_with"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="relative flex py-2 items-center">
+                        <div className="flex-grow border-t border-border"></div>
+                        <span className="flex-shrink mx-4 text-[10px] font-mono uppercase text-muted tracking-wider">Or register with email</span>
+                        <div className="flex-grow border-t border-border"></div>
+                    </div>
+
                     <div className="space-y-1">
                         <label className="text-xs font-semibold text-fg">Full Name</label>
                         <input

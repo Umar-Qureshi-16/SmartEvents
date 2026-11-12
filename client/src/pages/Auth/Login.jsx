@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { ArrowRight, Lock, Mail, ShieldCheck, UserCheck, Building2, QrCode } from 'lucide-react';
+import { ArrowRight, Lock, Mail, ShieldCheck, UserCheck, Building2, QrCode, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 import EventManagerLogo from '../../components/EventManagerLogo';
 
 function Login({ onLoginSuccess }) {
@@ -10,6 +11,8 @@ function Login({ onLoginSuccess }) {
     const location = useLocation();
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
+    const [unverifiedEmail, setUnverifiedEmail] = useState('');
+    const [resending, setResending] = useState(false);
 
     // Seeded demo accounts. These must match server/scripts/seedData.js —
     // run `npm run seed` in server/ before using them. Each button signs in
@@ -47,6 +50,7 @@ function Login({ onLoginSuccess }) {
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (unverifiedEmail) setUnverifiedEmail('');
     };
 
     const executeLoginSuccess = (userObj, token, refreshToken) => {
@@ -64,6 +68,7 @@ function Login({ onLoginSuccess }) {
 
     const login = async (email, password) => {
         setLoading(true);
+        setUnverifiedEmail('');
         try {
             const res = await axios.post('/auth/login', { email, password });
             if (res.data.success) {
@@ -72,20 +77,56 @@ function Login({ onLoginSuccess }) {
                 toast.error(res.data.message || 'Sign in failed.');
             }
         } catch (err) {
-            // Authentication must fail closed. This previously fell back to
-            // fabricating a user object with a fake token, which let ANY
-            // email and password combination sign in whenever the API was
-            // unreachable — and left every subsequent request 401ing.
+            const status = err.response?.status;
             const message = err.response?.data?.message
                 || (err.response ? 'Invalid email or password.' : 'Cannot reach the server. Is the backend running?');
+
+            if (status === 403 && message.toLowerCase().includes('verify')) {
+                setUnverifiedEmail(email);
+            }
             toast.error(message);
         } finally {
             setLoading(false);
         }
     };
 
-    // Fills the form with a seeded demo account and signs in through the real
-    // API. Run `npm run seed` in server/ to create these accounts.
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setLoading(true);
+        try {
+            const res = await axios.post('/auth/google', {
+                credential: credentialResponse.credential
+            });
+            if (res.data.success) {
+                executeLoginSuccess(res.data.user, res.data.token, res.data.refreshToken);
+            } else {
+                toast.error(res.data.message || 'Google sign in failed.');
+            }
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Google authentication failed.';
+            toast.error(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleError = () => {
+        toast.error('Google Sign-in was cancelled or encountered an error.');
+    };
+
+    const handleResendVerification = async () => {
+        if (!unverifiedEmail) return;
+        setResending(true);
+        try {
+            const res = await axios.post('/auth/resend-verification', { email: unverifiedEmail });
+            toast.success(res.data.message || 'Verification email resent! Please check your inbox.');
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to resend verification link.');
+        } finally {
+            setResending(false);
+        }
+    };
+
+    // Fills the form with a seeded demo account and signs in through the real API.
     const handleQuickLogin = (acc) => {
         setFormData({ email: acc.email, password: acc.password });
         login(acc.email, acc.password);
@@ -133,8 +174,52 @@ function Login({ onLoginSuccess }) {
                     </div>
                 </div>
 
+                {/* UNVERIFIED EMAIL ALERT BANNER */}
+                {unverifiedEmail && (
+                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2">
+                        <div className="flex items-center gap-2 font-bold text-amber-300">
+                            <AlertCircle size={16} />
+                            <span>Email Verification Required</span>
+                        </div>
+                        <p className="text-amber-200/80">
+                            Your account is not verified yet. We sent a verification link to <span className="font-semibold text-white">{unverifiedEmail}</span>.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleResendVerification}
+                            disabled={resending}
+                            className="inline-flex items-center gap-1.5 font-bold text-amber-400 hover:text-amber-300 underline underline-offset-4 transition-colors disabled:opacity-50"
+                        >
+                            {resending ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                            Resend verification link
+                        </button>
+                    </div>
+                )}
+
                 {/* REGULAR FORM */}
                 <form onSubmit={handleSubmit} className="adyen-card p-6 space-y-4 bg-surface border border-border">
+                    {/* GOOGLE SIGN IN BUTTON */}
+                    <div className="space-y-3">
+                        <label className="text-xs font-semibold text-fg block text-center">Fast Sign-in</label>
+                        <div className="flex justify-center w-full">
+                            <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={handleGoogleError}
+                                theme="filled_black"
+                                shape="pill"
+                                size="large"
+                                width="360"
+                                text="signin_with"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="relative flex py-2 items-center">
+                        <div className="flex-grow border-t border-border"></div>
+                        <span className="flex-shrink mx-4 text-[10px] font-mono uppercase text-muted tracking-wider">Or continue with email</span>
+                        <div className="flex-grow border-t border-border"></div>
+                    </div>
+
                     <div className="space-y-1">
                         <label className="text-xs font-semibold text-fg">Work Email</label>
                         <input
@@ -151,7 +236,7 @@ function Login({ onLoginSuccess }) {
                     <div className="space-y-1">
                         <div className="flex justify-between items-center">
                             <label className="text-xs font-semibold text-fg">Password</label>
-                            <a href="#" className="text-[10px] text-muted hover:text-success">Forgot password?</a>
+                            <Link to="/forgot-password" className="text-[10px] text-muted hover:text-success">Forgot password?</Link>
                         </div>
                         <input
                             type="password"

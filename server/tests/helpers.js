@@ -19,9 +19,10 @@ async function makeUser(role = 'customer', overrides = {}) {
 
     if (role === 'customer' || role === 'provider') {
         await api().post('/api/v1/auth/register').send({ name, email, password: PASSWORD, role });
+        await User.findOneAndUpdate({ email }, { isEmailVerified: true });
     } else {
         const bcrypt = require('bcrypt');
-        await User.create({ name, email, password: await bcrypt.hash(PASSWORD, 10), role });
+        await User.create({ name, email, password: await bcrypt.hash(PASSWORD, 10), role, isEmailVerified: true });
     }
 
     const res = await api().post('/api/v1/auth/login').send({ email, password: PASSWORD });
