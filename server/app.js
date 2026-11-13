@@ -88,7 +88,16 @@ function createApp() {
         }));
     }
 
-    // --- Health ------------------------------------------------------------
+    // Root health / landing page – provides a simple message or redirects to the front‑end
+app.get('/', (req, res) => {
+  // If CLIENT_URL is set (front‑end URL), redirect there; otherwise return a friendly JSON message.
+  if (env.CLIENT_URL) {
+    return res.redirect(env.CLIENT_URL);
+  }
+  res.json({ success: true, message: 'SmartEvents backend is running.' });
+});
+
+// Existing middleware and routes follow…
     app.get('/api/v1/health', (req, res) => {
         const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
         const mem = process.memoryUsage();

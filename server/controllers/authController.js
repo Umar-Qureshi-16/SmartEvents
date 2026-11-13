@@ -28,9 +28,24 @@ exports.resendVerification = asyncHandler(async (req, res, next) => {
 });
 
 exports.googleLogin = asyncHandler(async (req, res, next) => {
+    // Existing endpoint for front‑end ID token flow
     const { credential, role } = req.body;
     const result = await authService.googleAuth(credential, role);
     res.json({ success: true, ...result });
+});
+
+// New callback endpoint for OAuth "code" flow (used with Render redirect URL)
+exports.googleCallback = asyncHandler(async (req, res, next) => {
+    // Google may send the auth code as a query parameter or in the POST body
+    const code = req.body.code || req.query.code;
+    if (!code) {
+        return res.status(400).json({ success: false, message: 'Missing authorization code' });
+    }
+    // Re‑use the existing service – it will exchange the code for tokens and return a JWT
+    const result = await authService.googleAuth(code, null);
+    // Redirect back to the front‑end with the JWT (adjust the path as needed)
+    const redirectUrl = `${env.CLIENT_URL}/auth/success?token=${encodeURIComponent(result.token)}`;
+    res.redirect(redirectUrl);
 });
 
 exports.login = asyncHandler(async (req, res, next) => {
