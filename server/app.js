@@ -32,6 +32,13 @@ function createApp() {
             // Allow same-origin/non-browser callers (curl, health probes).
             if (!origin) return callback(null, true);
             if (env.allowedOrigins.includes(origin)) return callback(null, true);
+            // The configured frontend itself is always allowed.
+            try {
+                if (env.CLIENT_URL && new URL(env.CLIENT_URL).origin === origin) return callback(null, true);
+            } catch { /* CLIENT_URL not a valid URL: ignore */ }
+            // Vercel generates a new hostname for every deployment of the
+            // frontend, so allow deployments under the owner's Vercel scope.
+            if (/^https:\/\/[a-z0-9-]+-umar-qureshi-16s-projects\.vercel\.app$/.test(origin)) return callback(null, true);
             return callback(new Error(`CORS: origin ${origin} is not allowed`), false);
         },
         credentials: true,
