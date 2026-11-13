@@ -3,7 +3,7 @@ const Event = require('../models/Event');
 const Booking = require('../models/Booking');
 const AuditLog = require('../models/AuditLog');
 const { asyncHandler } = require('../middleware/errors');
-const { BadRequestError, NotFoundError } = require('../utils/AppError');
+const { BadRequestError, NotFoundError, ForbiddenError } = require('../utils/AppError');
 
 /**
  * Records a governance action. Previously only superadmin actions were
@@ -73,13 +73,20 @@ exports.updateUserRole = asyncHandler(async (req, res) => {
     if (!['customer', 'provider', 'admin', 'superadmin'].includes(role)) {
         throw new BadRequestError('Invalid role.');
     }
-    // Only a superadmin may mint another superadmin.
-    if (role === 'superadmin' && req.user.role !== 'superadmin') {
-        throw new BadRequestError('Only a superadmin can grant superadmin access.');
+    if (String(req.params.id) === String(req.user.id)) {
+        throw new BadRequestError('You cannot change your own role.');
+    }
+    const target = await User.findById(req.params.id).select('role');
+    if (!target) throw new NotFoundError('User not found.');
+
+    // Only a superadmin may grant elevated roles or touch elevated accounts.
+    // Otherwise any admin could demote the superadmin or mint more admins.
+    const elevated = (r) => r === 'admin' || r === 'superadmin';
+    if (req.user.role !== 'superadmin' && (elevated(role) || elevated(target.role))) {
+        throw new ForbiddenError('Only a superadmin can grant or change admin-level roles.');
     }
 
     const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
-    if (!user) throw new NotFoundError('User not found.');
 
     await audit(req, {
         action: 'USER_ROLE_CHANGED',
@@ -102,8 +109,13 @@ exports.banUser = asyncHandler(async (req, res) => {
         throw new BadRequestError('You cannot change your own account status.');
     }
 
+    const target = await User.findById(req.params.id).select('role');
+    if (!target) throw new NotFoundError('User not found.');
+    if (req.user.role !== 'superadmin' && (target.role === 'admin' || target.role === 'superadmin')) {
+        throw new ForbiddenError('Only a superadmin can restrict or ban admin accounts.');
+    }
+
     const user = await User.findByIdAndUpdate(req.params.id, { status }, { new: true }).select('-password');
-    if (!user) throw new NotFoundError('User not found.');
 
     await audit(req, {
         action: `USER_${status.toUpperCase()}`,

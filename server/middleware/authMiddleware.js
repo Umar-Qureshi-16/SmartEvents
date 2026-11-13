@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
+const User = require('../models/User');
 
 // Validated at boot by config/env.js, which refuses to start without it.
 const JWT_SECRET = env.JWT_SECRET;
@@ -16,7 +17,7 @@ const verifyToken = (req, res, next) => {
         });
     }
 
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, JWT_SECRET, async (err, decoded) => {
         if (err) {
             // 401 means "your credential is stale — go refresh it".
             // 403 is reserved for "your credential is valid but you lack
@@ -31,10 +32,29 @@ const verifyToken = (req, res, next) => {
             });
         }
 
-        // Normalise both id shapes — some controllers read req.user._id and
-        // some read req.user.id, and the JWT payload only carries `id`.
-        req.user = { ...decoded, _id: decoded.id };
-        next();
+        // A refresh token must never authorise an API call.
+        if (decoded.typ === 'refresh') {
+            return res.status(401).json({ success: false, message: 'Invalid token', code: 'TOKEN_INVALID' });
+        }
+
+        try {
+            // Trust the database, not the token: a banned or demoted user
+            // must lose access immediately rather than when the JWT expires.
+            const account = await User.findById(decoded.id).select('role status').lean();
+            if (!account) {
+                return res.status(401).json({ success: false, message: 'Account no longer exists', code: 'TOKEN_INVALID' });
+            }
+            if (account.status === 'banned') {
+                return res.status(403).json({ success: false, message: 'This account has been suspended.', code: 'ACCOUNT_BANNED' });
+            }
+
+            // Normalise both id shapes — some controllers read req.user._id and
+            // some read req.user.id, and the JWT payload only carries `id`.
+            req.user = { ...decoded, role: account.role, status: account.status, _id: decoded.id };
+            next();
+        } catch (e) {
+            next(e);
+        }
     });
 };
 

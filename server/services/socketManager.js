@@ -23,7 +23,9 @@ const init = (server) => {
         if (!token) return next(new Error('Unauthorized: no token'));
 
         try {
-            socket.user = jwt.verify(token, JWT_SECRET);
+            const decoded = jwt.verify(token, JWT_SECRET);
+            if (decoded.typ === 'refresh') throw new Error('refresh token not accepted');
+            socket.user = decoded;
             next();
         } catch (err) {
             next(new Error('Unauthorized: invalid token'));

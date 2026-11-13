@@ -61,8 +61,15 @@ class AuthService {
         return user;
     }
 
+    // Access and refresh tokens share a secret, so each carries a `typ` claim.
+    // Without it a long-lived refresh token is accepted as an access token,
+    // which makes the short access-token lifetime meaningless.
     generateToken(payload, expiresIn = '1d') {
-        return jwt.sign(payload, JWT_SECRET, { expiresIn });
+        return jwt.sign({ ...payload, typ: 'access' }, JWT_SECRET, { expiresIn });
+    }
+
+    generateRefreshToken(payload) {
+        return jwt.sign({ ...payload, typ: 'refresh' }, JWT_SECRET, { expiresIn: '7d' });
     }
 
     async login(email, password) {
@@ -89,7 +96,7 @@ class AuthService {
         }
 
         const token = this.generateToken({ id: user._id, role: user.role });
-        const refreshToken = this.generateToken({ id: user._id, role: user.role }, '7d');
+        const refreshToken = this.generateRefreshToken({ id: user._id, role: user.role });
 
         return {
             token,
@@ -123,7 +130,7 @@ class AuthService {
 
         // Automatic authentication upon successful verification
         const authToken = this.generateToken({ id: user._id, role: user.role });
-        const refreshToken = this.generateToken({ id: user._id, role: user.role }, '7d');
+        const refreshToken = this.generateRefreshToken({ id: user._id, role: user.role });
 
         return {
             token: authToken,
@@ -216,7 +223,7 @@ class AuthService {
         }
 
         const token = this.generateToken({ id: user._id, role: user.role });
-        const refreshToken = this.generateToken({ id: user._id, role: user.role }, '7d');
+        const refreshToken = this.generateRefreshToken({ id: user._id, role: user.role });
 
         return {
             token,
@@ -234,12 +241,15 @@ class AuthService {
     async refresh(refreshToken) {
         try {
             const decoded = jwt.verify(refreshToken, JWT_SECRET);
+            if (decoded.typ !== 'refresh') throw new UnauthorizedError('Invalid refresh token.');
             const user = await User.findById(decoded.id);
             if (!user) throw new UnauthorizedError('This account no longer exists.');
+            if (user.status === 'banned') throw new ForbiddenError('This account has been suspended.');
 
             const newToken = this.generateToken({ id: user._id, role: user.role });
             return { token: newToken };
         } catch (error) {
+            if (error instanceof ForbiddenError) throw error;
             throw new UnauthorizedError('Invalid or expired refresh token.');
         }
     }
