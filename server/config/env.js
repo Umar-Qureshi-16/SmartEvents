@@ -32,6 +32,9 @@ const schema = z.object({
     // Keys pasted into .env / hosting dashboards often carry stray quotes or
     // whitespace, which Groq rejects as an invalid key. Normalise them here.
     GROQ_API_KEY: cleanKey,
+    // Secret code that unlocks self-signup for admin / superadmin accounts.
+    // Leave unset to disable elevated self-signup entirely.
+    ADMIN_SIGNUP_CODE: z.string().trim().optional(),
     OPENROUTER_API_KEY: cleanKey,
     OPENROUTER_MODEL: z.string().optional(),
     OPENROUTER_FALLBACK_MODEL: z.string().optional(),

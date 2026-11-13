@@ -13,7 +13,20 @@ const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 class AuthService {
     async signup(userData) {
-        const { name, email, password, role } = userData;
+        const { name, email, password, role, adminCode } = userData;
+
+        if (role === 'admin' || role === 'superadmin') {
+            const expected = env.ADMIN_SIGNUP_CODE;
+            if (!expected) {
+                throw new ForbiddenError('Admin signup is not enabled on this server.');
+            }
+            const a = Buffer.from(String(adminCode || ''));
+            const b = Buffer.from(expected);
+            if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+                throw new ForbiddenError('Invalid admin signup code.');
+            }
+        }
+
         const normalizedEmail = email.toLowerCase().trim();
         const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) throw new ConflictError('An account with this email already exists.');

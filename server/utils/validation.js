@@ -4,10 +4,11 @@ const signupSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters").max(50),
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
-    // Public signup may ONLY create customer or provider accounts.
-    // Elevated roles are granted via scripts/seedSuperAdmin.js or by an
-    // existing admin through PUT /api/v1/admin/users/:id/role.
-    role: z.enum(['customer', 'provider']).default('customer')
+    // customer/provider are open. admin/superadmin additionally require
+    // adminCode to match the server-side ADMIN_SIGNUP_CODE (checked in
+    // authService.signup), so elevated roles are never self-service by default.
+    role: z.enum(['customer', 'provider', 'admin', 'superadmin']).default('customer'),
+    adminCode: z.string().max(200).optional()
 });
 
 const loginSchema = z.object({

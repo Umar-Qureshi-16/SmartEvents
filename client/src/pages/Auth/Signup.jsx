@@ -3,12 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { UserCheck, Store, ArrowRight, ShieldCheck, CheckCircle2, Mail, RefreshCw, Loader2 } from 'lucide-react';
+import { UserCheck, Store, Shield, Crown, ArrowRight, ShieldCheck, CheckCircle2, Mail, RefreshCw, Loader2 } from 'lucide-react';
 import EventManagerLogo from '../../components/EventManagerLogo';
 
 function Signup({ onLoginSuccess }) {
     const navigate = useNavigate();
     const [role, setRole] = useState('customer');
+    const [adminCode, setAdminCode] = useState('');
+    const isElevated = role === 'admin' || role === 'superadmin';
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -69,7 +71,8 @@ function Signup({ onLoginSuccess }) {
                 name: formData.name,
                 email: formData.email,
                 password: formData.password,
-                role
+                role,
+                ...(isElevated ? { adminCode } : {})
             });
 
             if (res.data.success) {
@@ -188,11 +191,33 @@ function Signup({ onLoginSuccess }) {
                             <span className="text-[10px] text-muted font-mono">Bid & Deliver Services</span>
                         </div>
                     </div>
+
+                    <div
+                        onClick={() => setRole('admin')}
+                        className={`p-4 rounded-2xl cursor-pointer border transition-all flex flex-col items-center text-center space-y-2 ${role === 'admin' ? 'bg-surface border-success text-success shadow-md font-bold' : 'bg-surface-2 border-transparent text-muted hover:text-fg'}`}
+                    >
+                        <Shield size={24} />
+                        <div>
+                            <span className="text-sm font-bold block text-fg">Admin</span>
+                            <span className="text-[10px] text-muted font-mono">Manage the Platform</span>
+                        </div>
+                    </div>
+
+                    <div
+                        onClick={() => setRole('superadmin')}
+                        className={`p-4 rounded-2xl cursor-pointer border transition-all flex flex-col items-center text-center space-y-2 ${role === 'superadmin' ? 'bg-surface border-success text-success shadow-md font-bold' : 'bg-surface-2 border-transparent text-muted hover:text-fg'}`}
+                    >
+                        <Crown size={24} />
+                        <div>
+                            <span className="text-sm font-bold block text-fg">Super Admin</span>
+                            <span className="text-[10px] text-muted font-mono">Full System Control</span>
+                        </div>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="adyen-card p-6 space-y-4 bg-surface border border-border">
                     {/* FAST GOOGLE SIGN UP */}
-                    <div className="space-y-3">
+                    {!isElevated && (<div className="space-y-3">
                         <label className="text-xs font-semibold text-fg block text-center">Fast Registration</label>
                         <div className="flex justify-center w-full">
                             <GoogleLogin
@@ -205,13 +230,13 @@ function Signup({ onLoginSuccess }) {
                                 text="signup_with"
                             />
                         </div>
-                    </div>
+                    </div>)}
 
-                    <div className="relative flex py-2 items-center">
+                    {!isElevated && (<div className="relative flex py-2 items-center">
                         <div className="flex-grow border-t border-border"></div>
                         <span className="flex-shrink mx-4 text-[10px] font-mono uppercase text-muted tracking-wider">Or register with email</span>
                         <div className="flex-grow border-t border-border"></div>
-                    </div>
+                    </div>)}
 
                     <div className="space-y-1">
                         <label className="text-xs font-semibold text-fg">Full Name</label>
@@ -253,6 +278,21 @@ function Signup({ onLoginSuccess }) {
                         />
                         <p className="text-[10px] text-muted">At least 8 characters.</p>
                     </div>
+
+                    {isElevated && (
+                        <div className="space-y-1 pt-1">
+                            <label className="text-xs font-semibold text-fg">Admin Signup Code</label>
+                            <input
+                                type="password"
+                                required
+                                value={adminCode}
+                                onChange={(e) => setAdminCode(e.target.value)}
+                                placeholder="Code provided by the system owner"
+                                className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-xs text-fg outline-none focus:border-success"
+                            />
+                            <p className="text-[10px] text-muted">Required for admin accounts. Email signup only.</p>
+                        </div>
+                    )}
 
                     {role === 'provider' && (
                         <div className="space-y-1 pt-1">
