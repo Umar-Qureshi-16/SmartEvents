@@ -8,7 +8,9 @@ const signupSchema = z.object({
     // adminCode to match the server-side ADMIN_SIGNUP_CODE (checked in
     // authService.signup), so elevated roles are never self-service by default.
     role: z.enum(['customer', 'provider', 'admin', 'superadmin']).default('customer'),
-    adminCode: z.string().max(200).optional()
+    adminCode: z.string().max(200).optional(),
+    // Vendor category chosen at signup (FR-01); only used when role === 'provider'.
+    category: z.enum(['venue', 'catering', 'decoration', 'photography', 'music', 'makeup']).optional()
 });
 
 const loginSchema = z.object({

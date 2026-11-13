@@ -16,7 +16,7 @@ function Signup({ onLoginSuccess }) {
         email: '',
         password: '',
         phone: '',
-        category: 'Catering & Dining',
+        category: 'catering',
         bio: '',
         location: ''
     });
@@ -72,7 +72,8 @@ function Signup({ onLoginSuccess }) {
                 email: formData.email,
                 password: formData.password,
                 role,
-                ...(isElevated ? { adminCode } : {})
+                ...(isElevated ? { adminCode } : {}),
+                ...(role === 'provider' ? { category: formData.category } : {})
             });
 
             if (res.data.success) {
@@ -303,10 +304,12 @@ function Signup({ onLoginSuccess }) {
                                 onChange={handleChange}
                                 className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-xs text-fg outline-none focus:border-success"
                             >
-                                <option value="Catering & Dining">Catering & Dining</option>
-                                <option value="Stage & Lighting AV">Stage & Lighting AV</option>
-                                <option value="Photography & Cinema">Photography & Cinema</option>
-                                <option value="Venues & Ballrooms">Venues & Ballrooms</option>
+                                <option value="catering">Catering & Dining</option>
+                                <option value="venue">Venues & Ballrooms</option>
+                                <option value="photography">Photography & Cinema</option>
+                                <option value="music">Music, Stage & AV</option>
+                                <option value="decoration">Decoration & Design</option>
+                                <option value="makeup">Makeup & Styling</option>
                             </select>
                         </div>
                     )}

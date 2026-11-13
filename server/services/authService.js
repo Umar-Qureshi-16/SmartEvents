@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const VendorProfile = require('../models/VendorProfile');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -13,7 +14,7 @@ const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 class AuthService {
     async signup(userData) {
-        const { name, email, password, role, adminCode } = userData;
+        const { name, email, password, role, adminCode, category } = userData;
 
         if (role === 'admin' || role === 'superadmin') {
             const expected = env.ADMIN_SIGNUP_CODE;
@@ -46,6 +47,21 @@ class AuthService {
         });
 
         await user.save();
+
+        // Vendors pick a service category at signup (FR-01). Seed a starter
+        // profile so it is kept; they complete the details from their dashboard.
+        if (role === 'provider') {
+            try {
+                await VendorProfile.create({
+                    userId: user._id,
+                    businessName: name,
+                    category: category || 'catering',
+                    location: 'Not specified yet'
+                });
+            } catch (err) {
+                console.error('Could not create starter vendor profile:', err.message);
+            }
+        }
 
         // Dispatch verification email asynchronously
         try {
