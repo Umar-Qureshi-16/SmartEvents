@@ -1,4 +1,3 @@
-const Groq = require('groq-sdk');
 const ContextVector = require('../models/ContextVector');
 const Event = require('../models/Event');
 const Booking = require('../models/Booking');
@@ -6,9 +5,7 @@ const User = require('../models/User');
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const env = require('../config/env');
-// Placeholder key keeps construction from throwing when AI is not configured;
-// calls then fail gracefully and the controllers fall back to static content.
-const groq = new Groq({ apiKey: env.GROQ_API_KEY || 'not-configured' });
+const { complete, AIError } = require('./groqClient');
 
 // 1. Real Gemini Embeddings Generation
 async function createEmbedding(text) {
@@ -249,25 +246,22 @@ RULES
 ${ruleInstructions || '- None.'}
         `.trim();
 
-        const model = "llama-3.3-70b-versatile";
-
-        const chatCompletion = await groq.chat.completions.create({
+        const chatCompletion = await complete({
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: query }
             ],
-            model: model,
             temperature: 0.5,
             max_tokens: 1024,
         });
 
         return chatCompletion.choices[0]?.message?.content || "No response generated.";
     } catch (err) {
-        if (err.status === 429) {
-            return "Groq capacity reached. Please wait a few seconds and try again. (Rate Limit)";
-        }
-        console.error('Error generating Groq response:', err);
-        return "I encountered an error with the Groq AI engine. Please check your API key and quota.";
+        // Re-throw so the controller returns a real error status instead of
+        // a 200 containing an apology the UI renders as a normal reply.
+        if (err instanceof AIError) throw err;
+        console.error('Error generating AI response:', err);
+        throw new AIError('unknown', 'Smartie hit an unexpected error. Please try again.', err);
     }
 }
 
@@ -285,12 +279,11 @@ Output exactly this JSON format:
   "estimatedFeasibility": "High/Medium/Low",
   "recommendations": ["A", "B"]
 }`;
-        const chatCompletion = await groq.chat.completions.create({
+        const chatCompletion = await complete({
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: query }
             ],
-            model: "llama-3.3-70b-versatile",
             temperature: 0.2,
             response_format: { type: "json_object" }
         });
@@ -329,9 +322,8 @@ Include milestones for: Venue Booking, Catering, Invitations, Logistics, and Fin
 Respond with a JSON object of exactly this shape, ordered from the earliest milestone (largest daysBefore) to the latest:
 { "timeline": [{ "milestone": "string", "daysBefore": number, "description": "string" }] }`;
 
-        const chatCompletion = await groq.chat.completions.create({
+        const chatCompletion = await complete({
             messages: [{ role: "user", content: prompt }],
-            model: "llama-3.3-70b-versatile",
             temperature: 0.3,
             response_format: { type: "json_object" }
         });
@@ -363,9 +355,8 @@ async function analyzeEventBudget(totalBudget, services) {
         Detect overspending, suggest optimizations, and provide percentage breakdown.
         Output as JSON: { "analysis": "string", "breakdown": { "category": percentage }, "warnings": ["string"] }`;
 
-        const chatCompletion = await groq.chat.completions.create({
+        const chatCompletion = await complete({
             messages: [{ role: "user", content: prompt }],
-            model: "llama-3.3-70b-versatile",
             temperature: 0.2,
             response_format: { type: "json_object" }
         });

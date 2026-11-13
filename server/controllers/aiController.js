@@ -1,4 +1,5 @@
 const { retrieveContext, generateResponse } = require('../services/aiService');
+const { AIError } = require('../services/groqClient');
 
 exports.queryAI = async (req, res) => {
     try {
@@ -25,6 +26,10 @@ exports.queryAI = async (req, res) => {
             }
         });
     } catch (error) {
+        if (error instanceof AIError) {
+            const status = { not_configured: 503, invalid_key: 502, forbidden: 502, bad_model: 502, rate_limit: 429, upstream: 502, network: 502 }[error.code] || 500;
+            return res.status(status).json({ success: false, code: error.code, message: error.userMessage });
+        }
         console.error('[AI Query Error]:', error);
         res.status(500).json({ success: false, message: "Internal Server Error processing AI query" });
     }

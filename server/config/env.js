@@ -10,6 +10,11 @@ const { z } = require('zod');
  * including a hardcoded default JWT secret — so a misconfigured deployment
  * started successfully and failed later in ways that looked like bugs.
  */
+const cleanKey = z.preprocess(
+    (v) => (typeof v === 'string' ? v.trim().replace(/^['"]|['"]$/g, '').trim() || undefined : v),
+    z.string().optional()
+);
+
 const schema = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().positive().default(5000),
@@ -24,8 +29,12 @@ const schema = z.object({
     CLIENT_URL: z.string().default('http://localhost:5173'),
 
     // Optional integrations — the app degrades gracefully without them.
-    GROQ_API_KEY: z.string().optional(),
-    GEMINI_API_KEY: z.string().optional(),
+    // Keys pasted into .env / hosting dashboards often carry stray quotes or
+    // whitespace, which Groq rejects as an invalid key. Normalise them here.
+    GROQ_API_KEY: cleanKey,
+    GROQ_MODEL: z.string().optional(),
+    GROQ_FALLBACK_MODEL: z.string().optional(),
+    GEMINI_API_KEY: cleanKey,
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
     SMTP_HOST: z.string().optional(),
