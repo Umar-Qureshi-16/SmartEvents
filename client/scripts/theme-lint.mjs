@@ -11,7 +11,6 @@
  * Run: node scripts/theme-lint.mjs
  */
 import { readFileSync } from 'node:fs';
-import { globSync } from 'node:fs';
 import { readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 

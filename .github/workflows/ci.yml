@@ -38,7 +38,13 @@ jobs:
 
       - name: Run tests
         working-directory: server
-        run: npm test
+        run: |
+          set +e
+          npm test 2>&1 | tee test.log
+          STATUS=${PIPESTATUS[0]}
+          # Surface the first failures as annotations (visible without opening raw logs).
+          grep -E "^\s*(●|✕)|Expected|Received|Error:" test.log | head -25 | while IFS= read -r line; do echo "::error::${line:0:240}"; done
+          exit $STATUS
         env:
           NODE_ENV: test
           MONGO_TEST_URI: mongodb://127.0.0.1:27017/smartevents_test
