@@ -272,6 +272,8 @@ class BookingService {
 
         if (status === 'confirmed') {
             booking.status = 'confirmed';
+            // Escrow: the agreed price is held from the moment both sides agree.
+            booking.escrow = { status: 'held', amount: booking.offerPrice, heldAt: new Date() };
             socketManager.emitToRoom(bookingId.toString(), 'offer-accepted', { bookingId, actorId: userId });
         } else if (status === 'rejected') {
             booking.status = 'rejected';
@@ -283,6 +285,18 @@ class BookingService {
             booking.status = 'completed';
         } else if (status === 'no_show') {
             booking.status = 'no_show';
+        }
+
+        // Settle escrow: delivery releases the funds, a cancellation or
+        // no-show returns them to the customer.
+        if (booking.escrow?.status === 'held') {
+            if (status === 'completed') {
+                booking.escrow.status = 'released';
+                booking.escrow.settledAt = new Date();
+            } else if (status === 'cancelled' || status === 'no_show') {
+                booking.escrow.status = 'refunded';
+                booking.escrow.settledAt = new Date();
+            }
         }
 
         try {

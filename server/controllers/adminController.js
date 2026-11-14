@@ -176,6 +176,10 @@ exports.resolveDispute = asyncHandler(async (req, res) => {
 
     booking.status = resolution === 'refunded_customer' ? 'cancelled' : 'completed';
     booking.disputeOutcome = resolution;
+    if (booking.escrow?.status === 'held') {
+        booking.escrow.status = resolution === 'refunded_customer' ? 'refunded' : 'released';
+        booking.escrow.settledAt = new Date();
+    }
     if (resolution === 'refunded_customer') booking.cancelledBy = booking.vendorId;
     await booking.save();
 

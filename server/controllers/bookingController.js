@@ -88,3 +88,8 @@ exports.cancelBooking = asyncHandler(async (req, res, next) => {
     const booking = await bookingService.updateStatus(req.params.id, 'cancelled', req.user.id);
     res.json({ success: true, data: booking, message: 'Booking cancelled.' });
 });
+
+exports.completeBooking = asyncHandler(async (req, res, next) => {
+    const booking = await bookingService.updateStatus(req.params.id, 'completed', req.user.id);
+    res.json({ success: true, data: booking, message: 'Booking marked complete. Escrow funds released to the provider.' });
+});

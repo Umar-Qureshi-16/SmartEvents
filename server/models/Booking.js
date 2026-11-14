@@ -20,6 +20,14 @@ const bookingSchema = new mongoose.Schema({
     offerPrice: { type: Number, required: true },
     lastPrice: { type: Number },
     cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    // Simulated escrow (FR-05). No real money moves: this records where the
+    // agreed price sits so the whole hold -> release/refund lifecycle is visible.
+    escrow: {
+        status: { type: String, enum: ['none', 'held', 'released', 'refunded'], default: 'none' },
+        amount: { type: Number },
+        heldAt: { type: Date },
+        settledAt: { type: Date }
+    },
     disputeOutcome: { type: String, enum: ['refunded_customer', 'released_vendor'] },
     negotiationHistory: [{
         price: Number,

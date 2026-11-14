@@ -15,5 +15,6 @@ router.post('/:id/dispute', verifyToken, validate(disputeSchema), bookingControl
 router.put('/:id/accept', verifyToken, bookingController.acceptBooking);
 router.put('/:id/reject', verifyToken, bookingController.rejectBooking);
 router.put('/:id/cancel', verifyToken, bookingController.cancelBooking);
+router.put('/:id/complete', verifyToken, authorize('customer'), bookingController.completeBooking);
 
 module.exports = router;

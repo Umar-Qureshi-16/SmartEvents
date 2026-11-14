@@ -26,6 +26,7 @@ export default function Bookings({ user }) {
     const [disputeReason, setDisputeReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [cancelTarget, setCancelTarget] = useState(null);
+    const [completing, setCompleting] = useState(null);
 
     const fetchBookings = useCallback(async () => {
         setLoading(true);
@@ -58,6 +59,21 @@ export default function Bookings({ user }) {
             toast.error(err.response?.data?.message || 'Could not raise the dispute.');
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    // Customer confirms delivery: the simulated escrow is released to the provider.
+    const completeBooking = async (booking) => {
+        if (!window.confirm('Confirm the service was delivered? This releases the escrow funds to the provider.')) return;
+        setCompleting(booking._id);
+        try {
+            await axios.put(`/bookings/${booking._id}/complete`);
+            toast.success('Marked complete. Escrow released to the provider.');
+            await fetchBookings();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not complete the booking.');
+        } finally {
+            setCompleting(null);
         }
     };
 
@@ -168,6 +184,12 @@ export default function Bookings({ user }) {
                                         <Badge tone={status.tone}>{status.label}</Badge>
                                     </div>
 
+                                    {booking.escrow?.status && booking.escrow.status !== 'none' && (
+                                        <Badge tone={booking.escrow.status === 'held' ? 'warning' : booking.escrow.status === 'released' ? 'success' : 'neutral'}>
+                                            {{ held: 'Escrow: funds held (simulated)', released: 'Escrow: released to provider', refunded: 'Escrow: refunded to you' }[booking.escrow.status]}
+                                        </Badge>
+                                    )}
+
                                     <h2 className="text-lg font-bold truncate">
                                         {booking.eventId?.title || `Booking with ${booking.vendorId?.name || 'provider'}`}
                                     </h2>
@@ -200,6 +222,12 @@ export default function Bookings({ user }) {
                                     </div>
 
                                     <div className="flex items-center gap-2">
+                                        {booking.status === 'confirmed' && (
+                                            <Button size="sm" icon={CheckCircle2} loading={completing === booking._id}
+                                                    onClick={() => completeBooking(booking)}>
+                                                Complete &amp; release
+                                            </Button>
+                                        )}
                                         {canDispute && (
                                             <>
                                                 <Button size="sm" variant="ghost" icon={FileText}
