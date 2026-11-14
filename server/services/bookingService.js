@@ -121,11 +121,21 @@ class BookingService {
         return booking;
     }
 
+    /** Only the customer and the vendor of a booking may act on it. */
+    assertParty(booking, userId) {
+        const uid = String(userId);
+        if (String(booking.customerId) !== uid && String(booking.vendorId) !== uid) {
+            throw new ForbiddenError('You are not a party to this booking.');
+        }
+    }
+
     async negotiate(bookingId, price, message, userId) {
         const booking = await Booking.findById(bookingId);
         if (!booking) throw new NotFoundError('Booking not found.');
+        this.assertParty(booking, userId);
 
-        if (booking.status === 'confirmed' || booking.status === 'rejected') {
+        // Only an open negotiation can be countered.
+        if (!['pending', 'negotiating'].includes(booking.status)) {
             throw new ConflictError(`Cannot negotiate on a ${booking.status} booking.`);
         }
 
@@ -233,6 +243,32 @@ class BookingService {
     async updateStatus(bookingId, status, userId) {
         const booking = await Booking.findById(bookingId);
         if (!booking) throw new NotFoundError('Booking not found.');
+        this.assertParty(booking, userId);
+
+        // Valid transitions. Previously any signed-in user could move any
+        // booking to any state, including re-opening finished ones.
+        const open = ['pending', 'negotiating'];
+        const allowedFrom = {
+            confirmed: open,
+            rejected: open,
+            cancelled: [...open, 'confirmed'],
+            completed: ['confirmed'],
+            no_show: ['confirmed'],
+        };
+        if (!allowedFrom[status] || !allowedFrom[status].includes(booking.status)) {
+            throw new ConflictError(`A ${booking.status} booking cannot be changed to ${status}.`);
+        }
+        if (status === 'confirmed') {
+            // You may accept the other party's offer, never your own.
+            const last = booking.negotiationHistory[booking.negotiationHistory.length - 1];
+            if (last?.offeredBy && String(last.offeredBy) === String(userId)) {
+                throw new ConflictError('You cannot accept your own offer. Wait for the other party to respond.');
+            }
+        }
+        // Only the customer confirms delivery or reports a no-show.
+        if ((status === 'completed' || status === 'no_show') && String(booking.customerId) !== String(userId)) {
+            throw new ForbiddenError('Only the customer can mark a booking as completed or no-show.');
+        }
 
         if (status === 'confirmed') {
             booking.status = 'confirmed';
