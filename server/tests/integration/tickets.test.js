@@ -136,3 +136,40 @@ describe('Ticketing', () => {
         });
     });
 });
+
+describe('Ticket purchase integrity', () => {
+    const { api: http, makeUser: mk, makeEvent: mkEvent, auth: hdr } = require('../helpers');
+    const Ticket = require('../../models/Ticket');
+    const Event = require('../../models/Event');
+
+    const buy = (user, event, extra = {}) =>
+        http().post('/api/v1/tickets/purchase').set(hdr(user.token)).send({ eventId: String(event._id), ...extra });
+
+    it('charges the event price, ignoring any price sent by the client', async () => {
+        const provider = await mk('provider');
+        const customer = await mk('customer');
+        const event = await mkEvent(provider.id, { price: 5000 });
+        const res = await buy(customer, event, { price: 0 });
+        expect(res.status).toBe(201);
+        expect(res.body.data.price).toBe(5000);
+    });
+
+    it('refuses to oversell an event', async () => {
+        const provider = await mk('provider');
+        const a = await mk('customer');
+        const b = await mk('customer');
+        const event = await mkEvent(provider.id, { capacity: 1 });
+        expect((await buy(a, event)).status).toBe(201);
+        const second = await buy(b, event);
+        expect(second.status).toBe(409);
+        expect(await Ticket.countDocuments({ event: event._id })).toBe(1);
+    });
+
+    it('does not sell tickets for a cancelled event', async () => {
+        const provider = await mk('provider');
+        const customer = await mk('customer');
+        const event = await mkEvent(provider.id);
+        await Event.findByIdAndUpdate(event._id, { status: 'cancelled' });
+        expect((await buy(customer, event)).status).toBe(409);
+    });
+});

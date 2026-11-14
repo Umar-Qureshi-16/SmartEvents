@@ -26,11 +26,27 @@ async function renderQr(ticket) {
 
 exports.purchaseTicket = async (req, res) => {
     try {
-        const { eventId, ticketType, price } = req.body;
+        const { eventId } = req.body;
+        // Only known labels are accepted; the amount is never taken from the client.
+        const ticketType = ['General', 'VIP'].includes(req.body.ticketType) ? req.body.ticketType : 'General';
         const event = await Event.findById(eventId);
 
         if (!event) {
             return res.status(404).json({ success: false, message: 'Event not found' });
+        }
+
+        if (['cancelled', 'completed'].includes(event.status)) {
+            return res.status(409).json({ success: false, message: `Tickets are not available: this event is ${event.status}.` });
+        }
+
+        // Capacity and fair-use limits. Refunded and cancelled passes free their seat.
+        const sold = await Ticket.countDocuments({ event: eventId, status: { $in: ['active', 'checked_in'] } });
+        if (event.capacity && sold >= event.capacity) {
+            return res.status(409).json({ success: false, message: 'Sorry, this event is sold out.' });
+        }
+        const mine = await Ticket.countDocuments({ event: eventId, attendee: req.user.id, status: { $in: ['active', 'checked_in'] } });
+        if (mine >= 10) {
+            return res.status(409).json({ success: false, message: 'You have reached the limit of 10 passes for this event.' });
         }
 
         const ticketNumber = `TKT-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -44,10 +60,10 @@ exports.purchaseTicket = async (req, res) => {
         const newTicket = new Ticket({
             event: eventId,
             attendee: req.user.id,
-            ticketType: ticketType || 'General',
+            ticketType,
             ticketNumber,
             qrCodeData,
-            price: price || 0,
+            price: event.price || 0,
             currency: 'USD',
             status: 'active'
         });
@@ -59,7 +75,7 @@ exports.purchaseTicket = async (req, res) => {
             await notificationService.createNotification({
                 recipient: req.user.id,
                 title: 'Ticket Confirmed!',
-                message: `Your ${ticketType || 'General'} ticket for "${event.title}" is ready. Ticket #: ${ticketNumber}`,
+                message: `Your ${ticketType} ticket for "${event.title}" is ready. Ticket #: ${ticketNumber}`,
                 type: 'system'
             });
         } catch (notifyErr) {
