@@ -19,7 +19,7 @@ exports.createReview = async (req, res) => {
         const booking = await Booking.findOne({
             customerId: userId,
             eventId: eventId,
-            status: 'confirmed'
+            status: { $in: ['confirmed', 'completed'] }
         });
 
         if (!booking) {

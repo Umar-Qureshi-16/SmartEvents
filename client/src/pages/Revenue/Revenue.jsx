@@ -33,7 +33,7 @@ export default function Revenue({ user }) {
         const date = new Date(booking.eventDetails?.date || booking.createdAt).toLocaleDateString();
         const location = booking.eventDetails?.location || 'Main Ballroom';
         const price = booking.offerPrice.toLocaleString();
-        const status = booking.status === 'confirmed' ? 'SECURED IN ESCROW' : booking.status === 'completed' ? 'RELEASED & SETTLED' : 'PENDING SETTLEMENT';
+        const status = { held: 'HELD IN ESCROW (SIMULATED)', released: 'RELEASED & SETTLED', refunded: 'REFUNDED TO CUSTOMER' }[booking.escrow?.status] || 'PENDING SETTLEMENT';
 
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
@@ -122,28 +122,39 @@ export default function Revenue({ user }) {
     // Escrow ledger calculations
     const confirmedBookings = bookings.filter(b => ['confirmed', 'completed', 'disputed'].includes(b.status));
     
-    const totalVolume = confirmedBookings.reduce((acc, b) => acc + b.offerPrice, 0);
-    const pendingEscrow = bookings.filter(b => ['confirmed', 'disputed'].includes(b.status)).reduce((acc, b) => acc + b.offerPrice, 0);
-    const paidOut = bookings.filter(b => b.status === 'completed').reduce((acc, b) => acc + b.offerPrice, 0);
+    // Ledger from the escrow state recorded on each booking (simulated escrow).
+    const amountOf = (b) => b.escrow?.amount ?? b.offerPrice;
+    const heldBookings = bookings.filter(b => b.escrow?.status === 'held');
+    const releasedBookings = bookings.filter(b => b.escrow?.status === 'released');
+    const pendingEscrow = heldBookings.reduce((acc, b) => acc + amountOf(b), 0);
+    const paidOut = releasedBookings.reduce((acc, b) => acc + amountOf(b), 0);
+    const totalVolume = pendingEscrow + paidOut;
 
-    // Build timeline charts data
+    // Released earnings per month for the last six months. Real data only:
+    // this used to invent figures for June and July so the chart looked busy.
     const getChartData = () => {
-        // Group earnings by month name
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthlyEarnings = {};
-        
-        confirmedBookings.forEach(b => {
-            const date = new Date(b.createdAt);
-            const mName = months[date.getMonth()];
-            monthlyEarnings[mName] = (monthlyEarnings[mName] || 0) + b.offerPrice;
+        const now = new Date();
+        const buckets = Array.from({ length: 6 }, (_, i) => {
+            const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+            return { key: `${d.getFullYear()}-${d.getMonth()}`, name: d.toLocaleString('en', { month: 'short' }), earnings: 0 };
         });
+        releasedBookings.forEach(b => {
+            const d = new Date(b.escrow?.settledAt || b.updatedAt);
+            const bucket = buckets.find(x => x.key === `${d.getFullYear()}-${d.getMonth()}`);
+            if (bucket) bucket.earnings += amountOf(b);
+        });
+        return buckets.map(({ name, earnings }) => ({ name, earnings }));
+    };
 
-        // Return last 6 months list
-        const activeMonths = ['May', 'Jun', 'Jul', 'Aug']; // standard summer event season
-        return activeMonths.map(m => ({
-            name: m,
-            earnings: monthlyEarnings[m] || (m === 'Jul' ? 14500 : m === 'Jun' ? 8200 : 0) // fallback values to show nice charts on seed data
-        }));
+    const exportLedger = () => {
+        const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+        const rows = [['Booking', 'Event date', 'Customer', 'Booking status', 'Escrow status', 'Amount'],
+            ...bookings.map(b => [b._id, b.eventDetails?.date ? new Date(b.eventDetails.date).toISOString().slice(0, 10) : '',
+                b.customerId?.name || '', b.status, b.escrow?.status || 'none', amountOf(b)])];
+        const url = URL.createObjectURL(new Blob([rows.map(r => r.map(esc).join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' }));
+        const a = document.createElement('a');
+        a.href = url; a.download = 'escrow-ledger.csv'; a.click();
+        URL.revokeObjectURL(url);
     };
 
     return (
@@ -155,11 +166,11 @@ export default function Revenue({ user }) {
                     <h1 className="text-3xl md:text-4xl font-black tracking-tight text-fg">
                         Earnings & Payment Settlements
                     </h1>
-                    <p className="text-xs text-muted font-medium">Track total escrow volume, pending releases, and Stripe bank payouts.</p>
+                    <p className="text-xs text-muted font-medium">Track escrow held for your bookings and the funds released to you (simulated escrow).</p>
                 </div>
 
                 <button
-                    onClick={() => toast.success('CSV Financial Ledger exported!')}
+                    onClick={exportLedger}
                     className="btn-adyen-outline text-xs px-5 py-2.5 font-bold"
                 >
                     <Download size={15} />
@@ -180,7 +191,7 @@ export default function Revenue({ user }) {
                 </div>
 
                 <div className="adyen-card p-6 space-y-2 bg-surface border border-border shadow-sm">
-                    <span className="text-[10px] font-mono text-muted uppercase font-bold">PAID OUT TO BANK</span>
+                    <span className="text-[10px] font-mono text-muted uppercase font-bold">RELEASED TO YOU</span>
                     <div className="text-3xl font-black text-cyan-600">${paidOut.toLocaleString()}</div>
                 </div>
             </div>

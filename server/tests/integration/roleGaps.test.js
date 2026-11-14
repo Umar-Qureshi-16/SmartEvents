@@ -76,3 +76,29 @@ describe('Admin dispute handling', () => {
         expect((await api().get('/api/v1/admin/disputes').set(auth(provider.token))).status).toBe(403);
     });
 });
+
+describe('Reviews after completion', () => {
+    const body = (eventId) => ({ eventId: String(eventId), rating: 5, comment: 'Excellent service, would book again.' });
+    const mkBooking = (customer, provider, ev, status) => Booking.create({
+        customerId: customer.id, vendorId: provider.id, eventId: ev._id, status, offerPrice: 100,
+        eventDetails: { eventType: 'Corporate', date: new Date(Date.now() + 86400000), location: 'Lahore' },
+    });
+
+    test('a customer can review after the booking is completed', async () => {
+        const provider = await makeUser('provider');
+        const customer = await makeUser('customer');
+        const ev = await makeEvent(provider.id);
+        await mkBooking(customer, provider, ev, 'completed');
+        const res = await api().post('/api/v1/reviews').set(auth(customer.token)).send(body(ev._id));
+        expect([200, 201]).toContain(res.status);
+    });
+
+    test('a customer with only a pending booking cannot review', async () => {
+        const provider = await makeUser('provider');
+        const customer = await makeUser('customer');
+        const ev = await makeEvent(provider.id);
+        await mkBooking(customer, provider, ev, 'pending');
+        const res = await api().post('/api/v1/reviews').set(auth(customer.token)).send(body(ev._id));
+        expect(res.status).toBe(403);
+    });
+});
