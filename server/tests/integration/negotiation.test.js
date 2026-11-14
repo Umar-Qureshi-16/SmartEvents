@@ -60,10 +60,12 @@ describe('Negotiation lifecycle', () => {
 
         it('refuses a date the provider has blocked', async () => {
             const blocked = new Date(Date.now() + 10 * 86400000);
-            await VendorProfile.create({
-                userId: provider.id, businessName: 'Blocked Co', category: 'catering',
-                location: 'Lahore', blockedDates: [blocked],
-            });
+            // Signup already seeds a starter profile for providers, so upsert.
+            await VendorProfile.findOneAndUpdate(
+                { userId: provider.id },
+                { businessName: 'Blocked Co', category: 'catering', location: 'Lahore', blockedDates: [blocked] },
+                { upsert: true }
+            );
 
             const res = await api().post('/api/v1/bookings').set(auth(customer.token)).send({
                 vendorId: provider.id,

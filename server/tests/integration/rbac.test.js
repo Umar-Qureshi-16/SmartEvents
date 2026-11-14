@@ -113,7 +113,7 @@ describe('Role-based access control', () => {
         it('does not let an admin grant superadmin', async () => {
             const res = await api().put(`/api/v1/admin/users/${customer.id}/role`)
                 .set(auth(admin.token)).send({ role: 'superadmin' });
-            expect(res.status).toBe(400);
+            expect(res.status).toBe(403);
         });
 
         it('lets a superadmin grant superadmin', async () => {

@@ -20,18 +20,18 @@ describe('Authentication', () => {
             expect(user.password).toMatch(/^\$2[aby]\$/);
         });
 
-        it('refuses to create an admin account from the public endpoint', async () => {
+        it('refuses to create an admin account without the signup code', async () => {
             const res = await api().post('/api/v1/auth/register').send({
                 name: 'Sneaky', email: 'sneaky@test.com', password: PASSWORD, role: 'admin',
             });
-            expect(res.status).toBe(400);
+            expect(res.status).toBe(403);
         });
 
-        it('refuses to create a superadmin account from the public endpoint', async () => {
+        it('refuses to create a superadmin account without the signup code', async () => {
             const res = await api().post('/api/v1/auth/register').send({
                 name: 'Sneaky', email: 'sneaky2@test.com', password: PASSWORD, role: 'superadmin',
             });
-            expect(res.status).toBe(400);
+            expect(res.status).toBe(403);
         });
 
         it('returns 400 with field-level errors for invalid input', async () => {

@@ -31,8 +31,14 @@ describe('Request validation', () => {
             expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'password123', role: 'provider' }).passed).toBe(true);
         });
 
-        it.each(['admin', 'superadmin'])('rejects the elevated role %s', (role) => {
-            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'password123', role }).passed).toBe(false);
+        // Elevated roles pass the schema; authService.signup then requires the
+        // server-side ADMIN_SIGNUP_CODE (covered in integration/security.test.js).
+        it.each(['admin', 'superadmin'])('accepts the elevated role %s at schema level', (role) => {
+            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'password123', role }).passed).toBe(true);
+        });
+
+        it('rejects unknown roles', () => {
+            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'password123', role: 'root' }).passed).toBe(false);
         });
 
         it('defaults the role to customer when omitted', () => {
