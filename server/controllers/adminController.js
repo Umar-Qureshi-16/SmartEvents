@@ -213,3 +213,15 @@ exports.resolveDispute = asyncHandler(async (req, res) => {
 
     res.json({ success: true, data: booking, message: 'Dispute resolved successfully.' });
 });
+
+// Admins resolve disputes, so they must be able to see them. Until now only
+// the super-admin dashboard could list disputed bookings.
+exports.getDisputes = asyncHandler(async (req, res) => {
+    const disputes = await Booking.find({ status: 'disputed' })
+        .populate('customerId', 'name email')
+        .populate('vendorId', 'name email trustScore')
+        .populate('eventId', 'title')
+        .sort({ updatedAt: -1 })
+        .lean();
+    res.json({ success: true, data: disputes });
+});

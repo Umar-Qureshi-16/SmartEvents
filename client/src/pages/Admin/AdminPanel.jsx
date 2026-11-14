@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import StatCard from '../../components/common/StatCard';
 import DataTable from '../../components/common/DataTable';
 import Drawer from '../../components/common/Drawer';
+import DisputeResolutionCenter from '../../components/SuperAdmin/DisputeResolutionCenter';
 import axios from '../../api/axios';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 
@@ -17,8 +18,7 @@ export default function AdminPanel({ user }) {
 
     // Drawer state
     const [selectedUserDrawer, setSelectedUserDrawer] = useState(null);
-    const [selectedDisputeEvidence, setSelectedDisputeEvidence] = useState(null);
-    const [commissionRate, setCommissionRate] = useState(2.5);
+    const [busyId, setBusyId] = useState(null);
 
     const fetchAdminData = async () => {
         setLoading(true);
@@ -27,7 +27,7 @@ export default function AdminPanel({ user }) {
                 axios.get('/admin/users'),
                 axios.get('/admin/stats'),
                 axios.get('/admin/audit-logs'),
-                axios.get('/bookings/organizer') // Fetching bookings to find disputes
+                axios.get('/admin/disputes')
             ]);
 
             if (usersRes.data.success) {
@@ -39,29 +39,8 @@ export default function AdminPanel({ user }) {
             if (logsRes.data.success) {
                 setAuditLogs(logsRes.data.data || []);
             }
-            // Filter disputes from bookings
             if (bookingsRes.data.success) {
-                const bookings = bookingsRes.data.data || [];
-                const disputes = bookings.filter(b => b.status === 'disputed').map(b => ({
-                    ticketId: `DSP-${b._id.substring(18)}`,
-                    event: b.eventId?.title || b.eventDetails?.eventType || 'Custom RFP Lead',
-                    organizer: b.customerId?.name || 'Customer',
-                    vendor: b.vendorId?.name || 'Vendor',
-                    amount: b.offerPrice,
-                    status: b.status,
-                    // Evidence is drawn from the real negotiation thread. This
-                    // previously attached a stock photograph as "evidence",
-                    // which would be indefensible in an actual dispute review.
-                    evidence: {
-                        chatHistory: b.negotiationHistory?.length
-                            ? b.negotiationHistory
-                                .map(h => `${h.offeredBy === (b.customerId?._id || b.customerId) ? 'Customer' : 'Provider'}: $${h.price}${h.message ? ` — ${h.message}` : ''}`)
-                                .join('\n')
-                            : 'No negotiation history recorded.',
-                        contract: `Booking reference #${b._id}`
-                    }
-                }));
-                setDisputesList(disputes);
+                setDisputesList(bookingsRes.data.data || []);
             }
         } catch (err) {
             console.error("Failed to load admin data", err);
@@ -74,6 +53,19 @@ export default function AdminPanel({ user }) {
     useEffect(() => {
         fetchAdminData();
     }, []);
+
+    const resolveDispute = async (bookingId, resolution) => {
+        setBusyId(bookingId);
+        try {
+            await axios.put(`/admin/bookings/${bookingId}/resolve-dispute`, { resolution });
+            toast.success('Dispute resolved. Escrow settled.');
+            await fetchAdminData();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not resolve the dispute.');
+        } finally {
+            setBusyId(null);
+        }
+    };
 
     // PUT /admin/users/:id/role existed but nothing on the client called it,
     // so roles could only be changed directly in the database.
@@ -191,7 +183,7 @@ export default function AdminPanel({ user }) {
                 </div>
 
                 <div className="flex items-center gap-2 bg-surface-2 p-1.5 rounded-full flex-wrap">
-                    {['users', 'verification', 'analytics', 'disputes', 'audit', 'commission'].map(tab => (
+                    {['users', 'verification', 'analytics', 'disputes', 'audit'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setTab(tab)}
@@ -329,37 +321,7 @@ export default function AdminPanel({ user }) {
 
                     {/* TAB 3: DISPUTES */}
                     {activeTab === 'disputes' && (
-                        <div className="adyen-card p-6 bg-surface border border-border space-y-6">
-                            <h3 className="text-lg font-bold text-fg">Platform Escrow Dispute Cases</h3>
-                            {disputesList.length === 0 ? (
-                                <div className="p-12 text-center text-muted font-bold uppercase tracking-widest text-xs">
-                                    No active dispute cases under investigation.
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {disputesList.map(dsp => (
-                                        <div key={dsp.ticketId} className="p-4 rounded-2xl bg-surface-2 border border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-bold text-fg">{dsp.event}</span>
-                                                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase">
-                                                        {dsp.status}
-                                                    </span>
-                                                </div>
-                                                <p className="text-xs text-muted">Host: {dsp.organizer} vs Vendor: {dsp.vendor}</p>
-                                            </div>
-
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-base font-black text-success font-mono mr-2">${dsp.amount.toLocaleString()}</span>
-                                                <button onClick={() => setSelectedDisputeEvidence(dsp)} className="btn-adyen-outline text-[11px] py-1.5 px-3">
-                                                    View Evidence
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        <DisputeResolutionCenter disputes={disputesList} onResolve={resolveDispute} busyId={busyId} />
                     )}
 
                     {/* TAB 4: AUDIT LOGS */}
@@ -382,37 +344,6 @@ export default function AdminPanel({ user }) {
                                         </div>
                                     ))
                                 )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* TAB 5: COMMISSION MANAGER */}
-                    {activeTab === 'commission' && (
-                        <div className="adyen-card p-8 bg-surface border border-border space-y-6 max-w-xl">
-                            <h3 className="text-lg font-bold text-fg">Escrow Platform Commission Manager</h3>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-xs text-muted block mb-2 font-semibold">Adjust Escrow Commission Fee (%)</label>
-                                    <input
-                                        type="range"
-                                        min="1.0"
-                                        max="10.0"
-                                        step="0.1"
-                                        value={commissionRate}
-                                        onChange={(e) => setCommissionRate(Number(e.target.value))}
-                                        className="w-full accent-[#0ABF53]"
-                                    />
-                                    <div className="flex justify-between text-xs font-mono font-bold mt-1">
-                                        <span>Min: 1.0%</span>
-                                        <span className="text-success text-lg">{commissionRate}%</span>
-                                        <span>Max: 10.0%</span>
-                                    </div>
-                                </div>
-
-                                <button onClick={() => toast.success(`Escrow fee saved at ${commissionRate}%!`)} className="w-full btn-adyen-primary py-3 rounded-full text-xs justify-center shadow-glow">
-                                    Save Fee Configuration
-                                </button>
                             </div>
                         </div>
                     )}

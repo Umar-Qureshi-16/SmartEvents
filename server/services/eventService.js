@@ -1,6 +1,6 @@
 const Event = require('../models/Event');
 const { generateUserEmbeddings } = require('./aiService');
-const { NotFoundError, ForbiddenError } = require('../utils/AppError');
+const { NotFoundError, ForbiddenError, ConflictError } = require('../utils/AppError');
 
 class EventService {
     async getAllEvents(filters) {
@@ -82,7 +82,12 @@ class EventService {
             throw new ForbiddenError('Access denied. You do not own this event.');
         }
 
-        Object.assign(event, updateData);
+        // Whitelist editable fields. Assigning the raw body let an owner rewrite
+        // createdBy (transferring or stealing events) and any other schema path.
+        const editable = ['title', 'price', 'description', 'category', 'date', 'status', 'capacity', 'location', 'image'];
+        for (const key of editable) {
+            if (updateData[key] !== undefined) event[key] = updateData[key];
+        }
         return await event.save();
     }
 
@@ -90,8 +95,19 @@ class EventService {
         const event = await Event.findById(id);
         if (!event) throw new NotFoundError('Event not found.');
 
-        if (role !== 'admin' && event.createdBy.toString() !== userId) {
+        if (!['admin', 'superadmin'].includes(role) && event.createdBy.toString() !== userId) {
             throw new ForbiddenError('Access denied. Insufficient permissions.');
+        }
+
+        // Deleting an event with live bookings would orphan them (and any
+        // funds held in escrow), so require them to be settled first.
+        const Booking = require('../models/Booking');
+        const live = await Booking.countDocuments({
+            eventId: id,
+            $or: [{ status: { $in: ['pending', 'negotiating', 'confirmed', 'disputed'] } }, { 'escrow.status': 'held' }]
+        });
+        if (live > 0) {
+            throw new ConflictError(`This event has ${live} active booking(s). Cancel or complete them before deleting the event.`);
         }
 
         return await Event.findByIdAndDelete(id);

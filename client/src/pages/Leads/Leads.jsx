@@ -44,7 +44,8 @@ export default function Leads({ user }) {
         const date = new Date(booking.eventDetails?.date || booking.createdAt).toLocaleDateString();
         const location = booking.eventDetails?.location || 'Main Ballroom';
         const price = booking.offerPrice.toLocaleString();
-        const status = booking.status === 'confirmed' ? 'SECURED IN ESCROW' : booking.status === 'completed' ? 'RELEASED & SETTLED' : 'PENDING SETTLEMENT';
+        const escrowLabel = { held: 'HELD IN ESCROW (SIMULATED)', released: 'RELEASED & SETTLED', refunded: 'REFUNDED TO CUSTOMER' }[booking.escrow?.status];
+        const status = escrowLabel || 'PENDING SETTLEMENT';
 
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`

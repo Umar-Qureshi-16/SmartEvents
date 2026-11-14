@@ -10,6 +10,7 @@ router.get('/stats', adminController.getStats);
 router.put('/users/:id/role', adminController.updateUserRole);
 router.put('/users/:id/ban', adminController.banUser);
 router.put('/users/:id/verify', adminController.verifyVendor);
+router.get('/disputes', adminController.getDisputes);
 router.put('/bookings/:id/resolve-dispute', adminController.resolveDispute);
 router.get('/audit-logs', adminController.getAuditLogs);
 
