@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
 import { Plus, Trash2, Calendar, Package, ArrowLeft, Star, Tag, Users, CheckCircle2 } from 'lucide-react';
@@ -13,8 +12,7 @@ const CATEGORY_MAP = {
     makeup: 'Makeup & Styling'
 };
 
-function Services({ user }) {
-    const navigate = useNavigate();
+function Services() {
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddForm, setShowAddForm] = useState(false);

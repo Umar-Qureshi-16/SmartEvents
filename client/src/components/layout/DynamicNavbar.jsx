@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Bell, Menu as MenuIcon, X, ChevronDown, User, LogOut,
@@ -125,7 +125,6 @@ const QUICK_LINKS = [
 ];
 
 export default function DynamicNavbar({ user, onLogout }) {
-    const navigate = useNavigate();
     const location = useLocation();
     const { socket } = useWebSockets();
 

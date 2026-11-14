@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
 import { Download, DollarSign, TrendingUp, Calendar, CreditCard, ShieldCheck, ArrowRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Revenue({ user }) {
-    const navigate = useNavigate();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -120,7 +118,7 @@ export default function Revenue({ user }) {
     }, []);
 
     // Escrow ledger calculations
-    const confirmedBookings = bookings.filter(b => ['confirmed', 'completed', 'disputed'].includes(b.status));
+    const ledgerRows = bookings.filter(b => b.escrow?.status && b.escrow.status !== 'none');
     
     // Ledger from the escrow state recorded on each booking (simulated escrow).
     const amountOf = (b) => b.escrow?.amount ?? b.offerPrice;
@@ -227,7 +225,7 @@ export default function Revenue({ user }) {
                     <div className="p-8 text-center text-muted font-mono text-[10px] uppercase font-bold animate-pulse">
                         Loading financial transaction ledger...
                     </div>
-                ) : confirmedBookings.length === 0 ? (
+                ) : ledgerRows.length === 0 ? (
                     <div className="p-12 text-center text-muted font-mono text-[10px] uppercase font-bold">
                         No transactions registered.
                     </div>
@@ -241,20 +239,26 @@ export default function Revenue({ user }) {
                                     <th className="p-4">Amount ($)</th>
                                     <th className="p-4">Settlement Status</th>
                                     <th className="p-4">Date</th>
+                                    <th className="p-4">Invoice</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#E5E7EB]">
-                                {confirmedBookings.map(tx => (
+                                {ledgerRows.map(tx => (
                                     <tr key={tx._id} className="hover:bg-surface-2 transition-colors">
                                         <td className="p-4 font-mono font-bold text-muted">{`TX-${tx._id.substring(18).toUpperCase()}`}</td>
                                         <td className="p-4 font-bold text-fg">{tx.customerId?.name || 'Client'}</td>
-                                        <td className="p-4 font-black font-mono text-success">${tx.offerPrice.toLocaleString()}</td>
+                                        <td className="p-4 font-black font-mono text-success">${(tx.escrow.amount ?? tx.offerPrice).toLocaleString()}</td>
                                         <td className="p-4">
-                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase ${tx.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                                {tx.status === 'completed' ? 'Released Payout' : 'Held in Escrow'}
+                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase ${tx.escrow.status === 'released' ? 'bg-emerald-100 text-emerald-700' : tx.escrow.status === 'held' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                {{ held: 'Held in Escrow', released: 'Released Payout', refunded: 'Refunded' }[tx.escrow.status]}
                                             </span>
                                         </td>
                                         <td className="p-4 text-muted">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                                        <td className="p-4">
+                                            <button onClick={() => handleDownloadInvoice(tx)} className="btn-adyen-outline text-[10px] px-3 py-1.5 font-bold inline-flex items-center gap-1">
+                                                <Download size={12} /> Invoice
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

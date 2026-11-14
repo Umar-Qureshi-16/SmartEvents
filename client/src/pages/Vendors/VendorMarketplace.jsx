@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
     Search, Star, ShieldCheck, MapPin, Store, Heart, ArrowRight,
@@ -23,7 +23,6 @@ const LABELS = {
 const trustTone = (score) => (score >= 80 ? 'success' : score >= 55 ? 'warning' : 'danger');
 
 export default function VendorMarketplace({ user }) {
-    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
 
     const [vendors, setVendors] = useState([]);

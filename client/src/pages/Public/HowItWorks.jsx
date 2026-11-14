@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { DollarSign, FileText, RefreshCw, ShieldCheck, ArrowRight, CheckCircle2, Play, Sparkles, Sliders, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export default function HowItWorks() {
-    const navigate = useNavigate();
 
     // INTERACTIVE BIDDING SIMULATOR STATE
     const [simStep, setSimStep] = useState(1);
     const [simBudgetMax, setSimBudgetMax] = useState(10000);
-    const [simVendorQuote, setSimVendorQuote] = useState(8500);
+    const [simVendorQuote] = useState(8500);
     const [simCounterInput, setSimCounterInput] = useState(7800);
     const [simEscrowLocked, setSimEscrowLocked] = useState(false);
 

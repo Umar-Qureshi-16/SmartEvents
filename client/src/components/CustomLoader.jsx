@@ -1,9 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 
+// Generated once at module load so the particles do not jump on every re-render.
+const PARTICLES = Array.from({ length: 20 }, () => ({ left: Math.random() * 100, top: Math.random() * 100 }));
+
 const CustomLoader = () => {
     const loaderRef = useRef(null);
-    const circleRef = useRef(null);
     const logoRef = useRef(null);
 
     useEffect(() => {
@@ -56,13 +58,13 @@ const CustomLoader = () => {
             className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950 text-white overflow-hidden"
         >
             {/* Ambient Background Particles */}
-            {[...Array(20)].map((_, i) => (
+            {PARTICLES.map((p, i) => (
                 <div
                     key={i}
                     className="loader-particle absolute w-1 h-1 bg-indigo-500/30 rounded-full"
                     style={{
-                        left: `${Math.random() * 100}%`,
-                        top: `${Math.random() * 100}%`,
+                        left: `${p.left}%`,
+                        top: `${p.top}%`,
                     }}
                 />
             ))}

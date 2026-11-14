@@ -84,7 +84,6 @@ jobs:
       - name: Lint
         working-directory: client
         run: npm run lint
-        continue-on-error: true
 
       - name: Theme safety check
         working-directory: client

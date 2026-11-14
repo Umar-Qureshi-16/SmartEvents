@@ -23,7 +23,18 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // These flag code style / HMR ergonomics, not defects. Keep them visible as
+      // warnings so they never block a build, while real errors still do.
+      'react-refresh/only-export-components': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/unsupported-syntax': 'warn',
+      // `motion` is used as <motion.div>, which core no-unused-vars cannot see.
+      // Capitalised names are components or aliased icon props (icon: Icon).
+      'no-unused-vars': ['error', {
+        varsIgnorePattern: '^(motion$|[A-Z_])',
+        argsIgnorePattern: '^[A-Z_]',
+        caughtErrorsIgnorePattern: '^(_|err$|e$)',
+      }],
     },
   },
 ])

@@ -255,10 +255,8 @@ const NegotiationPage = () => {
                     ) : (
                         booking.negotiationHistory.map((item, index) => {
                             const offeredById = (item.offeredBy?._id || item.offeredBy)?.toString();
-                            const currentUserId = (user?._id || user?.id)?.toString();
                             const customerIdStr = (booking.customerId?._id || booking.customerId)?.toString();
 
-                            const isMyMessage = offeredById === currentUserId;
                             const isCustomerMsg = offeredById === customerIdStr;
 
                             return (

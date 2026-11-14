@@ -36,6 +36,10 @@ export default function TicketWallet({ user }) {
         t.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    if (loading) {
+        return <div className="min-h-screen flex items-center justify-center text-muted text-xs font-bold uppercase tracking-widest">Loading your passes...</div>;
+    }
+
     return (
         <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
             {/* Header */}

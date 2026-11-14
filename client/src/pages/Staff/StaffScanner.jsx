@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from '../../api/axios';
 import { QrCode, ShieldCheck, CheckCircle2, AlertTriangle, RefreshCw, Users, Zap, Search, AlertCircle, Plus, Camera, Check } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -6,11 +6,10 @@ import StatCard from '../../components/common/StatCard';
 import DataTable from '../../components/common/DataTable';
 import Drawer from '../../components/common/Drawer';
 
-export default function StaffScanner({ user }) {
+export default function StaffScanner() {
     const [ticketInput, setTicketInput] = useState('');
     const [scanResult, setScanResult] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [rosterData, setRosterData] = useState([]);
     const [stats, setStats] = useState({
         totalCheckedIn: 0,
         totalCapacity: 500,

@@ -17,7 +17,7 @@ import { Button, Card, Badge, Input } from '../../components/ui';
  */
 export default function Settings({ user }) {
     const dispatch = useDispatch();
-    const { theme, toggleTheme, isDark } = useTheme();
+    const { toggleTheme, isDark } = useTheme();
 
     const [profile, setProfile] = useState({ name: user?.name || '', email: user?.email || '' });
     const [profileErrors, setProfileErrors] = useState({});
