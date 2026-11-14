@@ -34,6 +34,24 @@ describe('Signup roles', () => {
     });
 });
 
+describe('Admin accounts are usable immediately', () => {
+    test('an admin who signs up with the code is verified and can sign in without email', async () => {
+        const code = process.env.ADMIN_SIGNUP_CODE;
+        const res = await register({ name: 'Direct Admin', email: 'direct@test.com', role: 'admin', adminCode: code });
+        expect(res.status).toBe(201);
+        expect(res.body.user.isEmailVerified).toBe(true);
+        const login = await api().post('/api/v1/auth/login').send({ email: 'direct@test.com', password: PASSWORD });
+        expect(login.status).toBe(200);
+        expect(login.body.user.role).toBe('admin');
+    });
+
+    test('ordinary roles still need to verify their email by default', async () => {
+        await register({ name: 'Plain User', email: 'plain@test.com', role: 'customer' });
+        const login = await api().post('/api/v1/auth/login').send({ email: 'plain@test.com', password: PASSWORD });
+        expect(login.status).toBe(403);
+    });
+});
+
 describe('Token types', () => {
     test('a refresh token is rejected as an access token', async () => {
         const u = await makeUser('customer');

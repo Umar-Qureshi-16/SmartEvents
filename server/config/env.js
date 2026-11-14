@@ -35,6 +35,8 @@ const schema = z.object({
     // Secret code that unlocks self-signup for admin / superadmin accounts.
     // Leave unset to disable elevated self-signup entirely.
     ADMIN_SIGNUP_CODE: z.string().trim().optional(),
+    // Set to 'false' to skip email verification (for deployments with no SMTP).
+    EMAIL_VERIFICATION_REQUIRED: z.string().trim().optional(),
     OPENROUTER_API_KEY: cleanKey,
     OPENROUTER_MODEL: z.string().optional(),
     OPENROUTER_FALLBACK_MODEL: z.string().optional(),
@@ -68,5 +70,6 @@ module.exports = {
     ...env,
     isProduction: env.NODE_ENV === 'production',
     isTest: env.NODE_ENV === 'test',
+    emailVerificationRequired: env.EMAIL_VERIFICATION_REQUIRED !== 'false',
     allowedOrigins: env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean),
 };

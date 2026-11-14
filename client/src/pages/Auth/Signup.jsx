@@ -23,6 +23,7 @@ function Signup({ onLoginSuccess }) {
     const [loading, setLoading] = useState(false);
     const [isRegistered, setIsRegistered] = useState(false);
     const [registeredEmail, setRegisteredEmail] = useState('');
+    const [autoVerified, setAutoVerified] = useState(false);
     const [resendLoading, setResendLoading] = useState(false);
 
     const handleChange = (e) => {
@@ -78,8 +79,9 @@ function Signup({ onLoginSuccess }) {
 
             if (res.data.success) {
                 setRegisteredEmail(formData.email);
+                setAutoVerified(!!res.data.user?.isEmailVerified);
                 setIsRegistered(true);
-                toast.success('Registration successful! Please verify your email.');
+                toast.success(res.data.message || 'Registration successful!');
             }
         } catch (err) {
             const data = err.response?.data;
@@ -123,19 +125,19 @@ function Signup({ onLoginSuccess }) {
                         </div>
 
                         <div className="space-y-2">
-                            <h2 className="text-2xl font-black tracking-tight text-fg">Verify your email</h2>
+                            <h2 className="text-2xl font-black tracking-tight text-fg">{autoVerified ? 'Account created' : 'Verify your email'}</h2>
                             <p className="text-xs text-muted leading-relaxed">
-                                We've sent a verification link to <br />
+                                {autoVerified ? 'Your account is ready for' : "We've sent a verification link to"} <br />
                                 <span className="font-semibold text-fg text-sm">{registeredEmail}</span>
                             </p>
                         </div>
 
                         <p className="text-xs text-muted leading-relaxed">
-                            Please check your inbox (and spam folder) and click the link to activate your account. Once verified, you can sign in and start exploring Smartie!
+                            {autoVerified ? 'No email verification is needed. Sign in to get started.' : 'Please check your inbox (and spam folder) and click the link to activate your account. Once verified, you can sign in and start exploring Smartie!'}
                         </p>
 
                         <div className="pt-2 space-y-3">
-                            <button
+                            {!autoVerified && <button
                                 type="button"
                                 onClick={handleResendVerification}
                                 disabled={resendLoading}
@@ -143,7 +145,7 @@ function Signup({ onLoginSuccess }) {
                             >
                                 {resendLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                                 Resend verification email
-                            </button>
+                            </button>}
 
                             <Link
                                 to="/login"

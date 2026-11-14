@@ -36,14 +36,19 @@ class AuthService {
         const verificationToken = crypto.randomBytes(32).toString('hex');
         const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
+        // Admin-level accounts already proved authorisation with the signup
+        // code, and deployments without SMTP can turn verification off
+        // (EMAIL_VERIFICATION_REQUIRED=false). Otherwise nobody could ever
+        // verify an email that is never delivered, and so never sign in.
+        const autoVerify = !env.emailVerificationRequired || role === 'admin' || role === 'superadmin';
+
         const user = new User({
             name,
             email: normalizedEmail,
             password: hashedPassword,
             role,
-            isEmailVerified: false,
-            emailVerificationToken: verificationToken,
-            emailVerificationExpires: verificationExpires
+            isEmailVerified: autoVerify,
+            ...(autoVerify ? {} : { emailVerificationToken: verificationToken, emailVerificationExpires: verificationExpires })
         });
 
         await user.save();
@@ -62,6 +67,8 @@ class AuthService {
                 console.error('Could not create starter vendor profile:', err.message);
             }
         }
+
+        if (autoVerify) return user;
 
         // Dispatch verification email asynchronously
         try {

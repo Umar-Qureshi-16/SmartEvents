@@ -4,10 +4,12 @@ const { asyncHandler } = require('../middleware/errors');
 
 exports.signup = asyncHandler(async (req, res, next) => {
     const user = await authService.signup(req.body);
-    res.status(201).json({ 
-        success: true, 
-        message: 'Registration successful! Please check your email to verify your account.', 
-        user: { id: user._id, name: user.name, email: user.email } 
+    res.status(201).json({
+        success: true,
+        message: user.isEmailVerified
+            ? 'Registration successful! You can sign in now.'
+            : 'Registration successful! Please check your email to verify your account.',
+        user: { id: user._id, name: user.name, email: user.email, isEmailVerified: user.isEmailVerified }
     });
 });
 
