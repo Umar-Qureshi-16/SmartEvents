@@ -144,7 +144,7 @@ SmartEvents/
 │       ├── api/axios.js             # Axios instance, JWT injection, refresh-token retry queue
 │       ├── components/
 │       │   ├── common/              # DataTable, StatCard, Drawer, ChatWindow
-│       │   ├── Dashboard/           # BudgetAnalyzer, EventReadiness, TrustScoreWidget, …
+│       │   ├── Dashboard/           # EventReadiness, TrustScoreWidget, …
 │       │   ├── layout/DynamicNavbar.jsx
 │       │   ├── SuperAdmin/          # 7 governance widgets
 │       │   └── reviews/             # ReviewCard, ReviewForm
@@ -157,7 +157,7 @@ SmartEvents/
 ├── server/                          # Express backend
 │   ├── index.js                     # ✅ REAL entry point
 │   ├── controllers/                 # 11 controllers
-│   ├── middleware/                  # authMiddleware, errors, uploadMiddleware, validationMiddleware
+│   ├── middleware/                  # authMiddleware, errors, uploadMiddleware
 │   ├── models/                      # 11 Mongoose schemas
 │   ├── routes/                      # 13 routers
 │   ├── services/                    # 11 service modules

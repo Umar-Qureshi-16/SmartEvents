@@ -7,6 +7,7 @@ import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
 import ReviewCard from '../../components/reviews/ReviewCard';
 import ReviewForm from '../../components/reviews/ReviewForm';
+import EventReadiness from '../../components/Dashboard/EventReadiness';
 
 const EventDetail = () => {
     const { id } = useParams();
@@ -176,6 +177,11 @@ const EventDetail = () => {
                             <Stat label="Location" value={event.location || 'Remote'} icon={<MapPin size={16} />} />
                             <Stat label="Verified" value="100%" icon={<ShieldCheck size={16} />} />
                         </div>
+
+                        {/* Listing readiness: only the event's owner (or an admin) sees it */}
+                        {user && (String(event.createdBy?._id || event.createdBy) === String(user.id || user._id) || ['admin', 'superadmin'].includes(user.role)) && (
+                            <EventReadiness booking={{ eventId: event._id }} />
+                        )}
                     </motion.div>
 
                     {/* Data Section */}
