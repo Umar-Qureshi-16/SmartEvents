@@ -90,7 +90,7 @@ Simultaneous counters from both parties are handled with **optimistic concurrenc
 │  Redux Toolkit · React Router v7 · Tailwind (semantic tokens)  │
 │  ┌────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
 │  │ Axios      │  │ WebSocket    │  │ ThemeContext           │ │
-│  │ + JWT      │  │ Context      │  │ (light/dark tokens)    │ │
+│  │ + cookie   │  │ Context      │  │ (light/dark tokens)    │ │
 │  │ + refresh  │  │ (authed)     │  │                        │ │
 │  └─────┬──────┘  └──────┬───────┘  └────────────────────────┘ │
 └────────┼────────────────┼──────────────────────────────────────┘
@@ -274,7 +274,7 @@ npm start --prefix server       # production server
 SmartEvents/
 ├── client/
 │   └── src/
-│       ├── api/axios.js              JWT injection + refresh-token retry queue
+│       ├── api/axios.js              cookie session + shared refresh-and-retry
 │       ├── components/
 │       │   ├── ui/                   Button, Card, Input, Modal, EmptyState…
 │       │   ├── Dashboard/            TrustScore, Timeline, Matchmaker, Budget
@@ -324,7 +324,7 @@ Room membership used to be client-asserted — any connected client could join a
 Stated plainly, because pretending otherwise is worse:
 
 - **No payment processing.** The platform records an agreed price; settlement happens directly between the parties. There is no escrow, and the UI does not claim there is.
-- **Tokens are stored in `localStorage`**, which is vulnerable to XSS. `httpOnly` cookies with CSRF protection would be the correct production approach; this is a deliberate scope trade-off, not an oversight.
+- **Sessions are httpOnly cookies** (access 1 day, refresh 7 days, refresh cookie path-limited to `/api/v1/auth`), so page JavaScript cannot read a token. The browser reaches the API through its own origin (Vercel rewrite in production, Vite proxy in development), which keeps the cookies first-party with `SameSite=Lax`. State-changing cookie requests must carry a trusted `Origin` (or `Referer`), and sockets use a 2-minute token fetched from `/auth/socket-token`. Remaining limit: if the API is ever served from a different site than the page, set `AUTH_COOKIE_SAMESITE=none` and expect third-party-cookie blocking in some browsers.
 - **Email delivery is unconfigured by default** — `mailService` logs to the console unless SMTP credentials are supplied.
 - **Single-region deployment**, no CDN, no horizontal scaling. Socket.IO would need a Redis adapter to run more than one instance.
 - **No mobile application.** The web client is responsive, but there is no native app.

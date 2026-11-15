@@ -141,7 +141,7 @@ Controllers only handle HTTP request/response shape; all business logic belongs 
 SmartEvents/
 ├── client/                          # React frontend
 │   └── src/
-│       ├── api/axios.js             # Axios instance, JWT injection, refresh-token retry queue
+│       ├── api/axios.js             # Axios instance (cookie session), shared refresh-and-retry
 │       ├── components/
 │       │   ├── common/              # DataTable, StatCard, Drawer, ChatWindow
 │       │   ├── Dashboard/           # EventReadiness, TrustScoreWidget, …
@@ -196,7 +196,7 @@ Four roles are defined in the `User` schema enum: `customer`, `provider`, `admin
 
 **Enforcement mechanism:** three middlewares in `server/middleware/authMiddleware.js`:
 
-- `verifyToken` — extracts `Bearer <jwt>`, verifies signature, attaches `req.user = { id, role }`.
+- `verifyToken` — reads the access cookie or `Bearer <jwt>`, verifies it, rejects refresh/socket tokens, loads the user's role and status from the database, applies the CSRF origin check to cookie requests, attaches `req.user`.
 - `authorize(...roles)` — 403s unless `req.user.role` is in the allowed list.
 - `verifySuperAdmin` — 403s unless role is exactly `superadmin`.
 
@@ -269,14 +269,15 @@ Intended RAG vector store. Currently **not written to or read from** — the AI 
 ```
 1. POST /auth/register  → Zod validates → bcrypt hash (10 rounds) → User saved
 2. POST /auth/login     → bcrypt.compare → issue accessToken (1d) + refreshToken (7d)
-3. Client stores both in localStorage; Redux authSlice holds them in memory
-4. Axios request interceptor injects: Authorization: Bearer <accessToken>
-5. On app boot, App.jsx calls GET /auth/me to rehydrate the user object
-6. On 401, the Axios response interceptor:
-     - queues concurrent failed requests
-     - calls POST /auth/refresh once
-     - replays the queue with the new token
-     - dispatches logout() if refresh fails
+3. The server sets httpOnly cookies: access_token (path /, 1d) and refresh_token (path /api/v1/auth, 7d).
+   Browser requests send `X-Auth-Mode: cookie`, so tokens are not returned in the JSON body
+   (other clients, such as scripts and tests, still receive them). Nothing is kept in localStorage.
+4. Every request: the cookie (or an Authorization: Bearer header) is verified, then role and ban
+   status are loaded from the database, so suspensions and demotions apply immediately
+5. State-changing requests authenticated by cookie must come from a trusted Origin (CSRF check)
+6. On 401 the Axios interceptor calls POST /auth/refresh once (shared by concurrent requests),
+   then replays the original request; if refresh fails the user is signed out locally
+   Sockets: GET /auth/socket-token returns a 2-minute token used for the Socket.IO handshake
 7. Password reset: POST /auth/forgot-password → crypto random token, 15-min expiry
                    POST /auth/reset-password  → verify token → bcrypt rehash
 ```
@@ -380,8 +381,10 @@ Auth column: 🔓 public · 🔐 any logged-in user · 👤 customer · 🏪 pro
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | POST | `/register` | 🔓 | Create account (Zod-validated) |
-| POST | `/login` | 🔓 | Returns `{ token, refreshToken, user }` |
-| POST | `/refresh` | 🔓 | Exchange refresh token for new access token |
+| POST | `/login` | 🔓 | Sets session cookies; returns `{ user }` (plus tokens unless `X-Auth-Mode: cookie`) |
+| POST | `/refresh` | 🔓 | Exchange the refresh cookie (or body token) for a new access token |
+| POST | `/logout` | 🔓 | Clears the session cookies |
+| GET | `/socket-token` | 🔒 | 2-minute token for the Socket.IO handshake |
 | POST | `/logout` | 🔓 | Stateless acknowledgement |
 | GET | `/me` | 🔐 | Current user profile |
 | POST | `/forgot-password` | 🔓 | Generate 15-min reset token |
