@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import ReviewCard from '../../components/reviews/ReviewCard';
 import ReviewForm from '../../components/reviews/ReviewForm';
 import EventReadiness from '../../components/Dashboard/EventReadiness';
+import TicketSales from '../../components/Dashboard/TicketSales';
 
 const EventDetail = () => {
     const { id } = useParams();
@@ -181,6 +182,9 @@ const EventDetail = () => {
                         {/* Listing readiness: only the event's owner (or an admin) sees it */}
                         {user && (String(event.createdBy?._id || event.createdBy) === String(user.id || user._id) || ['admin', 'superadmin'].includes(user.role)) && (
                             <EventReadiness booking={{ eventId: event._id }} />
+                        )}
+                        {user && (String(event.createdBy?._id || event.createdBy) === String(user.id || user._id) || ['admin', 'superadmin'].includes(user.role)) && (
+                            <TicketSales eventId={event._id} />
                         )}
                     </motion.div>
 

@@ -151,3 +151,60 @@ exports.scanCheckInTicket = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error scanning ticket' });
     }
 };
+
+// An attendee can cancel an unused pass; the seat goes back on sale.
+exports.cancelTicket = async (req, res) => {
+    try {
+        const ticket = await Ticket.findById(req.params.id);
+        if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found' });
+        if (String(ticket.attendee) !== String(req.user.id)) {
+            return res.status(403).json({ success: false, message: 'You can only cancel your own tickets.' });
+        }
+        if (ticket.status !== 'active') {
+            return res.status(409).json({ success: false, message: `A ${ticket.status.replace('_', ' ')} ticket cannot be cancelled.` });
+        }
+        ticket.status = 'cancelled';
+        await ticket.save();
+        res.json({ success: true, data: ticket, message: 'Ticket cancelled.' });
+    } catch (err) {
+        console.error('Cancel Ticket Error:', err);
+        res.status(500).json({ success: false, message: 'Server error cancelling ticket' });
+    }
+};
+
+// Ticket sales for an event: visible to the event's owner and to admins.
+exports.getEventTickets = async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.eventId);
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        const isAdmin = ['admin', 'superadmin'].includes(req.user.role);
+        if (!isAdmin && String(event.createdBy) !== String(req.user.id)) {
+            return res.status(403).json({ success: false, message: 'Only the event owner can view ticket sales.' });
+        }
+        const tickets = await Ticket.find({ event: event._id })
+            .populate('attendee', 'name email')
+            .sort({ createdAt: -1 })
+            .lean();
+        const live = tickets.filter(t => ['active', 'checked_in'].includes(t.status));
+        res.json({
+            success: true,
+            data: {
+                summary: {
+                    capacity: event.capacity || null,
+                    sold: live.length,
+                    checkedIn: tickets.filter(t => t.status === 'checked_in').length,
+                    cancelled: tickets.filter(t => t.status === 'cancelled').length,
+                    revenue: live.reduce((sum, t) => sum + (t.price || 0), 0)
+                },
+                tickets: tickets.map(t => ({
+                    id: t._id, ticketNumber: t.ticketNumber, status: t.status, price: t.price,
+                    attendee: t.attendee ? { name: t.attendee.name, email: t.attendee.email } : null,
+                    purchasedAt: t.createdAt, checkInTime: t.checkInTime
+                }))
+            }
+        });
+    } catch (err) {
+        console.error('Event Tickets Error:', err);
+        res.status(500).json({ success: false, message: 'Server error fetching ticket sales' });
+    }
+};

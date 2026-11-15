@@ -173,3 +173,46 @@ describe('Ticket purchase integrity', () => {
         expect((await buy(customer, event)).status).toBe(409);
     });
 });
+
+describe('Ticket lifecycle', () => {
+    const { api: http, makeUser: mk, makeEvent: mkEvent, auth: hdr } = require('../helpers');
+    const buy = (user, event) => http().post('/api/v1/tickets/purchase').set(hdr(user.token)).send({ eventId: String(event._id) });
+
+    it('lets an attendee cancel their pass, which frees the seat', async () => {
+        const provider = await mk('provider');
+        const a = await mk('customer');
+        const b = await mk('customer');
+        const event = await mkEvent(provider.id, { capacity: 1 });
+        const first = await buy(a, event);
+        expect((await buy(b, event)).status).toBe(409);
+        const cancel = await http().put(`/api/v1/tickets/${first.body.data._id}/cancel`).set(hdr(a.token));
+        expect(cancel.status).toBe(200);
+        expect((await buy(b, event)).status).toBe(201);
+    });
+
+    it('does not let someone else cancel a ticket, or cancel it twice', async () => {
+        const provider = await mk('provider');
+        const a = await mk('customer');
+        const intruder = await mk('customer');
+        const event = await mkEvent(provider.id);
+        const t = await buy(a, event);
+        expect((await http().put(`/api/v1/tickets/${t.body.data._id}/cancel`).set(hdr(intruder.token))).status).toBe(403);
+        await http().put(`/api/v1/tickets/${t.body.data._id}/cancel`).set(hdr(a.token));
+        expect((await http().put(`/api/v1/tickets/${t.body.data._id}/cancel`).set(hdr(a.token))).status).toBe(409);
+    });
+
+    it('shows ticket sales to the event owner only', async () => {
+        const owner = await mk('provider');
+        const other = await mk('provider');
+        const customer = await mk('customer');
+        const event = await mkEvent(owner.id, { price: 200, capacity: 50 });
+        await buy(customer, event);
+        const res = await http().get(`/api/v1/tickets/event/${event._id}`).set(hdr(owner.token));
+        expect(res.status).toBe(200);
+        expect(res.body.data.summary.sold).toBe(1);
+        expect(res.body.data.summary.revenue).toBe(200);
+        expect(res.body.data.tickets[0].attendee.name).toBeTruthy();
+        expect((await http().get(`/api/v1/tickets/event/${event._id}`).set(hdr(other.token))).status).toBe(403);
+        expect((await http().get(`/api/v1/tickets/event/${event._id}`).set(hdr(customer.token))).status).toBe(403);
+    });
+});
