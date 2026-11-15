@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const { isAllowedOrigin } = require('./config/origins');
 const { ForbiddenError } = require('./utils/AppError');
+const { clientIp, clientIpInfo, accountOrIpKey } = require('./utils/clientIp');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
@@ -60,6 +61,7 @@ function createApp() {
             message: { success: false, message: 'Too many attempts. Please try again in 15 minutes.' },
             standardHeaders: true,
             legacyHeaders: false,
+            keyGenerator: accountOrIpKey,
         });
         app.use('/api/v1/auth/login', strictAuthLimiter);
         app.use('/api/v1/auth/forgot-password', strictAuthLimiter);
@@ -73,6 +75,7 @@ function createApp() {
             message: { success: false, message: 'Too many accounts created from this address.' },
             standardHeaders: true,
             legacyHeaders: false,
+            keyGenerator: clientIp,
         }));
 
         // AI endpoints cost money per call.
@@ -82,6 +85,7 @@ function createApp() {
             message: { success: false, message: 'You are sending requests too quickly. Please slow down.' },
             standardHeaders: true,
             legacyHeaders: false,
+            keyGenerator: clientIp,
         }));
 
         app.use('/api/', rateLimit({
@@ -90,6 +94,7 @@ function createApp() {
             message: { success: false, message: 'Too many requests, please try again later.' },
             standardHeaders: true,
             legacyHeaders: false,
+            keyGenerator: clientIp,
         }));
     }
 
@@ -110,6 +115,8 @@ app.get('/', (req, res) => {
             success: true,
             data: {
                 status: mongoose.connection.readyState === 1 ? 'healthy' : 'degraded',
+                // Which proxy header identified the caller (diagnostic; shows only the caller's own source).
+                ipSource: clientIpInfo(req).source,
                 uptimeSeconds: Math.round(process.uptime()),
                 database: states[mongoose.connection.readyState] || 'unknown',
                 memory: {
