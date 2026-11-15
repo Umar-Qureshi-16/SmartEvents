@@ -1,10 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+// Tokens are never held in JavaScript: the session is an httpOnly cookie. Only
+// the (non-secret) user profile lives here, and it is re-fetched from /auth/me
+// on every page load, so nothing sensitive is persisted in browser storage.
 const initialState = {
-    user: JSON.parse(localStorage.getItem('user')) || null,
-    token: localStorage.getItem('token') || null,
-    refreshToken: localStorage.getItem('refreshToken') || null,
-    isAuthenticated: !!localStorage.getItem('token'),
+    user: null,
+    isAuthenticated: false,
 };
 
 const authSlice = createSlice({
@@ -12,30 +13,15 @@ const authSlice = createSlice({
     initialState,
     reducers: {
         setCredentials: (state, action) => {
-            const { user, token, refreshToken } = action.payload;
-            state.user = user;
-            state.token = token;
-            state.refreshToken = refreshToken;
-            state.isAuthenticated = true;
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('token', token);
-            localStorage.setItem('refreshToken', refreshToken);
-        },
-        updateToken: (state, action) => {
-            state.token = action.payload;
-            localStorage.setItem('token', action.payload);
+            state.user = action.payload.user;
+            state.isAuthenticated = !!action.payload.user;
         },
         logout: (state) => {
             state.user = null;
-            state.token = null;
-            state.refreshToken = null;
             state.isAuthenticated = false;
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
         },
     },
 });
 
-export const { setCredentials, updateToken, logout } = authSlice.actions;
+export const { setCredentials, logout } = authSlice.actions;
 export default authSlice.reducer;

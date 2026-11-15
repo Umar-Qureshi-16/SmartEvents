@@ -39,18 +39,9 @@ const VerifyEmail = () => {
                     setStatus('success');
                     setMessage(res.data.message || 'Email verified successfully!');
 
-                    // Save session and update Redux
-                    if (res.data.token && res.data.user) {
-                        localStorage.setItem('token', res.data.token);
-                        if (res.data.refreshToken) {
-                            localStorage.setItem('refreshToken', res.data.refreshToken);
-                        }
-                        localStorage.setItem('user', JSON.stringify(res.data.user));
-                        dispatch(setCredentials({
-                            user: res.data.user,
-                            token: res.data.token,
-                            refreshToken: res.data.refreshToken
-                        }));
+                    // The server has already set the session cookies; just update Redux.
+                    if (res.data.user) {
+                        dispatch(setCredentials({ user: res.data.user }));
                     }
                     toast.success('Account successfully verified!');
                 } else {

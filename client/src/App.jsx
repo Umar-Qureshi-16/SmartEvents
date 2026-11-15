@@ -83,30 +83,29 @@ function App() {
   const location = useLocation();
 
   useEffect(() => {
+    // Sessions used to be kept in localStorage. Clear anything left behind.
+    ['token', 'refreshToken', 'user'].forEach((key) => localStorage.removeItem(key));
+
+    // The cookie, not JavaScript, says whether we are signed in: ask the server.
     const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (token && !user) {
-        try {
-          const res = await axios.get('/auth/me');
-          if (res.data.success) {
-            dispatch(setCredentials({
-              user: res.data.user,
-              token: localStorage.getItem('token'),
-              refreshToken: localStorage.getItem('refreshToken')
-            }));
-          }
-        } catch (err) {
-          console.error("Auth check failed", err);
-          dispatch(logout());
-        }
+      try {
+        const res = await axios.get('/auth/me');
+        if (res.data.success) dispatch(setCredentials({ user: res.data.user }));
+      } catch {
+        // Not signed in (or the session expired): stay on the public pages.
       }
       setLoading(false);
     };
 
     checkAuth();
-  }, [dispatch, user]);
+  }, [dispatch]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await axios.post('/auth/logout');
+    } catch {
+      // Even if the call fails, drop the local state.
+    }
     dispatch(logout());
     navigate('/login');
   };
@@ -147,8 +146,8 @@ function App() {
                     <Route path="/" element={user ? <Dashboard user={user} /> : <Home user={user} />} />
                     <Route path="/home" element={<Home user={user} />} />
                     <Route path="/inspiration" element={<Inspiration />} />
-                    <Route path="/login" element={<Login onLoginSuccess={(u) => dispatch(setCredentials({ user: u, token: localStorage.getItem('token') }))} />} />
-                    <Route path="/signup" element={<Signup onLoginSuccess={(u) => dispatch(setCredentials({ user: u, token: localStorage.getItem('token') }))} />} />
+                    <Route path="/login" element={<Login onLoginSuccess={(u) => dispatch(setCredentials({ user: u }))} />} />
+                    <Route path="/signup" element={<Signup onLoginSuccess={(u) => dispatch(setCredentials({ user: u }))} />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password/:token" element={<ResetPassword />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />

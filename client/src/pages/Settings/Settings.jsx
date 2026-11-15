@@ -42,12 +42,7 @@ export default function Settings({ user }) {
                 email: profile.email.trim(),
             });
             // Keep the store in sync so the navbar and dashboards update too.
-            dispatch(setCredentials({
-                user: res.data.user,
-                token: localStorage.getItem('token'),
-                refreshToken: localStorage.getItem('refreshToken'),
-            }));
-            localStorage.setItem('user', JSON.stringify(res.data.user));
+            dispatch(setCredentials({ user: res.data.user }));
             toast.success(res.data.message || 'Profile updated.');
         } catch (err) {
             const data = err.response?.data;

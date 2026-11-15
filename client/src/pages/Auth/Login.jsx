@@ -53,11 +53,8 @@ function Login({ onLoginSuccess }) {
         if (unverifiedEmail) setUnverifiedEmail('');
     };
 
-    const executeLoginSuccess = (userObj, token, refreshToken) => {
+    const executeLoginSuccess = (userObj) => {
         toast.success(`Welcome back, ${userObj.name}!`);
-        localStorage.setItem('token', token);
-        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-        localStorage.setItem('user', JSON.stringify(userObj));
         if (onLoginSuccess) onLoginSuccess(userObj);
 
         // Return them to wherever the route guard intercepted them, if any.
@@ -72,7 +69,7 @@ function Login({ onLoginSuccess }) {
         try {
             const res = await axios.post('/auth/login', { email, password });
             if (res.data.success) {
-                executeLoginSuccess(res.data.user, res.data.token, res.data.refreshToken);
+                executeLoginSuccess(res.data.user);
             } else {
                 toast.error(res.data.message || 'Sign in failed.');
             }
@@ -97,7 +94,7 @@ function Login({ onLoginSuccess }) {
                 credential: credentialResponse.credential
             });
             if (res.data.success) {
-                executeLoginSuccess(res.data.user, res.data.token, res.data.refreshToken);
+                executeLoginSuccess(res.data.user);
             } else {
                 toast.error(res.data.message || 'Google sign in failed.');
             }

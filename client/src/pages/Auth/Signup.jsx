@@ -30,11 +30,8 @@ function Signup({ onLoginSuccess }) {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const executeLoginSuccess = (userObj, token, refreshToken) => {
+    const executeLoginSuccess = (userObj) => {
         toast.success(`Welcome to Smartie, ${userObj.name}!`);
-        localStorage.setItem('token', token);
-        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-        localStorage.setItem('user', JSON.stringify(userObj));
         if (onLoginSuccess) onLoginSuccess(userObj);
         navigate('/dashboard', { replace: true });
     };
@@ -47,7 +44,7 @@ function Signup({ onLoginSuccess }) {
                 role
             });
             if (res.data.success) {
-                executeLoginSuccess(res.data.user, res.data.token, res.data.refreshToken);
+                executeLoginSuccess(res.data.user);
             } else {
                 toast.error(res.data.message || 'Google signup failed.');
             }

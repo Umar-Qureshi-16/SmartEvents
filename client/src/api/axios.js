@@ -1,81 +1,55 @@
 import axios from 'axios';
 import { store } from '../store';
-import { logout, updateToken } from '../store/slices/authSlice';
+import { logout } from '../store/slices/authSlice';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+// Same-origin by default: in production Vercel proxies /api to the backend, so
+// the session cookies are first-party; in development Vite proxies it.
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
+// The session lives in httpOnly cookies the page cannot read. `withCredentials`
+// sends them; `X-Auth-Mode: cookie` tells the server not to put tokens in
+// response bodies.
+const COOKIE_MODE = { 'X-Auth-Mode': 'cookie' };
 
 const instance = axios.create({
     baseURL: API_URL,
+    withCredentials: true,
+    headers: COOKIE_MODE,
 });
 
-// Request Interceptor
-instance.interceptors.request.use(
-    (config) => {
-        const token = store.getState().auth.token;
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
-
-// Response Interceptor for Auto-Refresh
-let isRefreshing = false;
-let failedQueue = [];
-
-const processQueue = (error, token = null) => {
-    failedQueue.forEach((prom) => {
-        if (error) {
-            prom.reject(error);
-        } else {
-            prom.resolve(token);
-        }
-    });
-    failedQueue = [];
+// A single refresh is shared by every request that fails at the same moment.
+let refreshPromise = null;
+const refreshSession = () => {
+    if (!refreshPromise) {
+        refreshPromise = axios
+            .post(`${API_URL}/auth/refresh`, {}, { withCredentials: true, headers: COOKIE_MODE })
+            .finally(() => { refreshPromise = null; });
+    }
+    return refreshPromise;
 };
+
+// Credential endpoints report their own 401s; they must never trigger a refresh.
+const NO_REFRESH = /\/auth\/(login|register|refresh|logout|google|verify-email|resend-verification|forgot-password|reset-password)/;
 
 instance.interceptors.response.use(
     (response) => response,
     async (error) => {
-        const originalRequest = error.config;
+        const original = error.config;
+        const status = error.response?.status;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            if (isRefreshing) {
-                return new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject });
-                })
-                    .then((token) => {
-                        originalRequest.headers.Authorization = `Bearer ${token}`;
-                        return instance(originalRequest);
-                    })
-                    .catch((err) => Promise.reject(err));
-            }
+        if (status === 403 && error.response?.data?.code === 'ACCOUNT_BANNED') {
+            store.dispatch(logout());
+            return Promise.reject(error);
+        }
 
-            originalRequest._retry = true;
-            isRefreshing = true;
-
-            const refreshToken = store.getState().auth.refreshToken;
-            if (!refreshToken) {
+        if (status === 401 && original && !original._retry && !NO_REFRESH.test(original.url || '')) {
+            original._retry = true;
+            try {
+                await refreshSession();
+                return instance(original);
+            } catch {
                 store.dispatch(logout());
                 return Promise.reject(error);
-            }
-
-            try {
-                const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
-                const { token } = response.data;
-
-                store.dispatch(updateToken(token));
-                processQueue(null, token);
-
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-                return instance(originalRequest);
-            } catch (refreshError) {
-                processQueue(refreshError, null);
-                store.dispatch(logout());
-                return Promise.reject(refreshError);
-            } finally {
-                isRefreshing = false;
             }
         }
 

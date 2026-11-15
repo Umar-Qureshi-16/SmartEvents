@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
+import axios from '../api/axios';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
@@ -18,13 +19,17 @@ export const WebSocketProvider = ({ user, children }) => {
     useEffect(() => {
         if (!userId) return;
 
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        // The server authenticates this token before allowing any room joins,
-        // and derives the personal room from it — no client-supplied user id.
+        // The session cookie is invisible to page code and is not sent to the
+        // socket origin, so ask the API for a 2-minute token. It is requested
+        // again on every (re)connect, so an expired one is never reused.
+        // The server authenticates it before allowing any room joins and derives
+        // the personal room from it: no client-supplied user id.
         const newSocket = io(SOCKET_URL, {
-            auth: { token },
+            auth: (cb) => {
+                axios.get('/auth/socket-token')
+                    .then((res) => cb({ token: res.data.socketToken }))
+                    .catch(() => cb({}));
+            },
             transports: ['websocket', 'polling'],
         });
 

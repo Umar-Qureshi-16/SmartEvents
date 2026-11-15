@@ -7,6 +7,11 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // The browser talks to the API through this origin, so session cookies are
+    // first-party in development exactly as they are behind the Vercel rewrite.
+    proxy: {
+      '/api': { target: 'http://localhost:5000', changeOrigin: false },
+    },
   },
   test: {
     environment: 'jsdom',
