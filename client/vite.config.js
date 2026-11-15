@@ -7,7 +7,12 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-  }
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.js'],
+    include: ['src/**/*.test.{js,jsx}'],
+  },
 })
 
 // TRG-HOT-RESTART-001

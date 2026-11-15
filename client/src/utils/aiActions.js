@@ -25,7 +25,10 @@ export const ACTION_TYPES = {
  */
 export function parseAssistantReply(reply = '') {
     const match = reply.match(ACTION_RE);
-    if (!match) return { text: reply.trim(), action: null };
+    if (!match) {
+        // A truncated or unterminated block still must not leak into the chat.
+        return { text: reply.replace(/\s*\[ACTION_[A-Z_]+\][\s\S]*$/, '').trim(), action: null };
+    }
 
     const [full, type, json] = match;
     const text = reply.replace(full, '').trim();

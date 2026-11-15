@@ -85,6 +85,10 @@ jobs:
         working-directory: client
         run: npm run lint
 
+      - name: Unit tests
+        working-directory: client
+        run: npm test
+
       - name: Theme safety check
         working-directory: client
         run: npm run theme:lint
