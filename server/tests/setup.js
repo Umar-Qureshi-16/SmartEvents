@@ -1,5 +1,11 @@
 const mongoose = require('mongoose');
 
+// MongoDB driver >= 7.6 loads the `os` module with a dynamic import(), which
+// Jest's CommonJS sandbox cannot run; the driver then sends an empty client
+// handshake and the server rejects the connection. The driver supports passing
+// the module in explicitly for exactly this situation.
+const DRIVER_OPTIONS = { runtimeAdapters: { os: require('os') } };
+
 /**
  * Database lifecycle for the test suite.
  *
@@ -24,11 +30,11 @@ beforeAll(async () => {
     }
 
     try {
-        await mongoose.connect(TEST_URI, { serverSelectionTimeoutMS: 3000 });
+        await mongoose.connect(TEST_URI, { serverSelectionTimeoutMS: 3000, ...DRIVER_OPTIONS });
     } catch {
         const { MongoMemoryServer } = require('mongodb-memory-server');
         memoryServer = await MongoMemoryServer.create();
-        await mongoose.connect(memoryServer.getUri());
+        await mongoose.connect(memoryServer.getUri(), DRIVER_OPTIONS);
     }
 
     // Ensure indexes exist (unique constraints race index creation otherwise).
