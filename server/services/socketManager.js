@@ -18,13 +18,17 @@ const init = (server) => {
     // Every socket must present a valid JWT before it can join any room.
     // Without this, a client could join an arbitrary bookingId room and watch
     // two strangers negotiate prices in real time.
-    io.use((socket, next) => {
+    io.use(async (socket, next) => {
         const token = socket.handshake.auth?.token;
         if (!token) return next(new Error('Unauthorized: no token'));
 
         try {
             const decoded = jwt.verify(token, JWT_SECRET);
             if (decoded.typ === 'refresh') throw new Error('refresh token not accepted');
+            // A suspended account must not keep a live connection.
+            const User = require('../models/User');
+            const account = await User.findById(decoded.id).select('status').lean();
+            if (!account || account.status === 'banned') throw new Error('account unavailable');
             socket.user = decoded;
             next();
         } catch (err) {

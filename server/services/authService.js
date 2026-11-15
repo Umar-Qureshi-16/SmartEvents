@@ -91,6 +91,12 @@ class AuthService {
         return jwt.sign({ ...payload, typ: 'access' }, JWT_SECRET, { expiresIn });
     }
 
+    // Short-lived credential for the Socket.IO handshake. The socket server is on
+    // a different origin from the page, so it cannot see the httpOnly cookie.
+    generateSocketToken(payload) {
+        return jwt.sign({ ...payload, typ: 'socket' }, JWT_SECRET, { expiresIn: '2m' });
+    }
+
     generateRefreshToken(payload) {
         return jwt.sign({ ...payload, typ: 'refresh' }, JWT_SECRET, { expiresIn: '7d' });
     }

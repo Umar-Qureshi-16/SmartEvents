@@ -1,13 +1,22 @@
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const User = require('../models/User');
+const { ACCESS_COOKIE } = require('../utils/authCookies');
+const { isTrustedRequest } = require('../utils/csrf');
 
 // Validated at boot by config/env.js, which refuses to start without it.
 const JWT_SECRET = env.JWT_SECRET;
 
 const verifyToken = (req, res, next) => {
     const authHeader = req.headers.authorization;
-    const token = authHeader?.split(' ')[1];
+    let token = authHeader?.split(' ')[1];
+    let viaCookie = false;
+
+    // The browser app authenticates with an httpOnly cookie instead of a header.
+    if (!token && req.cookies?.[ACCESS_COOKIE]) {
+        token = req.cookies[ACCESS_COOKIE];
+        viaCookie = true;
+    }
 
     if (!token) {
         return res.status(401).json({
@@ -15,6 +24,11 @@ const verifyToken = (req, res, next) => {
             message: 'Authentication required',
             code: 'NO_TOKEN'
         });
+    }
+
+    // Ambient credentials (cookies) need CSRF protection; header tokens do not.
+    if (viaCookie && !isTrustedRequest(req)) {
+        return res.status(403).json({ success: false, message: 'Request blocked: untrusted origin.', code: 'CSRF_BLOCKED' });
     }
 
     jwt.verify(token, JWT_SECRET, async (err, decoded) => {
@@ -32,8 +46,8 @@ const verifyToken = (req, res, next) => {
             });
         }
 
-        // A refresh token must never authorise an API call.
-        if (decoded.typ === 'refresh') {
+        // Refresh and socket tokens must never authorise an API call.
+        if (decoded.typ === 'refresh' || decoded.typ === 'socket') {
             return res.status(401).json({ success: false, message: 'Invalid token', code: 'TOKEN_INVALID' });
         }
 

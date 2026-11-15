@@ -1,6 +1,8 @@
 const authService = require('../services/authService');
 const env = require('../config/env');
 const { asyncHandler } = require('../middleware/errors');
+const { REFRESH_COOKIE, setAuthCookies, clearAuthCookies, sendSession } = require('../utils/authCookies');
+const { isTrustedRequest } = require('../utils/csrf');
 
 exports.signup = asyncHandler(async (req, res, next) => {
     const user = await authService.signup(req.body);
@@ -16,8 +18,7 @@ exports.signup = asyncHandler(async (req, res, next) => {
 exports.verifyEmail = asyncHandler(async (req, res, next) => {
     const token = req.body.token || req.query.token;
     const result = await authService.verifyEmail(token);
-    res.json({
-        success: true,
+    sendSession(req, res, {
         message: 'Your email has been verified successfully. Welcome to Smartie!',
         ...result
     });
@@ -33,7 +34,7 @@ exports.googleLogin = asyncHandler(async (req, res, next) => {
     // Existing endpoint for front‑end ID token flow
     const { credential, role } = req.body;
     const result = await authService.googleAuth(credential, role);
-    res.json({ success: true, ...result });
+    sendSession(req, res, result);
 });
 
 // New callback endpoint for OAuth "code" flow (used with Render redirect URL)
@@ -45,15 +46,16 @@ exports.googleCallback = asyncHandler(async (req, res, next) => {
     }
     // Re‑use the existing service – it will exchange the code for tokens and return a JWT
     const result = await authService.googleAuth(code, null);
-    // Redirect back to the front‑end with the JWT (adjust the path as needed)
-    const redirectUrl = `${env.CLIENT_URL}/auth/success?token=${encodeURIComponent(result.token)}`;
-    res.redirect(redirectUrl);
+    // Hand the session over in cookies. The token used to travel in the redirect
+    // URL, where it ended up in browser history, proxy logs and Referer headers.
+    setAuthCookies(res, result);
+    res.redirect(`${env.CLIENT_URL}/`);
 });
 
 exports.login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
     const result = await authService.login(email, password);
-    res.json({ success: true, ...result });
+    sendSession(req, res, result);
 });
 
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
@@ -111,12 +113,17 @@ exports.me = asyncHandler(async (req, res, next) => {
 });
 
 exports.refresh = asyncHandler(async (req, res, next) => {
-    const { refreshToken } = req.body;
-    const result = await authService.refresh(refreshToken);
-    res.json({ success: true, ...result });
+    const cookieToken = req.cookies?.[REFRESH_COOKIE];
+    // A cookie-borne refresh is ambient authority, so it gets the same origin check.
+    if (cookieToken && !req.body?.refreshToken && !isTrustedRequest(req)) {
+        return res.status(403).json({ success: false, message: 'Request blocked: untrusted origin.', code: 'CSRF_BLOCKED' });
+    }
+    const result = await authService.refresh(req.body?.refreshToken || cookieToken);
+    sendSession(req, res, result);
 });
 
 exports.logout = asyncHandler(async (req, res) => {
+    clearAuthCookies(res);
     res.json({ success: true, message: 'Identity terminated from active session.' });
 });
 
@@ -203,4 +210,11 @@ exports.removeFavorite = asyncHandler(async (req, res, next) => {
         { new: true }
     );
     res.json({ success: true, message: 'Removed from wishlist', favorites: user.favorites });
+});
+
+// The socket server lives on another origin and cannot read the httpOnly
+// cookie, so the page asks for a short-lived token to present at the handshake.
+exports.socketToken = asyncHandler(async (req, res) => {
+    const socketToken = authService.generateSocketToken({ id: req.user.id, role: req.user.role });
+    res.json({ success: true, socketToken });
 });

@@ -37,6 +37,8 @@ const schema = z.object({
     ADMIN_SIGNUP_CODE: z.string().trim().optional(),
     // Set to 'false' to skip email verification (for deployments with no SMTP).
     EMAIL_VERIFICATION_REQUIRED: z.string().trim().optional(),
+    // 'lax' (default), 'strict' or 'none'; see utils/authCookies.js
+    AUTH_COOKIE_SAMESITE: z.string().trim().optional(),
     OPENROUTER_API_KEY: cleanKey,
     OPENROUTER_MODEL: z.string().optional(),
     OPENROUTER_FALLBACK_MODEL: z.string().optional(),
