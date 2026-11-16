@@ -90,7 +90,8 @@ function createApp() {
 
         app.use('/api/', rateLimit({
             windowMs: 15 * 60 * 1000,
-            max: 1000,
+            // Generous on purpose: a classroom or demo behind one public IP shares this bucket.
+            max: 3000,
             message: { success: false, message: 'Too many requests, please try again later.' },
             standardHeaders: true,
             legacyHeaders: false,

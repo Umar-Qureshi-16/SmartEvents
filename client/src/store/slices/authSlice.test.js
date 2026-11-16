@@ -5,7 +5,7 @@ describe('authSlice', () => {
     beforeEach(() => localStorage.clear());
 
     it('starts signed out', () => {
-        expect(reducer(undefined, { type: 'init' })).toEqual({ user: null, isAuthenticated: false });
+        expect(reducer(undefined, { type: 'init' })).toEqual({ user: null, isAuthenticated: false, authChecked: false });
     });
 
     it('stores only the user profile and writes nothing to browser storage', () => {
@@ -19,6 +19,6 @@ describe('authSlice', () => {
 
     it('clears the user on logout', () => {
         const signedIn = reducer(undefined, setCredentials({ user: { id: '1' } }));
-        expect(reducer(signedIn, logout())).toEqual({ user: null, isAuthenticated: false });
+        expect(reducer(signedIn, logout())).toEqual({ user: null, isAuthenticated: false, authChecked: true });
     });
 });

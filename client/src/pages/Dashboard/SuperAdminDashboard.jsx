@@ -48,7 +48,13 @@ export default function SuperAdminDashboard({ user }) {
 
     const { socket } = useWebSockets();
     const mounted = useRef(true);
-    useEffect(() => () => { mounted.current = false; }, []);
+    // React StrictMode (development) mounts, unmounts and re-mounts every effect.
+    // The flag must be set back to true on mount, otherwise it stays false after
+    // that simulated unmount and the loading state below never clears.
+    useEffect(() => {
+        mounted.current = true;
+        return () => { mounted.current = false; };
+    }, []);
 
     const loadAll = useCallback(async (showSpinner = true) => {
         if (showSpinner) setLoading(true);

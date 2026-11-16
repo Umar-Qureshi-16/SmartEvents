@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import DynamicNavbar from './components/layout/DynamicNavbar';
 
 // Eager: the entry points a first-time visitor lands on.
@@ -60,7 +60,7 @@ import ParticleBackground from './components/ParticleBackground';
 import CustomLoader from './components/CustomLoader';
 
 import { useSelector, useDispatch } from 'react-redux';
-import { setCredentials, logout } from './store/slices/authSlice';
+import { setCredentials, logout, authResolved } from './store/slices/authSlice';
 import axios from './api/axios';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -94,6 +94,7 @@ function App() {
       } catch {
         // Not signed in (or the session expired): stay on the public pages.
       }
+      dispatch(authResolved());
       setLoading(false);
     };
 
@@ -163,7 +164,12 @@ function App() {
                     {/* ---------- Any authenticated user ---------- */}
                     <Route element={<ProtectedRoute />}>
                       <Route path="/dashboard" element={<Dashboard user={user} />} />
-                      <Route path="/bookings" element={<Bookings user={user} />} />
+                      {/* Bookings are the customer's view; providers manage the same bookings as Leads. */}
+                      <Route path="/bookings" element={
+                        user?.role === 'customer'
+                          ? <Bookings user={user} />
+                          : <Navigate to={user?.role === 'provider' ? '/leads' : '/dashboard'} replace />
+                      } />
                       <Route path="/negotiate/:bookingId" element={<NegotiationPage />} />
                       <Route path="/tickets" element={<TicketWallet user={user} />} />
                       <Route path="/settings" element={<Settings user={user} />} />

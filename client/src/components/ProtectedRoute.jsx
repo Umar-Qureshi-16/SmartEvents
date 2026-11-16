@@ -12,8 +12,12 @@ import { useSelector } from 'react-redux';
  * @param {string[]} [roles] - if given, the user's role must be in this list.
  */
 export default function ProtectedRoute({ roles }) {
-    const { user, isAuthenticated } = useSelector((state) => state.auth);
+    const { user, isAuthenticated, authChecked } = useSelector((state) => state.auth);
     const location = useLocation();
+
+    // Wait for the server to say who we are before deciding anything; redirecting
+    // now would sign people out on every page reload.
+    if (!authChecked) return null;
 
     if (!isAuthenticated || !user) {
         // Remember where they were headed so login can return them there.
