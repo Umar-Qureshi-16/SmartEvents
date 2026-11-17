@@ -143,6 +143,78 @@ describe('AI assistant: confirmed actions', () => {
     });
 });
 
+describe('AI assistant: the full booking workflow', () => {
+    async function setup() {
+        const prov = await makeUser('provider');
+        const cust = await makeUser('customer');
+        const ev = await makeEvent(prov.id, { title: 'Garden Hall', price: 3000 });
+        const offer = await execute(cust.token, 'make_offer', { eventId: String(ev._id), offerPrice: 2500, message: 'Weekday please' });
+        return { prov, cust, ev, bookingId: offer.body.data.bookingId };
+    }
+
+    test('vendor counters, customer accepts, customer completes; escrow follows', async () => {
+        const { prov, cust, bookingId } = await setup();
+        expect((await execute(prov.token, 'counter_offer', { bookingId, price: 2800, message: 'Meet me at 2800' })).status).toBe(200);
+        let b = await Booking.findById(bookingId);
+        expect(b.offerPrice).toBe(2800);
+        expect(b.status).toBe('negotiating');
+
+        expect((await execute(cust.token, 'accept_offer', { bookingId })).status).toBe(200);
+        b = await Booking.findById(bookingId);
+        expect(b.status).toBe('confirmed');
+        expect(b.escrow.status).toBe('held');
+
+        expect((await execute(cust.token, 'complete_booking', { bookingId })).status).toBe(200);
+        b = await Booking.findById(bookingId);
+        expect(b.status).toBe('completed');
+        expect(b.escrow.status).toBe('released');
+    });
+
+    test('someone outside the booking cannot act on it', async () => {
+        const { bookingId } = await setup();
+        const otherVendor = await makeUser('provider');
+        const res = await execute(otherVendor.token, 'counter_offer', { bookingId, price: 100 });
+        expect(res.status).toBe(403);
+    });
+
+    test('my_bookings gives the model ids and whose move it was', async () => {
+        const { prov } = await setup();
+        complete
+            .mockResolvedValueOnce(toolCall('my_bookings', {}))
+            .mockResolvedValueOnce(text('You have one offer.'));
+        await chat(prov.token, 'show my bookings');
+        const toolMessage = JSON.parse(complete.mock.calls[1][0].messages.find((m) => m.role === 'tool').content);
+        expect(toolMessage[0]).toMatchObject({ event: 'Garden Hall', status: 'pending', currentPrice: 2500, lastMoveBy: 'customer' });
+    });
+
+    test('customer gets a pass, vendor checks it in once, customer reviews after a confirmed booking', async () => {
+        const { prov, cust, ev, bookingId } = await setup();
+        const pass = await execute(cust.token, 'get_pass', { eventId: String(ev._id) });
+        expect(pass.status).toBe(200);
+        const Ticket = require('../../models/Ticket');
+        const ticket = await Ticket.findOne({ attendee: cust.id });
+        expect((await execute(prov.token, 'check_in_pass', { ticketNumber: ticket.ticketNumber })).status).toBe(200);
+        expect((await execute(prov.token, 'check_in_pass', { ticketNumber: ticket.ticketNumber })).status).toBe(400);
+
+        // The vendor accepts the customer's opening offer, so a review is allowed.
+        expect((await execute(prov.token, 'accept_offer', { bookingId })).status).toBe(200);
+        expect((await execute(cust.token, 'leave_review', { eventId: String(ev._id), rating: 5, comment: 'Lovely venue and staff.' })).status).toBe(200);
+    });
+
+    test('vendor edits an event, and blocks then unblocks a date', async () => {
+        const { prov, ev } = await setup();
+        expect((await execute(prov.token, 'update_event', { eventId: String(ev._id), price: 3200 })).status).toBe(200);
+        const Event = require('../../models/Event');
+        expect((await Event.findById(ev._id)).price).toBe(3200);
+
+        const VendorProfile = require('../../models/VendorProfile');
+        await execute(prov.token, 'block_date', { date: '2026-12-24' });
+        expect((await VendorProfile.findOne({ userId: prov.id })).blockedDates).toHaveLength(1);
+        await execute(prov.token, 'unblock_date', { date: '2026-12-24' });
+        expect((await VendorProfile.findOne({ userId: prov.id })).blockedDates).toHaveLength(0);
+    });
+});
+
 describe('AI assistant: disputes through the shared service', () => {
     test('an admin resolves a dispute and escrow is refunded', async () => {
         const prov = await makeUser('provider');

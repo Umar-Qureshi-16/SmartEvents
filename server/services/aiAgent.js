@@ -47,6 +47,43 @@ const findUserByEmail = async (email) => {
     return user;
 };
 
+/**
+ * Runs an existing Express handler with the caller's identity, so actions whose
+ * rules live in a controller (tickets, reviews) behave exactly as in the UI.
+ */
+async function callHandler(handler, actor, body = {}, params = {}) {
+    let status = 200;
+    let payload;
+    const res = {
+        status(code) { status = code; return this; },
+        json(data) { payload = data; return this; },
+    };
+    const req = { body, params, query: {}, ip: actor.ip, user: { id: actor.id, _id: actor.id, role: actor.role }, get: () => '' };
+    let thrown;
+    await handler(req, res, (err) => { thrown = err; });
+    if (thrown) throw thrown;
+    if (status >= 400) {
+        const message = payload?.message || 'That action could not be completed.';
+        throw status === 403 ? new ForbiddenError(message) : status === 404 ? new NotFoundError(message) : status === 409 ? new ConflictError(message) : new BadRequestError(message);
+    }
+    return payload;
+}
+
+const bookingSummary = (b, role) => ({
+    bookingId: String(b._id),
+    event: b.eventId?.title,
+    status: b.status,
+    currentPrice: b.offerPrice,
+    previousPrice: b.lastPrice,
+    lastMoveBy: (() => {
+        const last = b.negotiationHistory?.[b.negotiationHistory.length - 1];
+        if (!last) return undefined;
+        return String(last.offeredBy) === String(b.customerId?._id || b.customerId) ? 'customer' : 'provider';
+    })(),
+    with: role === 'provider' ? b.customerId?.name : b.vendorId?.name,
+    escrow: b.escrow?.status,
+});
+
 const oid = z.string().refine((v) => mongoose.Types.ObjectId.isValid(v), 'Invalid id');
 const isoDate = z.string().refine((v) => !Number.isNaN(Date.parse(v)), 'Use a date such as 2026-12-20');
 
@@ -116,8 +153,213 @@ const ACTIONS = {
         params: {}, schema: z.object({}),
         run: async (_a, actor) => {
             const key = actor.role === 'provider' ? 'vendorId' : 'customerId';
-            const rows = await Booking.find({ [key]: actor.id }).populate('eventId', 'title').populate(actor.role === 'provider' ? 'customerId' : 'vendorId', 'name').sort({ createdAt: -1 }).limit(15).lean();
-            return rows.map((b) => ({ bookingId: String(b._id), event: b.eventId?.title, status: b.status, price: b.offerPrice, with: (b.customerId?.name || b.vendorId?.name) }));
+            const rows = await Booking.find({ [key]: actor.id }).populate('eventId', 'title').populate('customerId', 'name').populate('vendorId', 'name').sort({ createdAt: -1 }).limit(20).lean();
+            return rows.map((b) => bookingSummary(b, actor.role));
+        },
+    },
+    my_events: {
+        roles: ['provider'], mutating: false,
+        description: "The provider's own event listings with ids, prices, dates and status.",
+        params: {}, schema: z.object({}),
+        run: async (_a, actor) => {
+            const rows = await Event.find({ createdBy: actor.id }).select('title category price date capacity location status').sort({ date: 1 }).lean();
+            return rows.map((e) => ({ eventId: String(e._id), title: e.title, category: e.category, price: e.price, date: e.date, capacity: e.capacity, location: e.location, status: e.status }));
+        },
+    },
+    my_services: {
+        roles: ['provider'], mutating: false,
+        description: "The provider's service packages with ids and prices.",
+        params: {}, schema: z.object({}),
+        run: async (_a, actor) => {
+            const profile = await VendorProfile.findOne({ userId: actor.id }).lean();
+            if (!profile) return { services: [], note: 'No vendor profile yet.' };
+            const rows = await Service.find({ vendorId: profile._id }).lean();
+            return { business: profile.businessName, category: profile.category, blockedDates: profile.blockedDates, services: rows.map((s) => ({ serviceId: String(s._id), title: s.title, price: s.price, eventType: s.eventType })) };
+        },
+    },
+    revenue_summary: {
+        roles: ['provider'], mutating: false,
+        description: 'Revenue totals for the provider: released, held in escrow, pending offers and completed bookings.',
+        params: {}, schema: z.object({}),
+        run: async (_a, actor) => {
+            const rows = await Booking.find({ vendorId: actor.id }).select('status offerPrice escrow').lean();
+            const sum = (f) => rows.filter(f).reduce((t, b) => t + (b.escrow?.amount ?? b.offerPrice ?? 0), 0);
+            return {
+                releasedToYou: sum((b) => b.escrow?.status === 'released'),
+                heldInEscrow: sum((b) => b.escrow?.status === 'held'),
+                openOffers: rows.filter((b) => ['pending', 'negotiating'].includes(b.status)).length,
+                completedBookings: rows.filter((b) => b.status === 'completed').length,
+                totalBookings: rows.length,
+            };
+        },
+    },
+    my_tickets: {
+        roles: ['customer'], mutating: false,
+        description: "The customer's entry passes with event, pass number and status.",
+        params: {}, schema: z.object({}),
+        run: async (_a, actor) => {
+            const Ticket = require('../models/Ticket');
+            const rows = await Ticket.find({ attendee: actor.id }).populate('event', 'title date').sort({ createdAt: -1 }).limit(20).lean();
+            return rows.map((t) => ({ ticketNumber: t.ticketNumber, event: t.event?.title, date: t.event?.date, status: t.status, type: t.ticketType }));
+        },
+    },
+
+    /* ---------- booking moves (customer and provider) ---------- */
+    counter_offer: {
+        roles: ['customer', 'provider'], mutating: true,
+        description: 'Send a counter-offer on one of your bookings. Use my_bookings first to get the booking id.',
+        params: { bookingId: { type: 'string' }, price: { type: 'number' }, message: { type: 'string' } },
+        required: ['bookingId', 'price'],
+        schema: z.object({ bookingId: oid, price: z.coerce.number().positive(), message: z.string().max(500).optional() }),
+        summary: (a) => `Counter-offer ${a.price} on booking ${a.bookingId}${a.message ? ` with the note "${a.message}"` : ''}`,
+        run: async (a, actor) => {
+            const bookingService = require('./bookingService');
+            await bookingService.negotiate(a.bookingId, a.price, a.message || '', actor.id);
+            return { message: `Counter-offer of ${a.price} sent. The other party sees it live.` };
+        },
+    },
+    accept_offer: {
+        roles: ['customer', 'provider'], mutating: true,
+        description: "Accept the other party's latest offer on a booking, confirming it and holding the amount in escrow.",
+        params: { bookingId: { type: 'string' } }, required: ['bookingId'],
+        schema: z.object({ bookingId: oid }),
+        summary: (a) => `Accept the current offer on booking ${a.bookingId}`,
+        run: async ({ bookingId }, actor) => {
+            const bookingService = require('./bookingService');
+            await bookingService.updateStatus(bookingId, 'confirmed', actor.id);
+            return { message: 'Offer accepted. The booking is confirmed and the amount is held in escrow.' };
+        },
+    },
+    reject_offer: {
+        roles: ['customer', 'provider'], mutating: true,
+        description: 'Reject the current offer on a booking and close the negotiation.',
+        params: { bookingId: { type: 'string' } }, required: ['bookingId'],
+        schema: z.object({ bookingId: oid }),
+        summary: (a) => `Reject the offer on booking ${a.bookingId}`,
+        run: async ({ bookingId }, actor) => {
+            const bookingService = require('./bookingService');
+            await bookingService.updateStatus(bookingId, 'rejected', actor.id);
+            return { message: 'Offer rejected.' };
+        },
+    },
+    cancel_booking: {
+        roles: ['customer', 'provider'], mutating: true,
+        description: 'Cancel or withdraw a booking. Held escrow is refunded to the customer.',
+        params: { bookingId: { type: 'string' } }, required: ['bookingId'],
+        schema: z.object({ bookingId: oid }),
+        summary: (a) => `Cancel booking ${a.bookingId}`,
+        run: async ({ bookingId }, actor) => {
+            const bookingService = require('./bookingService');
+            await bookingService.updateStatus(bookingId, 'cancelled', actor.id);
+            return { message: 'Booking cancelled.' };
+        },
+    },
+    complete_booking: {
+        roles: ['customer'], mutating: true,
+        description: 'Confirm the event was delivered. This marks the booking complete and releases escrow to the provider.',
+        params: { bookingId: { type: 'string' } }, required: ['bookingId'],
+        schema: z.object({ bookingId: oid }),
+        summary: (a) => `Mark booking ${a.bookingId} complete and release escrow to the provider`,
+        run: async ({ bookingId }, actor) => {
+            const bookingService = require('./bookingService');
+            await bookingService.updateStatus(bookingId, 'completed', actor.id);
+            return { message: 'Booking completed. Escrow released to the provider.' };
+        },
+    },
+    raise_dispute: {
+        roles: ['customer', 'provider'], mutating: true,
+        description: 'Raise a dispute on a confirmed or completed booking, with a reason of at least 10 characters.',
+        params: { bookingId: { type: 'string' }, reason: { type: 'string' } }, required: ['bookingId', 'reason'],
+        schema: z.object({ bookingId: oid, reason: z.string().min(10).max(1000) }),
+        summary: (a) => `Raise a dispute on booking ${a.bookingId}: "${a.reason}"`,
+        run: async ({ bookingId, reason }, actor) => {
+            const bookingService = require('./bookingService');
+            await bookingService.raiseDispute(bookingId, reason, actor.id);
+            return { message: 'Dispute raised. An administrator will review it.' };
+        },
+    },
+
+    /* ---------- passes and reviews ---------- */
+    get_pass: {
+        roles: ['customer'], mutating: true,
+        description: 'Get an entry pass (QR) for an event. Use search_events to find the event id.',
+        params: { eventId: { type: 'string' }, ticketType: { type: 'string', enum: ['General', 'VIP'] } }, required: ['eventId'],
+        schema: z.object({ eventId: oid, ticketType: z.enum(['General', 'VIP']).optional() }),
+        summary: (a) => `Get a ${a.ticketType || 'General'} pass for event ${a.eventId}`,
+        run: async (a, actor) => {
+            const out = await callHandler(require('../controllers/ticketController').purchaseTicket, actor, a);
+            return { message: 'Pass issued. It is in your ticket wallet with its QR code.', ticketNumber: out?.data?.ticketNumber };
+        },
+    },
+    leave_review: {
+        roles: ['customer'], mutating: true,
+        description: 'Review an event you have a confirmed or completed booking for (rating 1 to 5).',
+        params: { eventId: { type: 'string' }, rating: { type: 'number' }, comment: { type: 'string' } }, required: ['eventId', 'rating', 'comment'],
+        schema: z.object({ eventId: oid, rating: z.coerce.number().int().min(1).max(5), comment: z.string().min(3).max(1000) }),
+        summary: (a) => `Leave a ${a.rating}-star review on event ${a.eventId}: "${a.comment}"`,
+        run: async (a, actor) => {
+            await callHandler(require('../controllers/reviewController').createReview, actor, a);
+            return { message: 'Review posted.' };
+        },
+    },
+    check_in_pass: {
+        roles: ['provider', 'admin', 'superadmin'], mutating: true,
+        description: 'Check a guest in at the gate using the pass number (for example TKT-...).',
+        params: { ticketNumber: { type: 'string' } }, required: ['ticketNumber'],
+        schema: z.object({ ticketNumber: z.string().min(4).max(80) }),
+        summary: (a) => `Check in pass ${a.ticketNumber}`,
+        run: async (a, actor) => {
+            const out = await callHandler(require('../controllers/ticketController').scanCheckInTicket, actor, a);
+            return { message: out?.message || `Pass ${a.ticketNumber} checked in.` };
+        },
+    },
+
+    /* ---------- provider listings ---------- */
+    update_event: {
+        roles: ['provider'], mutating: true,
+        description: 'Change one of your events: title, price, date, capacity, location or description. Use my_events for the id.',
+        params: {
+            eventId: { type: 'string' }, title: { type: 'string' }, price: { type: 'number' }, date: { type: 'string' },
+            capacity: { type: 'number' }, location: { type: 'string' }, description: { type: 'string' },
+        },
+        required: ['eventId'],
+        schema: z.object({
+            eventId: oid, title: z.string().min(3).max(120).optional(), price: z.coerce.number().positive().optional(),
+            date: isoDate.optional(), capacity: z.coerce.number().int().positive().optional(),
+            location: z.string().min(2).max(120).optional(), description: z.string().min(10).max(2000).optional(),
+        }),
+        summary: (a) => `Update event ${a.eventId}: ${Object.entries(a).filter(([k]) => k !== 'eventId').map(([k, v]) => `${k} = ${v}`).join(', ')}`,
+        run: async ({ eventId, ...changes }, actor) => {
+            const eventService = require('./eventService');
+            if (changes.date) changes.date = new Date(changes.date);
+            const ev = await eventService.updateEvent(eventId, changes, actor.id);
+            return { message: `Event "${ev.title}" updated.` };
+        },
+    },
+    delete_my_event: {
+        roles: ['provider'], mutating: true,
+        description: 'Delete one of your own events. Events with live bookings cannot be deleted.',
+        params: { eventId: { type: 'string' } }, required: ['eventId'],
+        schema: z.object({ eventId: oid }),
+        summary: (a) => `Delete your event ${a.eventId}`,
+        run: async ({ eventId }, actor) => {
+            const eventService = require('./eventService');
+            await eventService.deleteEvent(eventId, actor.id, actor.role);
+            return { message: 'Event deleted.' };
+        },
+    },
+    unblock_date: {
+        roles: ['provider'], mutating: true,
+        description: 'Remove a blocked date from your availability calendar.',
+        params: { date: { type: 'string', description: 'ISO date, e.g. 2026-12-24' } }, required: ['date'],
+        schema: z.object({ date: isoDate }),
+        summary: (a) => `Unblock ${a.date} on your calendar`,
+        run: async ({ date }, actor) => {
+            const day = new Date(date);
+            const start = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()));
+            const end = new Date(start.getTime() + 86400000);
+            await VendorProfile.updateOne({ userId: actor.id }, { $pull: { blockedDates: { $gte: start, $lt: end } } });
+            return { message: `${date} is available again.` };
         },
     },
 
@@ -296,12 +538,33 @@ function systemPrompt(actor) {
         can,
         `Rules:`,
         `- Use a tool whenever the user asks you to look something up or to do something you have a tool for.`,
-        `- Look things up first when you need an id (for example list_disputes or search_events) instead of guessing.`,
+        `- Look things up first when you need an id instead of guessing: my_bookings for bookings, my_events for your events,`,
+        `  search_events for events, list_disputes for disputes, find_users for accounts. Refer to things by name when you reply, not by id.`,
+        `- When the user names a booking or event in words (for example "the Royal Palm offer"), find it first, then act on it.`,
         `- Never invent emails, ids, prices or dates. If a required detail is missing, ask one short question.`,
         `- For tools that change data, call the tool; the user will see a confirmation card. Do not claim the change is done.`,
         `- If the user asks for something your role cannot do, say so plainly.`,
         `- Keep answers short and practical. Plain text, no JSON.`,
     ].join('\n');
+}
+
+/** Replaces raw ids in a confirmation summary with names the user recognises. */
+async function humanise(summary, args, actor) {
+    let out = summary;
+    try {
+        if (args.bookingId) {
+            const b = await Booking.findById(args.bookingId).populate('eventId', 'title').populate('customerId', 'name').populate('vendorId', 'name').lean();
+            if (b) {
+                const other = String(b.customerId?._id) === actor.id ? b.vendorId?.name : b.customerId?.name;
+                out = out.replace(`booking ${args.bookingId}`, `the "${b.eventId?.title || 'booking'}" booking${other ? ` with ${other}` : ''}`);
+            }
+        }
+        if (args.eventId) {
+            const e = await Event.findById(args.eventId).select('title').lean();
+            if (e) out = out.replace(new RegExp(`(your )?event ${args.eventId}`), `"${e.title}"`);
+        }
+    } catch { /* keep the plain summary */ }
+    return out;
 }
 
 function validate(name, args, role) {
@@ -353,7 +616,7 @@ async function chat(history, actor) {
             if (checked.action.mutating) {
                 return {
                     reply: (msg.content || '').trim() || 'Please confirm this action.',
-                    pendingAction: { name, args: checked.args, summary: checked.action.summary(checked.args) },
+                    pendingAction: { name, args: checked.args, summary: await humanise(checked.action.summary(checked.args), checked.args, actor) },
                     lookups,
                 };
             }

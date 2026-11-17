@@ -70,9 +70,9 @@ const NAV_BY_ROLE = {
             ],
         },
         {
-            label: 'Planning', path: '/ai-concierge', icon: Sparkles,
+            label: 'AI & Planning', path: '/ai-concierge', icon: Sparkles,
             subOptions: [
-                { label: 'AI Concierge', desc: 'Ask Smartie about your event', path: '/ai-concierge' },
+                { label: 'AI Assistant', desc: 'Ask Smartie, or tell it what to do', path: '/ai-concierge' },
                 { label: 'Budget tracker', desc: 'Break down and check your spend', path: '/budget-tracker' },
                 { label: 'My tickets', desc: 'QR passes for confirmed events', path: '/tickets' },
             ],
@@ -102,9 +102,9 @@ const NAV_BY_ROLE = {
             subOptions: [
                 { label: 'Revenue', desc: 'Confirmed and completed bookings', path: '/revenue' },
                 { label: 'Ticket scanner', desc: 'Check guests in at the gate', path: '/staff/scanner' },
-                { label: 'AI Concierge', desc: 'Ask Smartie about your business', path: '/ai-concierge' },
             ],
         },
+        { label: 'AI Assistant', path: '/ai-concierge', icon: Sparkles },
     ],
 
     admin: [

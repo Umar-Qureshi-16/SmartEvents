@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import DynamicNavbar from './components/layout/DynamicNavbar';
+import AssistantLauncher from './components/ai/AssistantLauncher';
 
 // Eager: the entry points a first-time visitor lands on.
 import Home from './pages/Home';
@@ -136,6 +137,7 @@ function App() {
           <a href="#main-content" className="skip-link">Skip to main content</a>
           <div className="app-shell min-h-screen bg-bg text-fg">
             <DynamicNavbar user={user} onLogout={handleLogout} />
+            <AssistantLauncher user={user} />
 
             <div className="w-full min-h-screen bg-bg text-fg pt-20">
               <main id="main-content" className="relative z-10 h-full">
