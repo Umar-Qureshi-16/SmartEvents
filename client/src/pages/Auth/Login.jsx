@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PasswordField from '../../components/ui/PasswordField';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import axios from '../../api/axios';
@@ -213,9 +214,8 @@ function Login({ onLoginSuccess }) {
                     {showAdminCode ? (
                         <div className="space-y-1 p-3 rounded-2xl border border-brand/30 bg-brand/5">
                             <label htmlFor="admin-code" className="text-xs font-semibold text-fg">Admin access code</label>
-                            <input
+                            <PasswordField
                                 id="admin-code"
-                                type="password"
                                 autoComplete="off"
                                 value={adminCode}
                                 onChange={(e) => setAdminCode(e.target.value)}
@@ -270,8 +270,7 @@ function Login({ onLoginSuccess }) {
                             <label className="text-xs font-semibold text-fg">Password</label>
                             <Link to="/forgot-password" className="text-[10px] text-muted hover:text-success">Forgot password?</Link>
                         </div>
-                        <input
-                            type="password"
+                        <PasswordField
                             name="password"
                             required
                             value={formData.password}

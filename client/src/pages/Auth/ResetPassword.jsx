@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PasswordField from '../../components/ui/PasswordField';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Lock, ArrowRight, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
@@ -92,8 +93,7 @@ const ResetPassword = () => {
                                     <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2 px-1">
                                         <Lock size={12} className="text-indigo-400" /> New Secure Token
                                     </label>
-                                    <input
-                                        type="password"
+                                    <PasswordField
                                         value={newPassword}
                                         onChange={e => setNewPassword(e.target.value)}
                                         placeholder="••••••••"
@@ -106,8 +106,7 @@ const ResetPassword = () => {
                                     <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2 px-1">
                                         <Lock size={12} className="text-indigo-400" /> Confirm Token
                                     </label>
-                                    <input
-                                        type="password"
+                                    <PasswordField
                                         value={confirmPassword}
                                         onChange={e => setConfirmPassword(e.target.value)}
                                         placeholder="••••••••"

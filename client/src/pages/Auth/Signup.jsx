@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PasswordField from '../../components/ui/PasswordField';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import axios from '../../api/axios';
@@ -225,9 +226,8 @@ function Signup({ onLoginSuccess }) {
                     {isElevated && (
                         <div className="space-y-1 p-3 rounded-2xl border border-brand/30 bg-brand/5">
                             <label htmlFor="admin-signup-code" className="text-xs font-semibold text-fg">Admin Signup Code</label>
-                            <input
+                            <PasswordField
                                 id="admin-signup-code"
-                                type="password"
                                 required
                                 autoComplete="off"
                                 value={adminCode}
@@ -289,8 +289,7 @@ function Signup({ onLoginSuccess }) {
 
                     <div className="space-y-1">
                         <label className="text-xs font-semibold text-fg">Password</label>
-                        <input
-                            type="password"
+                        <PasswordField
                             name="password"
                             required
                             minLength={8}

@@ -1,8 +1,10 @@
 import React from 'react';
+import PasswordField from './PasswordField';
 import { Link } from 'react-router-dom';
 import { Loader2, AlertTriangle, RefreshCw, Inbox } from 'lucide-react';
 
 export { default as Modal } from './Modal';
+export { default as PasswordField } from './PasswordField';
 
 /* -------------------------------------------------------------------------- */
 /* Button                                                                     */
@@ -63,6 +65,9 @@ export function Card({ children, className = '', ...props }) {
 /* Input / Textarea — always paired with a real <label>                       */
 /* -------------------------------------------------------------------------- */
 
+// Password inputs get a show/hide toggle; everything else is a plain input.
+const InputControl = (props) => (props.type === 'password' ? <PasswordField {...props} /> : <input {...props} />);
+
 export function Input({ label, id, error, hint, className = '', ...props }) {
     const inputId = id || `input-${label?.toLowerCase().replace(/\s+/g, '-')}`;
     return (
@@ -72,7 +77,7 @@ export function Input({ label, id, error, hint, className = '', ...props }) {
                     {label}
                 </label>
             )}
-            <input
+            <InputControl
                 id={inputId}
                 aria-invalid={error ? 'true' : undefined}
                 aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
