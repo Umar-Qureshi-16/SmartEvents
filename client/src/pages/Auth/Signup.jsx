@@ -118,12 +118,12 @@ function Signup({ onLoginSuccess }) {
                 <div className="max-w-md w-full space-y-8">
                     <div className="text-center space-y-3">
                         <div className="flex justify-center mb-2">
-                            <EventManagerLogo />
+                            <EventManagerLogo tone="theme" />
                         </div>
                     </div>
 
                     <div className="adyen-card p-8 bg-surface border border-border text-center space-y-6">
-                        <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+                        <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-success flex items-center justify-center mx-auto border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
                             <Mail className="w-8 h-8" />
                         </div>
 
@@ -168,7 +168,7 @@ function Signup({ onLoginSuccess }) {
             <div className="max-w-md w-full space-y-8">
                 <div className="text-center space-y-3">
                     <div className="flex justify-center mb-2">
-                        <EventManagerLogo />
+                        <EventManagerLogo tone="theme" />
                     </div>
                     <h2 className="text-3xl font-black tracking-tight text-fg">Create your Smartie Account</h2>
                     <p className="text-xs text-muted font-medium">Join the reverse event bidding & ticketing platform</p>

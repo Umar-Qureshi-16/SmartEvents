@@ -24,9 +24,9 @@
   --muted: 71 85 105;      /* 7.58:1 — was slate-500 at 4.40:1 on surface-2 */
   --brand: 79 70 229;      /* 6.29:1 */
   --brand-hover: 67 56 202;
-  --success: 4 120 87;     /* 5.48:1 — was emerald-600 at 3.77:1 */
-  --warning: 180 83 9;     /* 5.02:1 — was amber-600 at 3.19:1 */
-  --danger: 220 38 38;     /* 4.83:1 */
+  --success: 4 108 78;     /* 6.4:1 on surface; >= 4.5:1 on its 10-15% tints */
+  --warning: 154 63 7;     /* 6.6:1 on surface; >= 4.5:1 on its 10-15% tints */
+  --danger: 185 28 28;      /* 6.5:1 on surface; >= 4.5:1 on its 10-15% tints */
   --shadow: 15 23 42;
 
   --font-primary: 'Instrument Sans', system-ui, sans-serif;
@@ -166,4 +166,13 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--muted));
+}
+
+/* In dark mode the brand and success fills are light tints, so white text on
+   them fails contrast (2.98:1 and 1.92:1). Use the dark page colour instead. */
+.dark .btn-adyen-primary,
+.dark .bg-brand.text-white,
+.dark .bg-success.text-white,
+.dark .bg-warning.text-white {
+  color: rgb(var(--bg));
 }

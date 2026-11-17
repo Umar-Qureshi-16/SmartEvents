@@ -10,11 +10,11 @@ const PlatformPulseFeed = ({ events = [], connected = false }) => (
     <div className="glass p-6 rounded-3xl border-border flex flex-col h-full overflow-hidden min-h-[400px]">
         <div className="flex items-center justify-between mb-6">
             <h3 className="text-sm font-bold text-fg uppercase tracking-widest flex items-center gap-2">
-                <Terminal className="text-indigo-400" size={18} /> Event Stream
+                <Terminal className="text-brand" size={18} /> Event Stream
             </h3>
             <span
                 className={`text-[10px] font-mono flex items-center gap-1.5 ${
-                    connected ? 'text-emerald-400' : 'text-muted'
+                    connected ? 'text-success' : 'text-muted'
                 }`}
             >
                 <Radio size={11} className={connected ? 'animate-pulse' : ''} aria-hidden="true" />
@@ -51,7 +51,7 @@ const PlatformPulseFeed = ({ events = [], connected = false }) => (
                                     </span>
                                 </div>
                                 <p className="text-[10px] text-muted mt-1 leading-relaxed">
-                                    <span className="text-indigo-400 font-bold">{ev.actor || 'system'}</span>
+                                    <span className="text-brand font-bold">{ev.actor || 'system'}</span>
                                     {' · '}
                                     <span className="text-muted">{ev.detail || ev.targetType || 'platform'}</span>
                                 </p>
@@ -67,7 +67,7 @@ const PlatformPulseFeed = ({ events = [], connected = false }) => (
 const severityTone = (sev) => {
     if (sev === 'critical') return 'text-rose-400';
     if (sev === 'warning') return 'text-amber-400';
-    return 'text-emerald-400';
+    return 'text-success';
 };
 
 const iconFor = (action = '') => {

@@ -1,6 +1,8 @@
 import React from 'react';
 
-export default function EventManagerLogo({ className = '', collapsed = false }) {
+// tone="dark" (default) sits on the always-dark navbar; tone="theme" follows light/dark mode.
+export default function EventManagerLogo({ className = '', collapsed = false, tone = 'dark' }) {
+    const onTheme = tone === 'theme';
     return (
         <div className={`flex items-center gap-2 select-none cursor-pointer group ${className}`}>
             {/* Classy Smartie Emblem with Electric Indigo Glow */}
@@ -10,10 +12,10 @@ export default function EventManagerLogo({ className = '', collapsed = false }) 
 
             {!collapsed && (
                 <div className="flex items-center gap-1.5">
-                    <span className="font-black text-lg tracking-tight text-white font-sans uppercase">
+                    <span className={`font-black text-lg tracking-tight font-sans uppercase ${onTheme ? 'text-fg' : 'text-white'}`}>
                         Smartie
                     </span>
-                    <span className="font-mono text-[9px] text-white bg-white/15 border border-white/30 px-2 py-0.5 rounded-full font-bold">
+                    <span className={`font-mono text-[9px] px-2 py-0.5 rounded-full font-bold border ${onTheme ? 'text-fg bg-surface-2 border-border' : 'text-white bg-white/15 border-white/30'}`}>
                         PRO
                     </span>
                 </div>

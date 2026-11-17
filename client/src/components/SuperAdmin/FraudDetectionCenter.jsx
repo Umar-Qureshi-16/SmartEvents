@@ -106,7 +106,7 @@ const FraudDetectionCenter = ({ risks = [], onGovern, busyId }) => {
                                                         disabled={isBusy}
                                                         onClick={() => onGovern?.(risk.userId, 'reinstate', risk.name)}
                                                         aria-label={`Reinstate ${risk.name}`}
-                                                        className="px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40"
+                                                        className="px-3 py-2 rounded-lg bg-emerald-500/10 text-success border border-emerald-500/20 hover:bg-emerald-500/20 transition-all text-[10px] font-bold flex items-center gap-1.5 disabled:opacity-40"
                                                     >
                                                         {isBusy ? <Loader2 size={12} className="animate-spin" /> : <Undo2 size={12} />} Reinstate
                                                     </button>
@@ -154,7 +154,7 @@ const getRiskBorder = (cls) => {
     if (cls === 'CRITICAL') return 'border-rose-500/50 text-rose-400 bg-rose-500/10';
     if (cls === 'HIGH') return 'border-amber-500/50 text-amber-400 bg-amber-500/10';
     if (cls === 'MODERATE') return 'border-amber-400/40 text-amber-300 bg-amber-400/10';
-    return 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10';
+    return 'border-emerald-500/50 text-success bg-emerald-500/10';
 };
 
 const getScoreColor = (score) => {

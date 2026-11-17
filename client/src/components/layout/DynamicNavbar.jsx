@@ -129,7 +129,6 @@ export default function DynamicNavbar({ user, onLogout }) {
     const location = useLocation();
     const { socket } = useWebSockets();
 
-    const [isHovered, setIsHovered] = useState(false);
     const [activeSubmenu, setActiveSubmenu] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
@@ -200,23 +199,17 @@ export default function DynamicNavbar({ user, onLogout }) {
         };
     }, []);
 
-    const expanded = isHovered || mobileMenuOpen;
+    // The bar always shows its links. It used to shrink to a 150px "MENU" pill that
+    // only opened on hover, which hid navigation from touch and keyboard users.
+    const expanded = true;
 
     return (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full px-4 flex justify-center pointer-events-none">
             <motion.div
                 ref={containerRef}
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => {
-                    setIsHovered(false);
-                    setProfileOpen(false);
-                    setNotificationOpen(false);
-                    setActiveSubmenu(null);
-                }}
-                // Keyboard users never trigger mouseenter, so expand on focus too.
-                onFocusCapture={() => setIsHovered(true)}
+                onMouseLeave={() => setActiveSubmenu(null)}
                 animate={{
-                    width: expanded ? 'min(1150px, 94vw)' : '150px',
+                    width: 'min(1150px, 94vw)',
                     borderRadius: mobileMenuOpen ? '28px' : '9999px',
                 }}
                 transition={{ type: 'spring', stiffness: 350, damping: 30 }}
@@ -226,13 +219,6 @@ export default function DynamicNavbar({ user, onLogout }) {
                     <Link to="/" className="shrink-0" aria-label="SmartEvents home">
                         <EventManagerLogo collapsed={!expanded} />
                     </Link>
-
-                    {!expanded && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 select-none">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" aria-hidden="true" />
-                            <span className="text-white font-black text-xs uppercase tracking-widest">Menu</span>
-                        </motion.div>
-                    )}
 
                     {/* ---------- Desktop links ---------- */}
                     <AnimatePresence>
@@ -250,7 +236,7 @@ export default function DynamicNavbar({ user, onLogout }) {
                                     const submenuOpen = activeSubmenu === idx;
 
                                     return (
-                                        <div key={link.path} className="relative" onMouseEnter={() => setActiveSubmenu(idx)}>
+                                        <div key={link.path} className="relative" onMouseEnter={() => setActiveSubmenu(idx)} onFocus={() => setActiveSubmenu(idx)}>
                                             <Link
                                                 to={link.path}
                                                 aria-current={isActive ? 'page' : undefined}
@@ -450,17 +436,6 @@ export default function DynamicNavbar({ user, onLogout }) {
                         )}
                     </AnimatePresence>
 
-                    {/* Collapsed state still needs a way into the menu on mobile. */}
-                    {!expanded && (
-                        <button
-                            type="button"
-                            onClick={() => setMobileMenuOpen(true)}
-                            aria-label="Open menu"
-                            className="lg:hidden p-1.5 rounded-full bg-white/10 border border-white/20 shrink-0"
-                        >
-                            <MenuIcon size={18} />
-                        </button>
-                    )}
                 </div>
 
                 {/* ---------- Mobile menu ---------- */}

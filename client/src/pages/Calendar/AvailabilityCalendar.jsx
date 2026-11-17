@@ -175,7 +175,7 @@ export default function AvailabilityCalendar() {
                                                     Blocked
                                                 </span>
                                             ) : (
-                                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100/50 text-emerald-700 w-fit uppercase">
+                                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-success/15 text-success w-fit uppercase">
                                                     Free
                                                 </span>
                                             )}

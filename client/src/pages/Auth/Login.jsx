@@ -31,14 +31,14 @@ function Login({ onLoginSuccess }) {
             email: 'superadmin@smartevents.com',
             password: 'password123',
             icon: ShieldCheck,
-            color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+            color: 'bg-emerald-500/20 text-success border-emerald-500/30'
         },
         {
             role: 'Admin',
             email: 'admin@smartevents.com',
             password: 'password123',
             icon: Building2,
-            color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+            color: 'bg-indigo-500/20 text-brand border-indigo-500/30'
         },
         {
             role: 'Provider',
@@ -154,7 +154,7 @@ function Login({ onLoginSuccess }) {
             <div className="max-w-md w-full space-y-8">
                 <div className="text-center space-y-3">
                     <div className="flex justify-center mb-2">
-                        <EventManagerLogo />
+                        <EventManagerLogo tone="theme" />
                     </div>
                     <h2 className="text-3xl font-black tracking-tight text-fg">Sign in to Smartie</h2>
                     <p className="text-xs text-muted font-medium">Access your reverse bids, events, and payment escrow dashboard</p>

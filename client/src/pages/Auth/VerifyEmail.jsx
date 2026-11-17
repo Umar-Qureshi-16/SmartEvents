@@ -103,14 +103,14 @@ const VerifyEmail = () => {
             >
                 <div className="text-center mb-6">
                     <div className="flex justify-center mb-3">
-                        <EventManagerLogo />
+                        <EventManagerLogo tone="theme" />
                     </div>
                 </div>
 
                 <div className="glass p-8 md:p-10 rounded-[2.5rem] border border-white/10 space-y-6 text-center shadow-2xl relative overflow-hidden bg-surface/50 backdrop-blur-xl">
                     {status === 'verifying' && (
                         <div className="space-y-4 py-8">
-                            <Loader2 className="w-14 h-14 text-brand animate-spin mx-auto text-emerald-400" />
+                            <Loader2 className="w-14 h-14 text-brand animate-spin mx-auto text-success" />
                             <h2 className="text-2xl font-bold tracking-tight text-fg">Verifying your email...</h2>
                             <p className="text-sm text-muted">Please hold on while we validate your credentials.</p>
                         </div>
@@ -118,7 +118,7 @@ const VerifyEmail = () => {
 
                     {status === 'success' && (
                         <div className="space-y-5 py-4">
-                            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+                            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-success flex items-center justify-center mx-auto border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
                                 <CheckCircle2 className="w-8 h-8" />
                             </div>
                             <div>
@@ -171,7 +171,7 @@ const VerifyEmail = () => {
                                     </button>
                                 </form>
                                 {resendSuccess && (
-                                    <p className="text-xs text-emerald-400 mt-2 font-medium">{resendSuccess}</p>
+                                    <p className="text-xs text-success mt-2 font-medium">{resendSuccess}</p>
                                 )}
                             </div>
 

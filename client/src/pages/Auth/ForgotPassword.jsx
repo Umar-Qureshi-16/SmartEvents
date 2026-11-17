@@ -78,7 +78,7 @@ const ForgotPassword = () => {
                     )}
 
                     {success && (
-                        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-emerald-400 text-xs font-bold">
+                        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-success text-xs font-bold">
                             <CheckCircle2 size={16} />
                             {success}
                         </div>

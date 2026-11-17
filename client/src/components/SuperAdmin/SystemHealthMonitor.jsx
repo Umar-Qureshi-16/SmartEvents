@@ -24,7 +24,7 @@ const SystemHealthMonitor = ({ health = {}, samples = [] }) => {
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="text-sm font-bold text-fg uppercase tracking-widest flex items-center gap-2">
-                        <Activity className="text-emerald-400" size={18} /> Operational Vitals
+                        <Activity className="text-success" size={18} /> Operational Vitals
                     </h3>
                     <p className="text-[10px] text-muted mt-1">
                         {health.environment ? `${health.environment} · Node ${health.nodeVersion}` : 'Awaiting first sample…'}
@@ -33,7 +33,7 @@ const SystemHealthMonitor = ({ health = {}, samples = [] }) => {
                 <span
                     className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
                         healthy
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 animate-pulse'
+                            ? 'bg-emerald-500/10 text-success border-emerald-500/20 animate-pulse'
                             : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                     }`}
                 >
@@ -47,21 +47,21 @@ const SystemHealthMonitor = ({ health = {}, samples = [] }) => {
                     label="API Latency"
                     value={health.latencyMs != null ? `${health.latencyMs}ms` : '—'}
                     status={health.latencyMs == null ? 'UNKNOWN' : health.latencyMs < 150 ? 'OPTIMAL' : 'SLOW'}
-                    tone={health.latencyMs != null && health.latencyMs < 150 ? 'text-emerald-400' : 'text-amber-400'}
+                    tone={health.latencyMs != null && health.latencyMs < 150 ? 'text-success' : 'text-amber-400'}
                 />
                 <HealthCard
                     icon={<Cpu size={14} />}
                     label="Heap Used"
                     value={health.memory ? `${health.memory.heapUsedMb} MB` : '—'}
                     status={health.memory ? `OF ${health.memory.heapTotalMb} MB` : 'UNKNOWN'}
-                    tone="text-indigo-400"
+                    tone="text-brand"
                 />
                 <HealthCard
                     icon={<Database size={14} />}
                     label="Database"
                     value={dbUp ? 'Connected' : (health.database || 'Unknown')}
                     status={`UP ${formatUptime(health.uptimeSeconds)}`}
-                    tone={dbUp ? 'text-emerald-400' : 'text-rose-400'}
+                    tone={dbUp ? 'text-success' : 'text-rose-400'}
                 />
             </div>
 

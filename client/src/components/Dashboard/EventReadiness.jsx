@@ -64,7 +64,7 @@ const EventReadiness = ({ booking }) => {
                 <div className="flex items-center justify-between mb-6">
                     <p className="text-[10px] uppercase font-bold text-muted tracking-widest">Event Readiness</p>
                     {loading
-                        ? <Loader2 size={16} className="text-indigo-400 animate-spin" />
+                        ? <Loader2 size={16} className="text-brand animate-spin" />
                         : <ShieldCheck size={18} className={`text-${color}-400`} />
                     }
                 </div>
@@ -103,7 +103,7 @@ const EventReadiness = ({ booking }) => {
                     {checks.map((c, i) => (
                         <div key={i} className="flex items-center justify-between py-1">
                             <div className="flex items-center gap-2 text-muted">
-                                <span className={c.status === 'pass' ? 'text-emerald-400' : 'text-muted'}>
+                                <span className={c.status === 'pass' ? 'text-success' : 'text-muted'}>
                                     {CHECK_ICONS[c.label] || <Calendar size={12} />}
                                 </span>
                                 <span className="text-[11px] font-medium">{c.label}</span>

@@ -147,7 +147,7 @@ export default function AdminPanel({ user }) {
                 <button onClick={() => setSelectedUserDrawer(row)} className="p-1.5 rounded-lg bg-surface-2 hover:bg-surface-2 text-fg" title="View Details">
                     <Eye size={14} />
                 </button>
-                <button onClick={() => toggleUserStatus(row._id, row.status)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${row.status === 'active' || row.status === 'Active' ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                <button onClick={() => toggleUserStatus(row._id, row.status)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${row.status === 'active' || row.status === 'Active' ? 'bg-danger/10 text-danger' : 'bg-emerald-100 text-emerald-700'}`}>
                     {row.status === 'active' || row.status === 'Active' ? 'Suspend' : 'Activate'}
                 </button>
             </div>
@@ -255,7 +255,7 @@ export default function AdminPanel({ user }) {
                                                         onClick={() => toggleVerification(vendor._id, vendor.businessDetails?.verified)}
                                                         className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all shadow-sm ${
                                                             vendor.businessDetails?.verified
-                                                                ? 'bg-rose-100 text-rose-600 hover:bg-rose-200'
+                                                                ? 'bg-danger/10 text-danger hover:bg-rose-200'
                                                                 : 'btn-adyen-primary hover:shadow-md'
                                                         }`}
                                                     >

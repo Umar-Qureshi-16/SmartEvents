@@ -2,7 +2,7 @@ import React from 'react';
 import { Users, Star, Lock, Undo2, Loader2 } from 'lucide-react';
 
 const trustTone = (score) => {
-    if (score >= 80) return 'text-emerald-400';
+    if (score >= 80) return 'text-success';
     if (score >= 55) return 'text-amber-400';
     return 'text-rose-400';
 };
@@ -12,7 +12,7 @@ const ProviderGovernance = ({ providers = [], onGovern, busyId }) => (
     <div className="glass p-8 rounded-3xl border-border space-y-8 h-full">
         <div>
             <h3 className="text-xl font-bold text-fg flex items-center gap-2">
-                <Users className="text-indigo-400" size={20} /> Provider Oversight
+                <Users className="text-brand" size={20} /> Provider Oversight
             </h3>
             <p className="text-xs text-muted mt-1">
                 Ranked by trust score — computed from completion rate, ratings, disputes and no-shows
@@ -72,7 +72,7 @@ const ProviderGovernance = ({ providers = [], onGovern, busyId }) => (
                                         type="button"
                                         disabled={isBusy}
                                         onClick={() => onGovern?.(p._id, 'reinstate', p.name)}
-                                        className="flex-1 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-1.5 disabled:opacity-40"
+                                        className="flex-1 py-2 rounded-lg bg-emerald-500/10 text-success text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-1.5 disabled:opacity-40"
                                     >
                                         {isBusy ? <Loader2 size={12} className="animate-spin" /> : <Undo2 size={12} />} Reinstate
                                     </button>

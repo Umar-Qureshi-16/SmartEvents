@@ -203,7 +203,7 @@ export default function SuperAdminDashboard({ user }) {
                 <p className="text-sm text-muted max-w-md">{error}</p>
                 <button
                     onClick={() => loadAll()}
-                    className="px-5 py-3 rounded-xl bg-indigo-500 text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+                    className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2"
                 >
                     <RefreshCw size={14} /> Retry
                 </button>
@@ -217,7 +217,7 @@ export default function SuperAdminDashboard({ user }) {
 
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-brand">
                             Platform Governance
                         </p>
                         <h1 className="text-3xl font-extrabold tracking-tight mt-1">
@@ -239,7 +239,7 @@ export default function SuperAdminDashboard({ user }) {
                     <Kpi icon={Users} label="Total Users" value={(stats.totalUsers ?? 0).toLocaleString()}
                          sub={`${stats.providers ?? 0} providers · ${stats.customers ?? 0} customers`} />
                     <Kpi icon={DollarSign} label="Gross Revenue" value={`$${(stats.revenue ?? 0).toLocaleString()}`}
-                         sub={`${stats.closedDeals ?? 0} closed deals`} tone="text-emerald-400" />
+                         sub={`${stats.closedDeals ?? 0} closed deals`} tone="text-success" />
                     <Kpi icon={UserCheck} label="Active Bookings" value={(stats.activeBookings ?? 0).toLocaleString()}
                          sub="pending, negotiating, confirmed" />
                     <Kpi icon={AlertTriangle} label="Open Disputes" value={(stats.disputes ?? 0).toLocaleString()}
@@ -260,7 +260,7 @@ export default function SuperAdminDashboard({ user }) {
                                 aria-current={active ? 'page' : undefined}
                                 className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap flex items-center gap-2 transition-all border ${
                                     active
-                                        ? 'bg-indigo-500 text-white border-indigo-400 shadow-lg shadow-indigo-500/20'
+                                        ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/20'
                                         : 'bg-fg/5 text-muted border-border hover:bg-fg/10 hover:text-fg'
                                 }`}
                             >

@@ -90,15 +90,16 @@
 
 .category-pill {
     padding: 8px 16px;
-    background: white;
-    border: 1px solid var(--border);
+    background: rgb(var(--surface));
+    color: rgb(var(--fg));
+    border: 1px solid rgb(var(--border));
     border-radius: 50px;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .category-pill.active {
-    background: var(--text-main);
-    color: white;
-    border-color: var(--text-main);
+    background: rgb(var(--brand));
+    color: rgb(var(--surface));
+    border-color: rgb(var(--brand));
 }

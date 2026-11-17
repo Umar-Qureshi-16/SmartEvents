@@ -60,9 +60,9 @@ export default function About() {
             {/* Vision Section */}
             <div className="bg-slate-900 text-white p-8 md:p-12 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-8">
                 <div className="space-y-4 max-w-xl">
-                    <span className="text-xs font-mono font-bold text-success uppercase tracking-widest">OUR VISION</span>
-                    <h2 className="text-3xl font-extrabold tracking-tight text-fg">Trust, Transparency, & Safety</h2>
-                    <p className="text-xs text-muted leading-relaxed font-medium">
+                    <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-widest">OUR VISION</span>
+                    <h2 className="text-3xl font-extrabold tracking-tight text-white">Trust, Transparency, & Safety</h2>
+                    <p className="text-xs text-slate-300 leading-relaxed font-medium">
                         By integrating secure escrow payment ledgers and computing dynamic Trust Scores, we ensure every transaction is protected. Funds remain locked in escrow until check-in confirmation or successful event completion.
                     </p>
                 </div>

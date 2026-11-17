@@ -23,7 +23,7 @@ const ReviewCard = ({ review }) => {
                             className="w-8 h-8 rounded-full border border-border object-cover"
                         />
                     ) : (
-                        <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs uppercase">
+                        <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-brand font-bold text-xs uppercase">
                             {(user?.name || 'U').charAt(0)}
                         </div>
                     )}

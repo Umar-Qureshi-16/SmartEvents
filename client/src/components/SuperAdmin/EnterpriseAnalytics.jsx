@@ -17,7 +17,7 @@ const EnterpriseAnalytics = ({ series = [], stats = {}, onExport }) => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h3 className="text-xl font-bold text-fg flex items-center gap-2">
-                        <BarChart3 className="text-indigo-400" size={20} /> Revenue Pipeline
+                        <BarChart3 className="text-brand" size={20} /> Revenue Pipeline
                     </h3>
                     <p className="text-xs text-muted mt-1">
                         Confirmed and completed bookings over the last six months

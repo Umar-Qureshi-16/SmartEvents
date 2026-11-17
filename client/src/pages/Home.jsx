@@ -231,15 +231,15 @@ function Home({ user }) {
                                 className="p-4 bg-slate-900 text-white border border-white/10 rounded-3xl shadow-2xl relative z-10 flex items-center justify-between"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-fg/10 flex items-center justify-center text-success">
+                                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-emerald-400">
                                         <QrCode size={20} />
                                     </div>
                                     <div>
-                                        <span className="text-[10px] font-mono text-muted uppercase font-bold block">GATE PASS TICKET</span>
-                                        <h5 className="text-xs font-bold text-fg">VIP Gala Pass #TKT-9421</h5>
+                                        <span className="text-[10px] font-mono text-slate-300 uppercase font-bold block">GATE PASS TICKET</span>
+                                        <h5 className="text-xs font-bold text-white">VIP Gala Pass #TKT-9421</h5>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/20 border border-success/40 text-success text-[10px] font-mono font-bold">
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/20 border border-success/40 text-emerald-400 text-[10px] font-mono font-bold">
                                     <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                                     <span>VALID ENTRY</span>
                                 </div>
@@ -253,38 +253,38 @@ function Home({ user }) {
             <section ref={statsRef} className="py-16 px-6 bg-slate-900 text-white">
                 <div className="max-w-[1280px] mx-auto grid grid-cols-2 md:grid-cols-5 gap-8 text-center">
                     <div className="space-y-2">
-                        <div className="text-3xl md:text-5xl font-black text-success font-mono">
+                        <div className="text-3xl md:text-5xl font-black text-emerald-400 font-mono">
                             {statsVisible ? '6,200+' : '0'}
                         </div>
-                        <p className="text-xs text-muted font-semibold uppercase">Events Formed</p>
+                        <p className="text-xs text-slate-300 font-semibold uppercase">Events Formed</p>
                     </div>
 
                     <div className="space-y-2">
-                        <div className="text-3xl md:text-5xl font-black text-fg font-mono">
+                        <div className="text-3xl md:text-5xl font-black text-white font-mono">
                             {statsVisible ? '99.98%' : '0%'}
                         </div>
-                        <p className="text-xs text-muted font-semibold uppercase">Uptime Reliability</p>
+                        <p className="text-xs text-slate-300 font-semibold uppercase">Uptime Reliability</p>
                     </div>
 
                     <div className="space-y-2">
-                        <div className="text-3xl md:text-5xl font-black text-success font-mono">
+                        <div className="text-3xl md:text-5xl font-black text-emerald-400 font-mono">
                             {statsVisible ? '1,500+' : '0'}
                         </div>
-                        <p className="text-xs text-muted font-semibold uppercase">Verified Vendors</p>
+                        <p className="text-xs text-slate-300 font-semibold uppercase">Verified Vendors</p>
                     </div>
 
                     <div className="space-y-2">
-                        <div className="text-3xl md:text-5xl font-black text-fg font-mono">
+                        <div className="text-3xl md:text-5xl font-black text-white font-mono">
                             {statsVisible ? '98.6%' : '0%'}
                         </div>
-                        <p className="text-xs text-muted font-semibold uppercase">Check-In Verification</p>
+                        <p className="text-xs text-slate-300 font-semibold uppercase">Check-In Verification</p>
                     </div>
 
                     <div className="space-y-2 col-span-2 md:col-span-1">
-                        <div className="text-3xl md:text-5xl font-black text-success font-mono">
+                        <div className="text-3xl md:text-5xl font-black text-emerald-400 font-mono">
                             {statsVisible ? '$4.5M+' : '$0'}
                         </div>
-                        <p className="text-xs text-muted font-semibold uppercase">Escrow Volume</p>
+                        <p className="text-xs text-slate-300 font-semibold uppercase">Escrow Volume</p>
                     </div>
                 </div>
             </section>
@@ -311,7 +311,7 @@ function Home({ user }) {
                             return (
                                 <div key={idx} className="relative p-6 bg-bg rounded-3xl border border-border/80 space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-3xl font-black text-success/20 font-mono">{item.step}</span>
+                                        <span className="text-3xl font-black text-success/70 font-mono">{item.step}</span>
                                         <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center text-success">
                                             <Icon size={18} />
                                         </div>
@@ -433,25 +433,25 @@ function Home({ user }) {
                 <div className="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                     
                     <div className="lg:col-span-6 space-y-6">
-                        <span className="adyen-badge bg-success/15 text-success border-none font-bold">MEET SMARTIE</span>
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-fg leading-tight">
+                        <span className="adyen-badge bg-emerald-400/15 text-emerald-400 border-none font-bold">MEET SMARTIE</span>
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
                             The Smart AI Concierge
                         </h2>
-                        <p className="text-xs text-muted font-medium leading-relaxed max-w-lg">
+                        <p className="text-xs text-slate-300 font-medium leading-relaxed max-w-lg">
                             Use an AI assistant grounded in your own data to generate comprehensive RFP packages, analyze event budgets, manage vendor packages, and plan your schedules automatically.
                         </p>
 
-                        <div className="space-y-3 font-semibold text-xs text-muted">
+                        <div className="space-y-3 font-semibold text-xs text-slate-300">
                             <div className="flex items-center gap-2">
-                                <Sparkles size={16} className="text-success" />
+                                <Sparkles size={16} className="text-emerald-400" />
                                 <span>Budget constraints and pricing analyzers</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Sparkles size={16} className="text-success" />
+                                <Sparkles size={16} className="text-emerald-400" />
                                 <span>Timeline planner step-by-step generators</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Sparkles size={16} className="text-success" />
+                                <Sparkles size={16} className="text-emerald-400" />
                                 <span>Answers grounded in your live bookings and events</span>
                             </div>
                         </div>
@@ -467,24 +467,24 @@ function Home({ user }) {
 
                     {/* Interactive chat widget teaser */}
                     <div className="lg:col-span-6">
-                        <div className="bg-fg/5 border border-border rounded-3xl p-6 space-y-4 shadow-2xl relative">
-                            <div className="flex items-center gap-2.5 pb-3 border-b border-border">
-                                <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center text-success">
+                        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl relative">
+                            <div className="flex items-center gap-2.5 pb-3 border-b border-white/10">
+                                <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center text-emerald-400">
                                     <Sparkles size={16} />
                                 </div>
                                 <div>
-                                    <h4 className="text-xs font-bold text-fg">Smartie AI Assistant</h4>
-                                    <span className="text-[10px] text-muted font-mono">Agent Status: Active</span>
+                                    <h4 className="text-xs font-bold text-white">Smartie AI Assistant</h4>
+                                    <span className="text-[10px] text-slate-300 font-mono">Agent Status: Active</span>
                                 </div>
                             </div>
 
                             <div className="space-y-3 text-xs leading-relaxed font-semibold">
-                                <div className="bg-fg/5 border border-border p-3 rounded-2xl max-w-[85%] text-muted">
+                                <div className="bg-white/5 border border-white/10 p-3 rounded-2xl max-w-[85%] text-slate-300">
                                     "I need a catering vendor for 300 guests in Chicago with a maximum budget of $4,000."
                                 </div>
                                 <div className="bg-success/10 border border-success/20 p-3 rounded-2xl max-w-[85%] ml-auto text-white space-y-2">
                                     <p>I found 3 verified caterers matching your budget. I can draft an RFP with the following breakdown:</p>
-                                    <ul className="list-disc list-inside text-muted text-[11px] font-mono">
+                                    <ul className="list-disc list-inside text-slate-300 text-[11px] font-mono">
                                         <li>Catering quote: $3,600</li>
                                         <li>Service fee: $200</li>
                                         <li>Remaining margin: $200</li>
@@ -624,47 +624,47 @@ function Home({ user }) {
                 <div className="max-w-[1280px] mx-auto space-y-12">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
                         <div className="space-y-3">
-                            <h4 className="font-bold text-fg text-sm uppercase">Company</h4>
+                            <h4 className="font-bold text-white text-sm uppercase">Company</h4>
                             <ul className="space-y-2">
-                                <li><span onClick={() => navigate('/about')} className="hover:text-fg cursor-pointer">About us</span></li>
-                                <li><span onClick={() => navigate('/contact')} className="hover:text-fg cursor-pointer">Contact support</span></li>
-                                <li><a href="#" className="hover:text-fg">Careers</a></li>
+                                <li><span onClick={() => navigate('/about')} className="hover:text-white cursor-pointer">About us</span></li>
+                                <li><span onClick={() => navigate('/contact')} className="hover:text-white cursor-pointer">Contact support</span></li>
+                                <li><a href="#" className="hover:text-white">Careers</a></li>
                             </ul>
                         </div>
 
                         <div className="space-y-3">
-                            <h4 className="font-bold text-fg text-sm uppercase">Features</h4>
+                            <h4 className="font-bold text-white text-sm uppercase">Features</h4>
                             <ul className="space-y-2">
-                                <li><span onClick={() => navigate('/vendors')} className="hover:text-fg cursor-pointer">Marketplace</span></li>
-                                <li><span onClick={() => navigate('/ai-concierge')} className="hover:text-fg cursor-pointer">AI Concierge</span></li>
-                                <li><span onClick={() => navigate('/staff/scanner')} className="hover:text-fg cursor-pointer">QR Scanner Gate</span></li>
+                                <li><span onClick={() => navigate('/vendors')} className="hover:text-white cursor-pointer">Marketplace</span></li>
+                                <li><span onClick={() => navigate('/ai-concierge')} className="hover:text-white cursor-pointer">AI Concierge</span></li>
+                                <li><span onClick={() => navigate('/staff/scanner')} className="hover:text-white cursor-pointer">QR Scanner Gate</span></li>
                             </ul>
                         </div>
 
                         <div className="space-y-3">
-                            <h4 className="font-bold text-fg text-sm uppercase">Ecosystem</h4>
+                            <h4 className="font-bold text-white text-sm uppercase">Ecosystem</h4>
                             <ul className="space-y-2">
-                                <li><span onClick={() => navigate('/tickets')} className="hover:text-fg cursor-pointer">Dynamic passes</span></li>
-                                <li><span onClick={() => navigate('/revenue')} className="hover:text-fg cursor-pointer">Escrow settlements</span></li>
-                                <li><span onClick={() => navigate('/calendar')} className="hover:text-fg cursor-pointer">Availability schedules</span></li>
+                                <li><span onClick={() => navigate('/tickets')} className="hover:text-white cursor-pointer">Dynamic passes</span></li>
+                                <li><span onClick={() => navigate('/revenue')} className="hover:text-white cursor-pointer">Escrow settlements</span></li>
+                                <li><span onClick={() => navigate('/calendar')} className="hover:text-white cursor-pointer">Availability schedules</span></li>
                             </ul>
                         </div>
 
                         <div className="space-y-3">
-                            <h4 className="font-bold text-fg text-sm uppercase">Admin Panel</h4>
+                            <h4 className="font-bold text-white text-sm uppercase">Admin Panel</h4>
                             <ul className="space-y-2">
-                                <li><span onClick={() => navigate('/admin/users')} className="hover:text-fg cursor-pointer">Users & Platform</span></li>
+                                <li><span onClick={() => navigate('/admin/users')} className="hover:text-white cursor-pointer">Users & Platform</span></li>
                             </ul>
                         </div>
 
                         <div className="space-y-4 col-span-2 md:col-span-1">
-                            <h4 className="font-bold text-fg text-sm uppercase">Platform Notifications</h4>
+                            <h4 className="font-bold text-white text-sm uppercase">Platform Notifications</h4>
                             <p className="text-[11px]">Keep track of escrow releases and RFP bids.</p>
                             <div className="flex gap-2">
                                 <input
                                     type="email"
                                     placeholder="Work email"
-                                    className="bg-surface-2 border border-border rounded-full px-3.5 py-2 text-xs text-fg placeholder-slate-500 outline-none w-full"
+                                    className="bg-white/10 border border-white/20 rounded-full px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none w-full"
                                 />
                                 <button className="p-2 bg-success text-white rounded-full"
                                 aria-label="Subscribe">
@@ -674,7 +674,7 @@ function Home({ user }) {
                         </div>
                     </div>
 
-                    <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px]">
+                    <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px]">
                         <div>© 2026 SmartEvents Enterprise Ecosystem. All rights reserved.</div>
                         <div className="flex items-center gap-4">
                             <span>Global Network</span>

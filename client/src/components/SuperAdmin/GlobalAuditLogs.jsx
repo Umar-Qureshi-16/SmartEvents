@@ -21,7 +21,7 @@ const GlobalAuditLogs = ({ logs = [] }) => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h3 className="text-xl font-bold text-fg flex items-center gap-2">
-                        <Database className="text-emerald-400" size={20} /> Audit Ledger
+                        <Database className="text-success" size={20} /> Audit Ledger
                     </h3>
                     <p className="text-xs text-muted mt-1">
                         Every governance action, with actor and timestamp
@@ -82,7 +82,7 @@ const GlobalAuditLogs = ({ logs = [] }) => {
                                     <Clock size={10} aria-hidden="true" />
                                     {new Date(log.createdAt).toLocaleString()}
                                 </p>
-                                <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-tighter mt-0.5">
+                                <p className="text-[10px] text-brand font-bold uppercase tracking-tighter mt-0.5">
                                     {log.actor?.name || 'System'}
                                 </p>
                             </div>

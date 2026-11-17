@@ -80,7 +80,7 @@ const ResetPassword = () => {
                     )}
 
                     {success && (
-                        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-emerald-400 text-xs font-bold">
+                        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-success text-xs font-bold">
                             <CheckCircle2 size={16} />
                             {success}
                         </div>
@@ -91,7 +91,7 @@ const ResetPassword = () => {
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2 px-1">
-                                        <Lock size={12} className="text-indigo-400" /> New Secure Token
+                                        <Lock size={12} className="text-brand" /> New Secure Token
                                     </label>
                                     <PasswordField
                                         value={newPassword}
@@ -104,7 +104,7 @@ const ResetPassword = () => {
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2 px-1">
-                                        <Lock size={12} className="text-indigo-400" /> Confirm Token
+                                        <Lock size={12} className="text-brand" /> Confirm Token
                                     </label>
                                     <PasswordField
                                         value={confirmPassword}

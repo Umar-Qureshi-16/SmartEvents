@@ -169,7 +169,7 @@ const EventDetail = () => {
                                 </div>
                             )}
                             <div className="absolute top-8 left-8 bg-fg/60 backdrop-blur-xl border border-border px-6 py-2 rounded-2xl">
-                                <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">{event.category}</span>
+                                <span className="text-[10px] font-black uppercase text-brand tracking-widest">{event.category}</span>
                             </div>
                         </div>
 
@@ -207,7 +207,7 @@ const EventDetail = () => {
                         <div className="p-8 glass rounded-3xl border-border bg-surface/[0.02] space-y-4">
                             <div className="flex justify-between items-center pb-3 border-b border-border">
                                 <div>
-                                    <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest block">EVENT PROVIDER</span>
+                                    <span className="text-[10px] font-black uppercase text-brand tracking-widest block">EVENT PROVIDER</span>
                                     <span className="text-base font-bold text-fg">{event.createdBy?.name || 'Verified Provider'}</span>
                                     <span className="text-xs text-muted block">{event.createdBy?.email}</span>
                                 </div>
@@ -331,7 +331,7 @@ const EventDetail = () => {
 
                             <div className="flex justify-between items-center bg-fg/5 p-4 rounded-2xl mb-6 border border-border">
                                 <div>
-                                    <p className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Base Rate</p>
+                                    <p className="text-[10px] font-black uppercase text-brand tracking-widest">Base Rate</p>
                                     <p className="text-2xl font-black text-fg">${event.price}</p>
                                 </div>
                             </div>
@@ -340,7 +340,7 @@ const EventDetail = () => {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-muted tracking-widest ml-1">Your Offer Price</label>
                                     <div className="relative">
-                                        <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" />
+                                        <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" />
                                         <input
                                             type="number"
                                             value={offerPrice}
@@ -382,7 +382,7 @@ const EventDetail = () => {
 
 const Stat = ({ label, value, icon }) => (
     <div className="glass p-5 rounded-3xl border-border text-center flex flex-col items-center gap-2">
-        <div className="text-indigo-400">{icon}</div>
+        <div className="text-brand">{icon}</div>
         <div>
             <p className="text-[8px] font-black text-muted uppercase tracking-widest">{label}</p>
             <p className="text-sm font-black text-fg">{value}</p>

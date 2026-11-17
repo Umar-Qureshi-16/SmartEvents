@@ -175,7 +175,7 @@ const NegotiationPage = () => {
     if (!booking) return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-ink text-fg">
             <h2 className="text-2xl font-bold mb-4">Booking not found</h2>
-            <button onClick={() => navigate(-1)} className="text-indigo-400 hover:text-indigo-300">Go Back</button>
+            <button onClick={() => navigate(-1)} className="text-brand hover:text-indigo-300">Go Back</button>
         </div>
     );
 
@@ -268,7 +268,7 @@ const NegotiationPage = () => {
                                     className={`flex w-full ${isCustomerMsg ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div className={`max-w-[80%] md:max-w-[60%] flex flex-col ${isCustomerMsg ? 'items-end' : 'items-start'}`}>
-                                        <div className={`text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2 ${isCustomerMsg ? 'text-indigo-400' : 'text-muted'}`}>
+                                        <div className={`text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2 ${isCustomerMsg ? 'text-brand' : 'text-muted'}`}>
                                             {isCustomerMsg ? 'Customer' : 'Provider'}
                                             <span className="text-muted font-normal">
                                                 {new Date(item.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -280,7 +280,7 @@ const NegotiationPage = () => {
                                             }`}>
                                             <div className="flex items-center gap-3 border-b border-border pb-3">
                                                 <div className="flex bg-fg/40 px-3 py-1.5 rounded-xl items-center gap-1.5">
-                                                    <DollarSign size={14} className={isCustomerMsg ? "text-indigo-400" : "text-white"} />
+                                                    <DollarSign size={14} className={isCustomerMsg ? "text-brand" : "text-white"} />
                                                     <span className="text-lg font-black">{item.price}</span>
                                                 </div>
                                                 <span className={`text-[9px] px-2 py-1 rounded-md uppercase font-bold tracking-widest ${item.action === 'accepted' ? 'bg-emerald/20 text-emerald' :
@@ -311,7 +311,7 @@ const NegotiationPage = () => {
                             <div className="md:col-span-1 space-y-2">
                                 <label className="text-[10px] font-black uppercase text-muted tracking-widest ml-1">Counter Price</label>
                                 <div className="relative">
-                                    <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" />
+                                    <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" />
                                     <input
                                         type="number"
                                         value={counterPrice}

@@ -58,9 +58,9 @@ const DisputeResolutionCenter = ({ disputes = [], onResolve, busyId }) => {
                                                 Case <span className="font-mono">{d._id}</span> · {money(d.offerPrice)}
                                             </p>
                                             <p className="text-xs text-muted mt-2">
-                                                <span className="text-indigo-400 font-semibold">{d.customerId?.name || 'Customer'}</span>
+                                                <span className="text-brand font-semibold">{d.customerId?.name || 'Customer'}</span>
                                                 {' vs '}
-                                                <span className="text-emerald-400 font-semibold">{d.vendorId?.name || 'Provider'}</span>
+                                                <span className="text-success font-semibold">{d.vendorId?.name || 'Provider'}</span>
                                                 {d.vendorId?.trustScore != null && (
                                                     <span className="text-muted"> · provider trust {d.vendorId.trustScore}</span>
                                                 )}
