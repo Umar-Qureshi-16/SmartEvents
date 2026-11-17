@@ -9,6 +9,11 @@ const Event = require('../models/Event');
 const Booking = require('../models/Booking');
 const Ticket = require('../models/Ticket');
 const VendorProfile = require('../models/VendorProfile');
+
+// Demo dates are written relative to September 2025 and shifted so that month
+// lands on today: completed work stays in the past and upcoming events stay ahead.
+const DATE_ANCHOR = new Date('2025-09-01').getTime();
+const shift = (iso) => new Date(new Date(iso).getTime() + (Date.now() - DATE_ANCHOR));
 const Service = require('../models/Service');
 const Review = require('../models/Review');
 
@@ -183,38 +188,45 @@ async function seedData() {
 
         // 3. Create Diverse Events
         const events = await Event.insertMany([
-            { title: 'Grand Royal Wedding', price: 8500, description: 'Luxury 5-star venue with full decor.', category: 'Wedding', date: new Date('2025-09-10'), location: 'Pearl Continental, Lahore', createdBy: provider._id, status: 'upcoming' },
-            { title: 'Corporate Tech Summit', price: 4500, description: 'High-speed internet, AV, and buffet.', category: 'Corporate', date: new Date('2025-10-05'), location: 'Marriott, Islamabad', createdBy: provider._id, status: 'upcoming' },
-            { title: 'Neon Birthday Party', price: 1500, description: 'DJ, neon lights, and themed cake.', category: 'Birthday', date: new Date('2025-11-20'), location: 'Garden Town, Lahore', createdBy: provider._id, status: 'upcoming' },
-            { title: 'Minimalist Nikkah', price: 3000, description: 'Elegant and simple setup for 50 guests.', category: 'Wedding', date: new Date('2025-08-15'), location: 'Badshahi Mosque, Lahore', createdBy: provider._id, status: 'upcoming' },
-            { title: 'Executive Workshop', price: 2000, description: 'Intimate setting for 20 professionals.', category: 'Corporate', date: new Date('2025-12-01'), location: 'DHA, Lahore', createdBy: provider._id, status: 'upcoming' }
+            { title: 'Grand Royal Wedding', price: 8500, description: 'Luxury 5-star venue with full decor.', category: 'Wedding', date: shift('2025-09-10'), location: 'Pearl Continental, Lahore', createdBy: provider._id, status: 'upcoming' },
+            { title: 'Corporate Tech Summit', price: 4500, description: 'High-speed internet, AV, and buffet.', category: 'Corporate', date: shift('2025-10-05'), location: 'Marriott, Islamabad', createdBy: provider._id, status: 'upcoming' },
+            { title: 'Neon Birthday Party', price: 1500, description: 'DJ, neon lights, and themed cake.', category: 'Birthday', date: shift('2025-11-20'), location: 'Garden Town, Lahore', createdBy: provider._id, status: 'upcoming' },
+            { title: 'Minimalist Nikkah', price: 3000, description: 'Elegant and simple setup for 50 guests.', category: 'Wedding', date: shift('2025-08-15'), location: 'Badshahi Mosque, Lahore', createdBy: provider._id, status: 'upcoming' },
+            { title: 'Executive Workshop', price: 2000, description: 'Intimate setting for 20 professionals.', category: 'Corporate', date: shift('2025-12-01'), location: 'DHA, Lahore', createdBy: provider._id, status: 'upcoming' }
         ]);
 
         // 4. Detailed Booking History (12 Bookings)
         const bookingsData = [
             // Past/Completed (Revenue impact)
-            { customerId: customer1._id, eventId: events[0]._id, status: 'completed', amount: 8500, date: new Date('2025-01-10'), type: 'wedding' },
-            { customerId: customer2._id, eventId: events[1]._id, status: 'completed', amount: 4500, date: new Date('2025-02-15'), type: 'corporate' },
-            { customerId: customer3._id, eventId: events[2]._id, status: 'completed', amount: 1500, date: new Date('2025-03-05'), type: 'birthday' },
-            { customerId: customer1._id, eventId: events[4]._id, status: 'completed', amount: 2000, date: new Date('2025-03-20'), type: 'corporate' },
+            { customerId: customer1._id, eventId: events[0]._id, status: 'completed', amount: 8500, date: shift('2025-01-10'), type: 'wedding' },
+            { customerId: customer2._id, eventId: events[1]._id, status: 'completed', amount: 4500, date: shift('2025-02-15'), type: 'corporate' },
+            { customerId: customer3._id, eventId: events[2]._id, status: 'completed', amount: 1500, date: shift('2025-03-05'), type: 'birthday' },
+            { customerId: customer1._id, eventId: events[4]._id, status: 'completed', amount: 2000, date: shift('2025-03-20'), type: 'corporate' },
 
             // Current/Confirmed (Pipeline impact)
-            { customerId: customer2._id, eventId: events[0]._id, status: 'confirmed', amount: 8000, date: new Date('2025-06-15'), type: 'wedding' },
-            { customerId: customer3._id, eventId: events[3]._id, status: 'confirmed', amount: 3000, date: new Date('2025-07-01'), type: 'wedding' },
+            { customerId: customer2._id, eventId: events[0]._id, status: 'confirmed', amount: 8000, date: shift('2025-06-15'), type: 'wedding' },
+            { customerId: customer3._id, eventId: events[3]._id, status: 'confirmed', amount: 3000, date: shift('2025-07-01'), type: 'wedding' },
 
             // New Leads/Pending
-            { customerId: customer1._id, eventId: events[2]._id, status: 'pending', amount: 1500, date: new Date('2025-11-20'), type: 'birthday', msg: 'Need a Spiderman theme!' },
-            { customerId: customer2._id, eventId: events[4]._id, status: 'pending', amount: 2000, date: new Date('2025-12-01'), type: 'corporate', msg: 'Projector is a must.' },
-            { customerId: customer3._id, eventId: events[1]._id, status: 'pending', amount: 4500, date: new Date('2025-10-05'), type: 'corporate', msg: '50 delegates expected.' },
+            { customerId: customer1._id, eventId: events[2]._id, status: 'pending', amount: 1500, date: shift('2025-11-20'), type: 'birthday', msg: 'Need a Spiderman theme!' },
+            { customerId: customer2._id, eventId: events[4]._id, status: 'pending', amount: 2000, date: shift('2025-12-01'), type: 'corporate', msg: 'Projector is a must.' },
+            { customerId: customer3._id, eventId: events[1]._id, status: 'pending', amount: 4500, date: shift('2025-10-05'), type: 'corporate', msg: '50 delegates expected.' },
 
             // Rejected/Canceled
-            { customerId: customer1._id, eventId: events[0]._id, status: 'cancelled', amount: 9000, date: new Date('2025-09-10'), type: 'wedding' },
-            { customerId: customer2._id, eventId: events[2]._id, status: 'cancelled', amount: 1500, date: new Date('2025-11-20'), type: 'birthday' }
+            { customerId: customer1._id, eventId: events[0]._id, status: 'cancelled', amount: 9000, date: shift('2025-09-10'), type: 'wedding' },
+            { customerId: customer2._id, eventId: events[2]._id, status: 'cancelled', amount: 1500, date: shift('2025-11-20'), type: 'birthday' }
         ];
 
         console.log('Creating 11 dynamic bookings...');
         for (const data of bookingsData) {
-            const bookingStatus = data.status === 'completed' ? 'confirmed' : data.status;
+            const bookingStatus = data.status;
+            // Mirror the real lifecycle: confirmed work is held in (simulated) escrow,
+            // completed work has been released to the provider.
+            const escrow = data.status === 'completed'
+                ? { status: 'released', amount: data.amount, heldAt: data.date, settledAt: data.date }
+                : data.status === 'confirmed'
+                    ? { status: 'held', amount: data.amount, heldAt: new Date() }
+                    : { status: 'none' };
 
             const booking = await Booking.create({
                 customerId: data.customerId,
@@ -228,7 +240,15 @@ async function seedData() {
                     message: data.msg || 'Automatic system seed entry.'
                 },
                 status: bookingStatus,
-                offerPrice: data.amount
+                offerPrice: data.amount,
+                escrow,
+                negotiationHistory: [{
+                    price: data.amount,
+                    message: data.msg || 'Opening offer.',
+                    action: 'offer',
+                    offeredBy: data.customerId,
+                    timestamp: data.date
+                }]
             });
 
             // If confirmed or completed, generate a ticket

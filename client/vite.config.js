@@ -15,6 +15,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // Tests assert the same-origin default; a developer's client/.env must not change it.
+    env: { VITE_API_URL: '' },
     setupFiles: ['./src/test/setup.js'],
     include: ['src/**/*.test.{js,jsx}'],
   },

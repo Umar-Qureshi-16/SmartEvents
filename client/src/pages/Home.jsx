@@ -55,7 +55,7 @@ function Home({ user }) {
         { q: "How does InDrive-style negotiation work on SmartEvents?", a: "When you post an event RFP or book a service package, you specify your budget or target offer price. The vendor can accept the offer immediately or counter with their proposed price. You both can exchange counter-offers in real-time until a mutual price is agreed upon and locked in escrow." },
         { q: "What is the Escrow Budget protection?", a: "Once you accept a vendor's counter-offer, the final price is deposited into the SmartEvents Escrow Ledger. The funds are securely held and are only released to the vendor's bank payout account once the event is marked as successfully completed or checked in." },
         { q: "How does the mobile staff QR Scanner gate work?", a: "Attendees receive dynamic, encrypted PDF gate passes via email and their ticket wallet. At the event entrance, staff scan these tickets using `/staff/scanner`. The terminal verifies check-in status instantly from the database and prevents duplicate entry fraud." },
-        { q: "What does the AI Concierge do?", a: "Smartie, your AI Concierge, uses advanced RAG models to help you analyze event budgets, generate comprehensive RFP requirements from simple prompts, compare vendor service packages, and plan your event timelines step-by-step." }
+        { q: "What does the AI Concierge do?", a: "Smartie, your AI Concierge, uses a large language model, fed with your live platform data, to help you analyze event budgets, generate comprehensive RFP requirements from simple prompts, compare vendor service packages, and plan your event timelines step-by-step." }
     ];
 
     const categories = [
@@ -303,7 +303,7 @@ function Home({ user }) {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                         {[
                             { step: '01', title: 'Publish Event RFP', body: 'Hosts outline their requirements, location, estimated guest capacity, and initial budget parameters.', icon: Calendar },
-                            { step: '02', title: 'AI Concierge RAG Analysis', body: 'Our smart agent analyzes requirements, generates matching recommendations, and scopes realistic budgets.', icon: Sparkles },
+                            { step: '02', title: 'AI Concierge Analysis', body: 'Our smart agent analyzes requirements, generates matching recommendations, and scopes realistic budgets.', icon: Sparkles },
                             { step: '03', title: 'InDrive-Style Bidding', body: 'Negotiate pricing in real-time. Make counter-offers directly to vendors until both sides lock in the ideal price.', icon: DollarSign },
                             { step: '04', title: 'Escrow & QR Gate Passes', body: 'Funds are secured in escrow. Attendee tickets generate dynamic QR passes validated at gate terminals.', icon: QrCode }
                         ].map((item, idx) => {
@@ -438,7 +438,7 @@ function Home({ user }) {
                             The Smart AI Concierge
                         </h2>
                         <p className="text-xs text-muted font-medium leading-relaxed max-w-lg">
-                            Harness dynamic RAG models to generate comprehensive RFP packages, analyze event budgets, manage vendor packages, and plan your schedules automatically.
+                            Use an AI assistant grounded in your own data to generate comprehensive RFP packages, analyze event budgets, manage vendor packages, and plan your schedules automatically.
                         </p>
 
                         <div className="space-y-3 font-semibold text-xs text-muted">
@@ -452,7 +452,7 @@ function Home({ user }) {
                             </div>
                             <div className="flex items-center gap-2">
                                 <Sparkles size={16} className="text-success" />
-                                <span>Vector-backed similar documents search</span>
+                                <span>Answers grounded in your live bookings and events</span>
                             </div>
                         </div>
 

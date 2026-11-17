@@ -9,7 +9,7 @@
     "seed": "node scripts/seedData.js",
     "seed:superadmin": "node scripts/seedSuperAdmin.js",
     "test:e2e": "node tests/e2e.js",
-    "test": "cross-env NODE_ENV=test JWT_SECRET=test-secret-for-automated-tests-only MONGODB_URI=mongodb://127.0.0.1:27017/test jest --runInBand",
+    "test": "cross-env NODE_ENV=test JWT_SECRET=test-secret-for-automated-tests-only MONGODB_URI=mongodb://127.0.0.1:27017/test ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174 CLIENT_URL=http://localhost:5173 jest --runInBand",
     "test:watch": "npm test -- --watch",
     "test:coverage": "npm test -- --coverage"
   },

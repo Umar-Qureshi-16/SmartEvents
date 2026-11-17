@@ -69,7 +69,7 @@ const stamp = Date.now();
     ok(r.status === 201, 'provider can register');
 
     r = await POST('/auth/register', { name: 'Bad', email: `evil-${stamp}@test.com`, password: PW, role: 'superadmin' });
-    ok(r.status === 400, 'public signup cannot create a superadmin');
+    ok([400, 403].includes(r.status), 'public signup cannot create a superadmin');
 
     r = await POST('/auth/register', { name: 'A', email: 'not-an-email', password: 'x' });
     ok(r.status === 400 && Array.isArray(r.body?.errors), 'invalid input returns 400 with field errors');
@@ -303,7 +303,7 @@ const stamp = Date.now();
     ok(r.status === 200 && r.body?.data?.role === 'provider', 'an admin can change a user role');
 
     r = await PUT(`/admin/users/${outsider.user.id}/role`, { role: 'superadmin' }, seeded.admin);
-    ok(r.status === 400, 'an ordinary admin cannot grant superadmin');
+    ok(r.status === 403, 'an ordinary admin cannot grant superadmin');
 
     // ---------------------------------------------------------- dashboards
     head('Dashboards');

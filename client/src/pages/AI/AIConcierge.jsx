@@ -161,7 +161,7 @@ export default function AIConcierge() {
                     <h1 className="text-3xl md:text-4xl font-black tracking-tight text-fg">
                         AI Event Planner Workspace
                     </h1>
-                    <p className="text-xs text-muted font-medium">Use advanced RAG models to research requirements, build specifications, and plan schedules.</p>
+                    <p className="text-xs text-muted font-medium">Ask questions about your own bookings and events, build specifications, and plan schedules.</p>
                 </div>
 
                 <div className="flex items-center gap-2 bg-surface-2 p-1 rounded-full text-xs font-bold uppercase shrink-0">
@@ -174,7 +174,7 @@ export default function AIConcierge() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Main Action area */}
                 <div className="lg:col-span-8 space-y-6">
-                    {/* TAB 1: RAG CHAT */}
+                    {/* TAB 1: CHAT (live-data context) */}
                     {activeTab === 'chat' && (
                         <div className="adyen-card bg-surface border border-border rounded-3xl overflow-hidden flex flex-col h-[550px] shadow-sm">
                             <div className="p-4 bg-surface-2 border-b border-border flex items-center gap-2">
@@ -399,7 +399,7 @@ export default function AIConcierge() {
                     <div className="adyen-card p-6 bg-surface border border-border space-y-4">
                         <h3 className="text-sm font-black text-fg uppercase tracking-wider">AI Operations</h3>
                         <p className="text-xs text-muted leading-relaxed font-medium">
-                            Smartie uses Vector Search (RAG) context retrievals to audit and constraints match event specifications.
+                            Smartie reads your live bookings, events and services on every question, so its answers reflect your current data.
                         </p>
 
                         <div className="space-y-2 pt-2 text-xs font-bold">

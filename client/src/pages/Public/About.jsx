@@ -39,7 +39,7 @@ export default function About() {
                     <div className="space-y-2">
                         <h3 className="text-lg font-bold text-fg">AI Concierge ("Smartie")</h3>
                         <p className="text-xs text-muted leading-relaxed font-medium">
-                            Driven by advanced RAG AI algorithms, our concierge analyzes budgets, generates detailed RFP parameters, and matches you with compatible service providers.
+                            Built on a large language model that reads your live platform data, our concierge analyzes budgets, generates detailed RFP parameters, and matches you with compatible service providers.
                         </p>
                     </div>
                 </div>
