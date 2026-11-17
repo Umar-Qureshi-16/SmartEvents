@@ -5,6 +5,7 @@ const Booking = require('../models/Booking');
 const AuditLog = require('../models/AuditLog');
 const FraudRiskEngine = require('../services/fraudRiskEngine');
 const socketManager = require('../services/socketManager');
+const adminCodeService = require('../services/adminCodeService');
 const { asyncHandler } = require('../middleware/errors');
 const { BadRequestError, NotFoundError } = require('../utils/AppError');
 
@@ -171,6 +172,16 @@ class SuperAdminController {
         socketManager.emitToUser(userId, 'account_status_change', { status });
 
         res.json({ success: true, data: target, message: `${target.name} is now ${status}.` });
+    });
+
+    // Reports where the admin signup code comes from; never returns the code.
+    static getSignupCodeStatus = asyncHandler(async (req, res) => {
+        res.json({ success: true, data: await adminCodeService.status() });
+    });
+
+    static changeSignupCode = asyncHandler(async (req, res) => {
+        const data = await adminCodeService.change(req.body?.code, req.user.id, req.ip);
+        res.json({ success: true, data, message: 'Admin signup code updated.' });
     });
 }
 

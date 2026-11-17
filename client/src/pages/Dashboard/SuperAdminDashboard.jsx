@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import {
     BarChart3, ShieldAlert, Gavel, Users, ScrollText, Activity,
-    RefreshCw, AlertTriangle, DollarSign, UserCheck, Loader2
+    RefreshCw, AlertTriangle, DollarSign, UserCheck, Loader2, KeyRound
 } from 'lucide-react';
 
 import axios from '../../api/axios';
@@ -16,6 +16,7 @@ import ProviderGovernance from '../../components/SuperAdmin/ProviderGovernance';
 import GlobalAuditLogs from '../../components/SuperAdmin/GlobalAuditLogs';
 import SystemHealthMonitor from '../../components/SuperAdmin/SystemHealthMonitor';
 import PlatformPulseFeed from '../../components/SuperAdmin/PlatformPulseFeed';
+import SignupCodeSettings from '../../components/SuperAdmin/SignupCodeSettings';
 
 const TABS = [
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
@@ -24,6 +25,7 @@ const TABS = [
     { id: 'providers', label: 'Providers', icon: Users },
     { id: 'audit', label: 'Audit Log', icon: ScrollText },
     { id: 'health', label: 'Health', icon: Activity },
+    { id: 'settings', label: 'Settings', icon: KeyRound },
 ];
 
 const HEALTH_POLL_MS = 15000;
@@ -286,6 +288,7 @@ export default function SuperAdminDashboard({ user }) {
                     {tab === 'disputes' && <DisputeResolutionCenter disputes={disputes} onResolve={resolveDispute} busyId={busyId} />}
                     {tab === 'providers' && <ProviderGovernance providers={providers} onGovern={govern} busyId={busyId} />}
                     {tab === 'audit' && <GlobalAuditLogs logs={logs} />}
+                    {tab === 'settings' && <SignupCodeSettings />}
                     {tab === 'health' && (
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                             <div className="xl:col-span-2">

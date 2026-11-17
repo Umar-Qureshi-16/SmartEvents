@@ -9,6 +9,7 @@ const env = require('../config/env');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
 const { BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError, ConflictError } = require('../utils/AppError');
 const { sendVerificationEmail } = require('./mailService');
+const adminCodeService = require('./adminCodeService');
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
@@ -17,15 +18,8 @@ class AuthService {
         const { name, email, password, role, adminCode, category } = userData;
 
         if (role === 'admin' || role === 'superadmin') {
-            const expected = env.ADMIN_SIGNUP_CODE;
-            if (!expected) {
-                throw new ForbiddenError('Admin signup is not enabled on this server.');
-            }
-            const a = Buffer.from(String(adminCode || ''));
-            const b = Buffer.from(expected);
-            if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-                throw new ForbiddenError('Invalid admin signup code.');
-            }
+            // Throws 403 when the code is wrong or admin signup is disabled.
+            await adminCodeService.verify(adminCode);
         }
 
         const normalizedEmail = email.toLowerCase().trim();

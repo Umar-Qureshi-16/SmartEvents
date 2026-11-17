@@ -22,4 +22,8 @@ router.post('/user-governance', SuperAdminController.restrictUser);
 router.get('/providers', SuperAdminController.getProviders);
 router.get('/disputes', SuperAdminController.getDisputes);
 
+// Platform settings: the code that unlocks admin/superadmin signup
+router.get('/signup-code', SuperAdminController.getSignupCodeStatus);
+router.put('/signup-code', SuperAdminController.changeSignupCode);
+
 module.exports = router;
