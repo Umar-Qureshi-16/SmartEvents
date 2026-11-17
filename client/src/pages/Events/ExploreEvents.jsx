@@ -267,7 +267,7 @@ export default function ExploreEvents({ user }) {
                             <Card key={event._id} className="overflow-hidden flex flex-col hover:border-brand/40 transition-colors">
                                 <Link to={`/events/${event._id}`} className="relative h-48 overflow-hidden block bg-surface-2">
                                     <img
-                                        src={event.image ? `${axios.defaults.baseURL.replace('/api/v1', '')}${event.image}` : PLACEHOLDER}
+                                        src={!event.image ? PLACEHOLDER : /^https?:\/\//.test(event.image) ? event.image : `${axios.defaults.baseURL.replace('/api/v1', '')}${event.image}`}
                                         alt={event.title}
                                         loading="lazy"
                                         onError={(e) => { e.currentTarget.src = PLACEHOLDER; }}

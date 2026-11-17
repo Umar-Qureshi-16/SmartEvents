@@ -5,7 +5,8 @@
  *   node scripts/seedDemoData.js             # add it
  *
  * Safe to run against a live database:
- *  - insert-only: nothing is updated or deleted;
+ *  - insert-only: nothing is deleted, and the only update it ever makes is to
+ *    add a photo to one of its own demo events that has none;
  *  - idempotent: a user (by email), event (by title + owner), service,
  *    booking (customer + event), ticket or review that already exists is
  *    skipped, so running it twice adds nothing the second time;
@@ -67,6 +68,18 @@ const SERVICES = [
     { owner: 'ayesha', title: 'Corporate Gala Stage Design', price: 2200, eventType: 'corporate', description: 'Branded stage, backdrop and centrepieces.' },
 ];
 
+// Event photos from Unsplash (free to use under the Unsplash licence, hotlinking permitted).
+const photo = (id) => `https://images.unsplash.com/photo-${id}?w=1200&q=80&auto=format&fit=crop`;
+const EVENT_IMAGES = {
+    hall: photo('1519167758481-83f550bb49b3'),
+    conference: photo('1540575467063-178a50c2df87'),
+    banquet: photo('1555244162-803834f70033'),
+    birthday: photo('1530103862676-de8c9debad1d'),
+    photo: photo('1606216794074-735e91aa2c92'),
+    mehndi: photo('1511795409834-ef04bbd61622'),
+    gala: photo('1519225421980-715cb0215aed'),
+};
+
 const EVENTS = [
     { key: 'hall', owner: 'royalPalm', title: 'Royal Palm Wedding Hall: Evening Package', category: 'Wedding', price: 4500, capacity: 400, days: 45, location: 'Gulberg III, Lahore',
         description: 'Book the Royal Palm Marquee for your wedding evening: decorated stage, lighting, air conditioning and parking for up to 400 guests. Offers welcome for weekday dates.' },
@@ -103,7 +116,7 @@ const BOOKINGS = [
 
 /* ----------------------------------------------------------------- run */
 
-const report = { users: [], profiles: 0, services: 0, events: 0, bookings: 0, tickets: 0, reviews: 0, skipped: 0 };
+const report = { users: [], profiles: 0, services: 0, events: 0, images: 0, bookings: 0, tickets: 0, reviews: 0, skipped: 0 };
 
 async function ensureUser(u, hash) {
     let user = await User.findOne({ email: u.email });
@@ -150,8 +163,12 @@ async function main() {
         let ev = owner._dry ? null : await Event.findOne({ title: e.title, createdBy: owner._id });
         if (!ev) {
             report.events++;
-            const doc = { title: e.title, category: e.category, price: e.price, capacity: e.capacity, location: e.location, description: e.description, date: inDays(e.days), createdBy: owner._id, status: 'upcoming' };
+            const doc = { image: EVENT_IMAGES[e.key], title: e.title, category: e.category, price: e.price, capacity: e.capacity, location: e.location, description: e.description, date: inDays(e.days), createdBy: owner._id, status: 'upcoming' };
             ev = DRY ? { _id: new mongoose.Types.ObjectId(), ...doc } : await Event.create(doc);
+        } else if (!ev.image && EVENT_IMAGES[e.key]) {
+            // Our own demo event without a photo: add one (the only update this script makes).
+            report.images++;
+            if (!DRY) await Event.updateOne({ _id: ev._id, image: { $in: [null, ''] } }, { $set: { image: EVENT_IMAGES[e.key] } });
         } else report.skipped++;
         events[e.key] = ev;
     }
@@ -211,7 +228,7 @@ async function main() {
 
     console.log(`\nNew accounts (${report.users.length}):`);
     report.users.forEach((l) => console.log('  ' + l));
-    console.log(`Vendor profiles: ${report.profiles}, services: ${report.services}, events: ${report.events}, bookings: ${report.bookings}` +
+    console.log(`Vendor profiles: ${report.profiles}, services: ${report.services}, events: ${report.events}, photos added to existing demo events: ${report.images}, bookings: ${report.bookings}` +
         (DRY ? '' : `, tickets: ${report.tickets}, reviews: ${report.reviews}`));
     console.log(`Already present and left untouched: ${report.skipped}`);
     if (!DRY && report.users.length) console.log(`New accounts use the demo password from DEMO_PASSWORD (default "password123"). Change them before real users join.`);
