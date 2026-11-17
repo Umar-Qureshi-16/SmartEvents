@@ -228,14 +228,23 @@ const ACTIONS = {
     create_service: {
         roles: ['provider'], mutating: true,
         description: 'Add a service package to your vendor profile.',
-        params: { title: { type: 'string' }, price: { type: 'number' }, description: { type: 'string' } },
+        params: {
+            title: { type: 'string' }, price: { type: 'number' }, description: { type: 'string' },
+            eventType: { type: 'string', description: 'Kind of event the package is for, e.g. wedding, birthday, corporate' },
+        },
         required: ['title', 'price'],
-        schema: z.object({ title: z.string().min(3).max(120), price: z.coerce.number().positive(), description: z.string().max(1000).optional() }),
+        schema: z.object({
+            title: z.string().min(3).max(120), price: z.coerce.number().positive(),
+            description: z.string().max(1000).optional(), eventType: z.string().min(2).max(40).optional(),
+        }),
         summary: (a) => `Add service package "${a.title}" at ${a.price}`,
         run: async (a, actor) => {
             const profile = await VendorProfile.findOne({ userId: actor.id });
             if (!profile) throw new BadRequestError('Create your vendor profile first.');
-            const service = await Service.create({ ...a, vendorId: profile._id });
+            const service = await Service.create({
+                vendorId: profile._id, title: a.title, price: a.price,
+                description: a.description || a.title, eventType: a.eventType || 'general',
+            });
             return { message: `Service "${service.title}" added.` };
         },
     },

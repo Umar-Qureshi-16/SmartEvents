@@ -123,6 +123,13 @@ describe('AI assistant: confirmed actions', () => {
         expect(booking.negotiationHistory[0].action).toBe('offer');
     });
 
+    test('a provider can add a service package with only a title and price', async () => {
+        const prov = await makeUser('provider');
+        const res = await execute(prov.token, 'create_service', { title: 'Full day photography', price: 1500 });
+        expect(res.status).toBe(200);
+        expect(res.body.data.message).toMatch(/Full day photography/);
+    });
+
     test('invalid details are rejected with a clear message', async () => {
         const prov = await makeUser('provider');
         const res = await execute(prov.token, 'block_date', { date: 'next someday' });
