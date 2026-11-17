@@ -163,7 +163,8 @@ const resendVerificationSchema = z.object({
 const googleAuthSchema = z.object({
     credential: z.string().min(1, "Google credential is required"),
     role: z.enum(['customer', 'provider', 'admin', 'superadmin']).optional(),
-    adminCode: z.string().max(200).optional()
+    adminCode: z.string().max(200).optional(),
+    category: z.enum(['venue', 'catering', 'decoration', 'photography', 'music', 'makeup']).optional()
 });
 
 module.exports = {

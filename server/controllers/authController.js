@@ -32,8 +32,8 @@ exports.resendVerification = asyncHandler(async (req, res, next) => {
 
 exports.googleLogin = asyncHandler(async (req, res, next) => {
     // Existing endpoint for front‑end ID token flow
-    const { credential, role, adminCode } = req.body;
-    const result = await authService.googleAuth(credential, role, adminCode);
+    const { credential, role, adminCode, category } = req.body;
+    const result = await authService.googleAuth(credential, role, adminCode, category);
     sendSession(req, res, result);
 });
 

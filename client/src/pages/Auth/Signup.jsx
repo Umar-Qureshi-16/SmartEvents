@@ -47,7 +47,8 @@ function Signup({ onLoginSuccess }) {
             const res = await axios.post('/auth/google', {
                 credential: credentialResponse.credential,
                 role,
-                ...(isElevated ? { adminCode: adminCode.trim() } : {})
+                ...(isElevated ? { adminCode: adminCode.trim() } : {}),
+                ...(role === 'provider' ? { category: formData.category } : {})
             });
             if (res.data.success) {
                 executeLoginSuccess(res.data.user);

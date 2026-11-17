@@ -44,3 +44,21 @@ describe('Admin-level sign-in needs the admin code', () => {
         expect(res.status).toBe(200);
     });
 });
+
+describe('Google sign-up creates the vendor profile', () => {
+    test('a new provider signing up with Google gets a starter profile with the chosen category', async () => {
+        const { OAuth2Client } = require('google-auth-library');
+        const env = require('../../config/env');
+        env.GOOGLE_CLIENT_ID = env.GOOGLE_CLIENT_ID || 'test-client-id';
+        const spy = jest.spyOn(OAuth2Client.prototype, 'verifyIdToken').mockResolvedValue({
+            getPayload: () => ({ sub: 'g-123', email: 'gvendor@test.com', name: 'Google Vendor' }),
+        });
+        const res = await api().post('/api/v1/auth/google').send({ credential: 'fake', role: 'provider', category: 'photography' });
+        expect(res.status).toBe(200);
+        const VendorProfile = require('../../models/VendorProfile');
+        const user = await User.findOne({ email: 'gvendor@test.com' });
+        const profile = await VendorProfile.findOne({ userId: user._id });
+        expect(profile.category).toBe('photography');
+        spy.mockRestore();
+    });
+});

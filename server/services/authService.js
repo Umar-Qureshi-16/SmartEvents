@@ -199,7 +199,7 @@ class AuthService {
         return { message: genericMessage };
     }
 
-    async googleAuth(credential, role = 'customer', adminCode) {
+    async googleAuth(credential, role = 'customer', adminCode, category) {
         if (!env.GOOGLE_CLIENT_ID) {
             throw new BadRequestError('Google Authentication is not configured on this server.');
         }
@@ -251,6 +251,21 @@ class AuthService {
                 isEmailVerified: true
             });
             await user.save();
+
+            // Same starter vendor profile as email sign-up, so a new vendor can
+            // add services straight away.
+            if (userRole === 'provider') {
+                try {
+                    await VendorProfile.create({
+                        userId: user._id,
+                        businessName: user.name,
+                        category: category || 'catering',
+                        location: 'Not specified yet'
+                    });
+                } catch (err) {
+                    console.error('Could not create starter vendor profile:', err.message);
+                }
+            }
         }
 
         if (user.status === 'banned') {
