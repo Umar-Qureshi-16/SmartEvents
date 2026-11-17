@@ -103,7 +103,8 @@ export default function ExploreEvents({ user }) {
             return;
         }
         if (user.role !== 'customer') {
-            toast.error('Only customers can make offers.');
+            const roleName = user.role === 'provider' ? 'vendor' : user.role === 'superadmin' ? 'super admin' : user.role;
+            toast.error(`Offers are made from a customer (Organizer) account. You are signed in as a ${roleName}; sign in with your Organizer account to book.`, { duration: 6000 });
             return;
         }
         setOfferTarget(event);

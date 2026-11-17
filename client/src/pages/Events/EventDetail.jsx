@@ -77,6 +77,11 @@ const EventDetail = () => {
 
     const handleBooking = async (e) => {
         e.preventDefault();
+        if (user && user.role !== 'customer') {
+            const roleName = user.role === 'provider' ? 'vendor' : user.role === 'superadmin' ? 'super admin' : user.role;
+            toast.error(`Offers are made from a customer (Organizer) account. You are signed in as a ${roleName}; sign in with your Organizer account to book.`, { duration: 6000 });
+            return;
+        }
         setIsSubmitting(true);
         try {
             const res = await axios.post('/bookings', {

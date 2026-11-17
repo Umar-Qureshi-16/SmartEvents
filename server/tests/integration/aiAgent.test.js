@@ -170,6 +170,21 @@ describe('AI assistant: the full booking workflow', () => {
         expect(b.escrow.status).toBe('released');
     });
 
+    test('booking without a price uses the asking price', async () => {
+        const prov = await makeUser('provider');
+        const cust = await makeUser('customer');
+        const ev = await makeEvent(prov.id, { price: 4100 });
+        const res = await execute(cust.token, 'make_offer', { eventId: String(ev._id) });
+        expect(res.status).toBe(200);
+        expect((await Booking.findById(res.body.data.bookingId)).offerPrice).toBe(4100);
+    });
+
+    test('a vendor cannot book, and is told why', async () => {
+        const prov = await makeUser('provider');
+        const ev = await makeEvent(prov.id);
+        expect((await execute(prov.token, 'make_offer', { eventId: String(ev._id) })).status).toBe(403);
+    });
+
     test('someone outside the booking cannot act on it', async () => {
         const { bookingId } = await setup();
         const otherVendor = await makeUser('provider');

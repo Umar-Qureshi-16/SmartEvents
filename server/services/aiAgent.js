@@ -503,14 +503,16 @@ const ACTIONS = {
     },
     make_offer: {
         roles: ['customer'], mutating: true,
-        description: 'Make an opening price offer on an event. Use search_events to find the event id.',
+        description: 'Book an event: sends an opening price offer to its vendor ("book", "reserve" and "make an offer" all mean this). If the user gives no price, leave offerPrice out and the asking price is used. Use search_events to find the event id.',
         params: { eventId: { type: 'string' }, offerPrice: { type: 'number' }, message: { type: 'string' } },
-        required: ['eventId', 'offerPrice'],
-        schema: z.object({ eventId: oid, offerPrice: z.coerce.number().positive(), message: z.string().max(500).optional() }),
-        summary: (a) => `Offer ${a.offerPrice} on event ${a.eventId}${a.message ? ` with the note "${a.message}"` : ''}`,
+        required: ['eventId'],
+        schema: z.object({ eventId: oid, offerPrice: z.coerce.number().positive().optional(), message: z.string().max(500).optional() }),
+        summary: (a) => `Book event ${a.eventId} with an offer of ${a.offerPrice ?? 'the asking price'}${a.message ? ` and the note "${a.message}"` : ''}`,
         run: async (a, actor) => {
             const bookingService = require('./bookingService');
-            const booking = await bookingService.createBooking(a, actor.id);
+            const offerPrice = a.offerPrice ?? (await Event.findById(a.eventId).select('price').lean())?.price;
+            if (!offerPrice) throw new BadRequestError('Event not found.');
+            const booking = await bookingService.createBooking({ ...a, offerPrice }, actor.id);
             return { message: 'Offer sent. The provider has been notified.', bookingId: String(booking._id) };
         },
     },
@@ -544,6 +546,7 @@ function systemPrompt(actor) {
         `- Never invent emails, ids, prices or dates. If a required detail is missing, ask one short question.`,
         `- For tools that change data, call the tool; the user will see a confirmation card. Do not claim the change is done.`,
         `- If the user asks for something your role cannot do, say so plainly.`,
+        `- Booking or making an offer on an event is only possible from a customer (Organizer) account. If a vendor, admin or super admin asks to book, explain that and suggest signing in with their Organizer account.`,
         `- Keep answers short and practical. Plain text, no JSON.`,
     ].join('\n');
 }

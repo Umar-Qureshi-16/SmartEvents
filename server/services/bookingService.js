@@ -82,7 +82,10 @@ class BookingService {
             message: `New offer of $${offerPrice}`
         });
 
-        // Trigger Nodemailer
+        // Email goes out in the background. SMTP can be slow, or blocked by the
+        // host, and must never hold up the response; the in-app notification
+        // and live socket update above have already reached the other party.
+        void (async () => {
         try {
             const vendorUser = await User.findById(vendorId);
             const customerUser = await User.findById(customerId);
@@ -97,8 +100,9 @@ class BookingService {
                 );
             }
         } catch (err) {
-            console.error('Mail trigger error:', err);
+            console.error('Mail trigger error:', err.message);
         }
+        })();
 
         return booking;
     }
@@ -175,7 +179,10 @@ class BookingService {
             relatedId: booking._id
         });
 
-        // Trigger Nodemailer
+        // Email goes out in the background. SMTP can be slow, or blocked by the
+        // host, and must never hold up the response; the in-app notification
+        // and live socket update above have already reached the other party.
+        void (async () => {
         try {
             const targetUser = await User.findById(targetId);
             const actorUser = await User.findById(userId);
@@ -191,8 +198,9 @@ class BookingService {
                 );
             }
         } catch (err) {
-            console.error('Mail trigger error:', err);
+            console.error('Mail trigger error:', err.message);
         }
+        })();
 
         return booking;
     }
@@ -323,7 +331,10 @@ class BookingService {
             relatedId: booking._id
         });
 
-        // Trigger Nodemailer
+        // Email goes out in the background. SMTP can be slow, or blocked by the
+        // host, and must never hold up the response; the in-app notification
+        // and live socket update above have already reached the other party.
+        void (async () => {
         try {
             const targetUser = await User.findById(targetId);
             const actorUser = await User.findById(userId);
@@ -339,8 +350,9 @@ class BookingService {
                 );
             }
         } catch (err) {
-            console.error('Mail trigger error:', err);
+            console.error('Mail trigger error:', err.message);
         }
+        })();
 
         return booking;
     }
