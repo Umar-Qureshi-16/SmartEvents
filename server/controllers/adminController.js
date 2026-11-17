@@ -1,3 +1,4 @@
+const { resolveDispute: resolveDisputeCore } = require('../services/disputeService');
 const User = require('../models/User');
 const Event = require('../models/Event');
 const Booking = require('../models/Booking');
@@ -162,55 +163,13 @@ exports.verifyVendor = asyncHandler(async (req, res) => {
 });
 
 exports.resolveDispute = asyncHandler(async (req, res) => {
-    const { resolution } = req.body;
-
-    if (!['refunded_customer', 'released_vendor'].includes(resolution)) {
-        throw new BadRequestError('resolution must be refunded_customer or released_vendor.');
-    }
-
-    const booking = await Booking.findById(req.params.id);
-    if (!booking) throw new NotFoundError('Booking not found.');
-    if (booking.status !== 'disputed') {
-        throw new BadRequestError('This booking is not under dispute.');
-    }
-
-    booking.status = resolution === 'refunded_customer' ? 'cancelled' : 'completed';
-    booking.disputeOutcome = resolution;
-    if (booking.escrow?.status === 'held') {
-        booking.escrow.status = resolution === 'refunded_customer' ? 'refunded' : 'released';
-        booking.escrow.settledAt = new Date();
-    }
-    if (resolution === 'refunded_customer') booking.cancelledBy = booking.vendorId;
-    await booking.save();
-
-    const { recalculateTrustScore } = require('../services/trustScoreService');
-    await recalculateTrustScore(booking.vendorId);
-
-    // Tell both parties how it was decided.
-    const notificationService = require('../services/notificationService');
-    const outcomeText = resolution === 'refunded_customer'
-        ? 'resolved in the customer\'s favour — the booking has been cancelled and refunded.'
-        : 'resolved in the provider\'s favour — the booking has been marked complete.';
-
-    await Promise.allSettled([booking.customerId, booking.vendorId].map(recipient =>
-        notificationService.createNotification({
-            recipient,
-            title: 'Dispute Resolved',
-            message: `Your dispute has been ${outcomeText}`,
-            type: 'booking',
-            relatedId: booking._id,
-            priority: 'high'
-        })
-    ));
-
-    await audit(req, {
-        action: 'DISPUTE_RESOLVED',
-        targetType: 'booking',
-        targetId: booking._id,
-        severity: 'critical',
-        metadata: { resolution }
+    const booking = await resolveDisputeCore({
+        bookingId: req.params.id,
+        resolution: req.body?.resolution,
+        actorId: req.user.id,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent')
     });
-
     res.json({ success: true, data: booking, message: 'Dispute resolved successfully.' });
 });
 

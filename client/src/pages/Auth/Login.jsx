@@ -13,6 +13,13 @@ function Login({ onLoginSuccess }) {
     const [loading, setLoading] = useState(false);
     const [unverifiedEmail, setUnverifiedEmail] = useState('');
     const [resending, setResending] = useState(false);
+    // Admin and Super Admin accounts must also give the admin access code.
+    const [adminCode, setAdminCode] = useState('');
+    const [showAdminCode, setShowAdminCode] = useState(false);
+
+    // The server says when an account needs the code; reveal the field then.
+    const needsAdminCode = (err) => ['ADMIN_CODE_REQUIRED', 'ADMIN_CODE_INVALID'].includes(err.response?.data?.code);
+    const withCode = (body) => (adminCode.trim() ? { ...body, adminCode: adminCode.trim() } : body);
 
     // Seeded demo accounts. These must match server/scripts/seedData.js —
     // run `npm run seed` in server/ before using them. Each button signs in
@@ -67,7 +74,7 @@ function Login({ onLoginSuccess }) {
         setLoading(true);
         setUnverifiedEmail('');
         try {
-            const res = await axios.post('/auth/login', { email, password });
+            const res = await axios.post('/auth/login', withCode({ email, password }));
             if (res.data.success) {
                 executeLoginSuccess(res.data.user);
             } else {
@@ -78,7 +85,9 @@ function Login({ onLoginSuccess }) {
             const message = err.response?.data?.message
                 || (err.response ? 'Invalid email or password.' : 'Cannot reach the server. Is the backend running?');
 
-            if (status === 403 && message.toLowerCase().includes('verify')) {
+            if (needsAdminCode(err)) {
+                setShowAdminCode(true);
+            } else if (status === 403 && message.toLowerCase().includes('verify')) {
                 setUnverifiedEmail(email);
             }
             toast.error(message);
@@ -90,9 +99,9 @@ function Login({ onLoginSuccess }) {
     const handleGoogleSuccess = async (credentialResponse) => {
         setLoading(true);
         try {
-            const res = await axios.post('/auth/google', {
+            const res = await axios.post('/auth/google', withCode({
                 credential: credentialResponse.credential
-            });
+            }));
             if (res.data.success) {
                 executeLoginSuccess(res.data.user);
             } else {
@@ -100,7 +109,12 @@ function Login({ onLoginSuccess }) {
             }
         } catch (err) {
             const msg = err.response?.data?.message || 'Google authentication failed.';
-            toast.error(msg);
+            if (needsAdminCode(err)) {
+                setShowAdminCode(true);
+                toast.error(`${msg} Enter it below, then sign in with Google again.`);
+            } else {
+                toast.error(msg);
+            }
         } finally {
             setLoading(false);
         }
@@ -195,6 +209,27 @@ function Login({ onLoginSuccess }) {
 
                 {/* REGULAR FORM */}
                 <form onSubmit={handleSubmit} className="adyen-card p-6 space-y-4 bg-surface border border-border">
+                    {/* ADMIN ACCESS CODE: required for Admin and Super Admin, with email or Google */}
+                    {showAdminCode ? (
+                        <div className="space-y-1 p-3 rounded-2xl border border-brand/30 bg-brand/5">
+                            <label htmlFor="admin-code" className="text-xs font-semibold text-fg">Admin access code</label>
+                            <input
+                                id="admin-code"
+                                type="password"
+                                autoComplete="off"
+                                value={adminCode}
+                                onChange={(e) => setAdminCode(e.target.value)}
+                                placeholder="Required for Admin and Super Admin accounts"
+                                className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-xs text-fg outline-none focus:border-success"
+                            />
+                            <p className="text-[10px] text-muted">Needed every time an Admin or Super Admin signs in, with email or with Google.</p>
+                        </div>
+                    ) : (
+                        <button type="button" onClick={() => setShowAdminCode(true)} className="text-[11px] text-muted hover:text-success underline underline-offset-4 block mx-auto">
+                            Signing in as Admin or Super Admin?
+                        </button>
+                    )}
+
                     {/* GOOGLE SIGN IN BUTTON */}
                     <div className="space-y-3">
                         <label className="text-xs font-semibold text-fg block text-center">Fast Sign-in</label>

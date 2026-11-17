@@ -37,11 +37,16 @@ function Signup({ onLoginSuccess }) {
     };
 
     const handleGoogleSuccess = async (credentialResponse) => {
+        if (isElevated && !adminCode.trim()) {
+            toast.error('Enter the admin signup code first, then sign up with Google.');
+            return;
+        }
         setLoading(true);
         try {
             const res = await axios.post('/auth/google', {
                 credential: credentialResponse.credential,
-                role
+                role,
+                ...(isElevated ? { adminCode: adminCode.trim() } : {})
             });
             if (res.data.success) {
                 executeLoginSuccess(res.data.user);
@@ -216,8 +221,26 @@ function Signup({ onLoginSuccess }) {
                 </div>
 
                 <form onSubmit={handleSubmit} className="adyen-card p-6 space-y-4 bg-surface border border-border">
+                    {/* Admin-level accounts: the signup code comes first, for email and Google alike. */}
+                    {isElevated && (
+                        <div className="space-y-1 p-3 rounded-2xl border border-brand/30 bg-brand/5">
+                            <label htmlFor="admin-signup-code" className="text-xs font-semibold text-fg">Admin Signup Code</label>
+                            <input
+                                id="admin-signup-code"
+                                type="password"
+                                required
+                                autoComplete="off"
+                                value={adminCode}
+                                onChange={(e) => setAdminCode(e.target.value)}
+                                placeholder="Code provided by the system owner"
+                                className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-xs text-fg outline-none focus:border-success"
+                            />
+                            <p className="text-[10px] text-muted">Required to create an Admin or Super Admin account, with Google or with email. You will need it again each time you sign in.</p>
+                        </div>
+                    )}
+
                     {/* FAST GOOGLE SIGN UP */}
-                    {!isElevated && (<div className="space-y-3">
+                    {(<div className="space-y-3">
                         <label className="text-xs font-semibold text-fg block text-center">Fast Registration</label>
                         <div className="flex justify-center w-full">
                             <GoogleLogin
@@ -232,7 +255,7 @@ function Signup({ onLoginSuccess }) {
                         </div>
                     </div>)}
 
-                    {!isElevated && (<div className="relative flex py-2 items-center">
+                    {(<div className="relative flex py-2 items-center">
                         <div className="flex-grow border-t border-border"></div>
                         <span className="flex-shrink mx-4 text-[10px] font-mono uppercase text-muted tracking-wider">Or register with email</span>
                         <div className="flex-grow border-t border-border"></div>
@@ -278,21 +301,6 @@ function Signup({ onLoginSuccess }) {
                         />
                         <p className="text-[10px] text-muted">At least 8 characters.</p>
                     </div>
-
-                    {isElevated && (
-                        <div className="space-y-1 pt-1">
-                            <label className="text-xs font-semibold text-fg">Admin Signup Code</label>
-                            <input
-                                type="password"
-                                required
-                                value={adminCode}
-                                onChange={(e) => setAdminCode(e.target.value)}
-                                placeholder="Code provided by the system owner"
-                                className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-xs text-fg outline-none focus:border-success"
-                            />
-                            <p className="text-[10px] text-muted">Required for admin accounts. Email signup only.</p>
-                        </div>
-                    )}
 
                     {role === 'provider' && (
                         <div className="space-y-1 pt-1">

@@ -25,7 +25,9 @@ async function makeUser(role = 'customer', overrides = {}) {
         await User.create({ name, email, password: await bcrypt.hash(PASSWORD, 10), role, isEmailVerified: true });
     }
 
-    const res = await api().post('/api/v1/auth/login').send({ email, password: PASSWORD });
+    // Admin-level accounts must send the admin code when one is configured.
+    const adminCode = ['admin', 'superadmin'].includes(role) ? process.env.ADMIN_SIGNUP_CODE : undefined;
+    const res = await api().post('/api/v1/auth/login').send({ email, password: PASSWORD, adminCode });
     return {
         user: res.body.user,
         token: res.body.token,

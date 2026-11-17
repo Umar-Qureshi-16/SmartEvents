@@ -106,3 +106,51 @@ exports.analyzeBudget = async (req, res) => {
         res.status(500).json({ success: false, message: 'Error analyzing budget' });
     }
 };
+
+// ---------------------------------------------------------------------------
+// Smartie as an operator: tool-calling chat for every role.
+// ---------------------------------------------------------------------------
+const aiAgent = require('../services/aiAgent');
+const User = require('../models/User');
+
+const AI_STATUS = { not_configured: 503, invalid_key: 502, forbidden: 502, bad_model: 502, rate_limit: 429, upstream: 502, network: 502 };
+
+async function actorFrom(req) {
+    const me = await User.findById(req.user.id).select('name role').lean();
+    return { id: String(req.user.id), role: req.user.role, name: me?.name || 'there', ip: req.ip };
+}
+
+function sendError(res, error) {
+    if (error instanceof AIError) {
+        return res.status(AI_STATUS[error.code] || 500).json({ success: false, code: error.code, message: error.userMessage });
+    }
+    if (error?.statusCode) {
+        return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
+    }
+    console.error('[AI Agent Error]:', error);
+    return res.status(500).json({ success: false, message: 'The assistant could not complete that request.' });
+}
+
+exports.agentChat = async (req, res) => {
+    try {
+        const { messages } = req.body || {};
+        if (!Array.isArray(messages) || !messages.length || messages.length > 40) {
+            return res.status(400).json({ success: false, message: 'messages must be a non-empty array.' });
+        }
+        const result = await aiAgent.chat(messages, await actorFrom(req));
+        res.json({ success: true, data: result });
+    } catch (error) {
+        sendError(res, error);
+    }
+};
+
+exports.agentExecute = async (req, res) => {
+    try {
+        const { name, args } = req.body || {};
+        if (typeof name !== 'string') return res.status(400).json({ success: false, message: 'name is required.' });
+        const result = await aiAgent.execute(name, args, await actorFrom(req));
+        res.json({ success: true, data: result });
+    } catch (error) {
+        sendError(res, error);
+    }
+};

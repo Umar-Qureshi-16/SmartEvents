@@ -110,6 +110,7 @@ const NAV_BY_ROLE = {
     admin: [
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { label: 'Users & disputes', path: '/admin/users', icon: ShieldCheck },
+        { label: 'AI Assistant', path: '/ai-concierge', icon: Sparkles },
         // Oversight links. The old 'Revenue' link opened a provider-only ledger
         // that is always empty for an admin account.
         { label: 'Events', path: '/events', icon: Compass },

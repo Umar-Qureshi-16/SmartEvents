@@ -40,7 +40,7 @@ describe('Admin accounts are usable immediately', () => {
         const res = await register({ name: 'Direct Admin', email: 'direct@test.com', role: 'admin', adminCode: code });
         expect(res.status).toBe(201);
         expect(res.body.user.isEmailVerified).toBe(true);
-        const login = await api().post('/api/v1/auth/login').send({ email: 'direct@test.com', password: PASSWORD });
+        const login = await api().post('/api/v1/auth/login').send({ email: 'direct@test.com', password: PASSWORD, adminCode: code });
         expect(login.status).toBe(200);
         expect(login.body.user.role).toBe('admin');
     });

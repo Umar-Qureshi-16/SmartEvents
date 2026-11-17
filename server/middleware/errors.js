@@ -48,11 +48,13 @@ const normalise = (err) => {
         status: err.status || err.statusCode || 500,
         message: err.message || 'Internal Server Error',
         errors: err.errors || null,
+        // Machine-readable reason for our own errors (e.g. ADMIN_CODE_REQUIRED).
+        code: typeof err.code === 'string' ? err.code : undefined,
     };
 };
 
 const errorHandler = (err, req, res, next) => {
-    const { status, message, errors } = normalise(err);
+    const { status, message, errors, code } = normalise(err);
     const env = require('../config/env');
 
     // Client mistakes are noise at error level; genuine faults are not.
@@ -63,6 +65,7 @@ const errorHandler = (err, req, res, next) => {
     res.status(status).json({
         success: false,
         message,
+        ...(code && status < 500 ? { code } : {}),
         ...(errors ? { errors } : {}),
         // Never leak internals in production.
         ...(!env.isProduction && status >= 500 ? { stack: err.stack } : {}),

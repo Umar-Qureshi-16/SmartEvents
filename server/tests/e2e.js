@@ -99,7 +99,9 @@ const stamp = Date.now();
         ['provider', 'umar_provider@example.com'],
         ['customer', 'ali@example.com'],
     ]) {
-        const res = await POST('/auth/login', { email, password: PW });
+        // Admin-level accounts need the admin code (set E2E_ADMIN_CODE to the server's code).
+        const adminCode = ['admin', 'superadmin'].includes(role) ? process.env.E2E_ADMIN_CODE : undefined;
+        const res = await POST('/auth/login', { email, password: PW, adminCode });
         seeded[role] = res.body?.token;
         ok(res.status === 200, `seeded ${role} account signs in (${email})`);
     }

@@ -95,7 +95,7 @@ class AuthService {
         return jwt.sign({ ...payload, typ: 'refresh' }, JWT_SECRET, { expiresIn: '7d' });
     }
 
-    async login(email, password) {
+    async login(email, password, adminCode) {
         const normalizedEmail = email.toLowerCase().trim();
         const user = await User.findOne({ email: normalizedEmail }).select('+password');
 
@@ -116,6 +116,10 @@ class AuthService {
 
         if (!user.isEmailVerified) {
             throw new ForbiddenError('Please verify your email address before logging in. Check your inbox for the verification link.');
+        }
+
+        if (user.role === 'admin' || user.role === 'superadmin') {
+            await adminCodeService.verifyForSignIn(adminCode);
         }
 
         const token = this.generateToken({ id: user._id, role: user.role });
@@ -195,7 +199,7 @@ class AuthService {
         return { message: genericMessage };
     }
 
-    async googleAuth(credential, role = 'customer') {
+    async googleAuth(credential, role = 'customer', adminCode) {
         if (!env.GOOGLE_CLIENT_ID) {
             throw new BadRequestError('Google Authentication is not configured on this server.');
         }
@@ -224,12 +228,20 @@ class AuthService {
         });
 
         if (user) {
+            // Admin-level accounts need the access code with Google too.
+            if (user.role === 'admin' || user.role === 'superadmin') {
+                await adminCodeService.verifyForSignIn(adminCode);
+            }
             if (!user.googleId) user.googleId = googleId;
             user.isEmailVerified = true; // Email verified by Google
             await user.save();
         } else {
-            const validRoles = ['customer', 'provider'];
+            const validRoles = ['customer', 'provider', 'admin', 'superadmin'];
             const userRole = validRoles.includes(role) ? role : 'customer';
+            if (userRole === 'admin' || userRole === 'superadmin') {
+                // Creating an admin-level account with Google needs the signup code.
+                await adminCodeService.verify(adminCode);
+            }
 
             user = new User({
                 name: name || 'Google User',

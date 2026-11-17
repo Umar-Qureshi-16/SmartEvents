@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const env = require('../config/env');
 const PlatformSetting = require('../models/PlatformSetting');
 const AuditLog = require('../models/AuditLog');
-const { BadRequestError, ForbiddenError } = require('../utils/AppError');
+const { AppError, BadRequestError, ForbiddenError } = require('../utils/AppError');
 
 // The code that unlocks admin/superadmin self-signup.
 // A super admin can replace it from the console; the new code is stored as a
@@ -32,6 +32,29 @@ async function verify(code) {
     }
     if (!sameString(code, env.ADMIN_SIGNUP_CODE)) {
         throw new ForbiddenError('Invalid admin signup code.');
+    }
+}
+
+// True when a code exists (console or environment).
+async function isConfigured() {
+    if (env.ADMIN_SIGNUP_CODE) return true;
+    return Boolean(await PlatformSetting.exists({ key: KEY }));
+}
+
+/**
+ * Admin-level accounts must present the code at every sign-in, not only at
+ * sign-up. If no code is configured anywhere, sign-in is not blocked, so a
+ * deployment can never lock its own administrators out.
+ */
+async function verifyForSignIn(code) {
+    if (!(await isConfigured())) return;
+    if (!code) {
+        throw new AppError('Admin and Super Admin accounts need the admin access code to sign in.', 403, 'ADMIN_CODE_REQUIRED');
+    }
+    try {
+        await verify(code);
+    } catch {
+        throw new AppError('The admin access code is incorrect.', 403, 'ADMIN_CODE_INVALID');
     }
 }
 
@@ -65,4 +88,4 @@ async function change(code, actor, ipAddress) {
     return status();
 }
 
-module.exports = { verify, status, change, MIN_LENGTH };
+module.exports = { verify, verifyForSignIn, isConfigured, status, change, MIN_LENGTH };

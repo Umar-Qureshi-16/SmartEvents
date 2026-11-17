@@ -15,7 +15,9 @@ const signupSchema = z.object({
 
 const loginSchema = z.object({
     email: z.string().email("Invalid email address"),
-    password: z.string().min(1, "Password is required")
+    password: z.string().min(1, "Password is required"),
+    // Required only for admin and superadmin accounts (checked in authService.login).
+    adminCode: z.string().max(200).optional()
 });
 
 const eventSchema = z.object({
@@ -160,7 +162,8 @@ const resendVerificationSchema = z.object({
 
 const googleAuthSchema = z.object({
     credential: z.string().min(1, "Google credential is required"),
-    role: z.enum(['customer', 'provider']).optional()
+    role: z.enum(['customer', 'provider', 'admin', 'superadmin']).optional(),
+    adminCode: z.string().max(200).optional()
 });
 
 module.exports = {
