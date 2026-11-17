@@ -279,8 +279,8 @@ const NegotiationPage = () => {
                                             : 'bg-fg/5 border border-border rounded-tl-sm'
                                             }`}>
                                             <div className="flex items-center gap-3 border-b border-border pb-3">
-                                                <div className="flex bg-fg/40 px-3 py-1.5 rounded-xl items-center gap-1.5">
-                                                    <DollarSign size={14} className={isCustomerMsg ? "text-brand" : "text-white"} />
+                                                <div className="flex bg-surface-2 text-fg border border-border px-3 py-1.5 rounded-xl items-center gap-1.5">
+                                                    <DollarSign size={14} className={isCustomerMsg ? "text-brand" : "text-fg"} />
                                                     <span className="text-lg font-black">{item.price}</span>
                                                 </div>
                                                 <span className={`text-[9px] px-2 py-1 rounded-md uppercase font-bold tracking-widest ${item.action === 'accepted' ? 'bg-emerald/20 text-emerald' :
@@ -316,7 +316,7 @@ const NegotiationPage = () => {
                                         type="number"
                                         value={counterPrice}
                                         onChange={(e) => setCounterPrice(e.target.value)}
-                                        className="w-full bg-fg/40 border border-border rounded-2xl py-3 pl-12 pr-4 font-black outline-none focus:ring-2 ring-indigo-500/30 transition-all text-lg"
+                                        className="w-full bg-surface-2 text-fg placeholder:text-muted border border-border rounded-2xl py-3 pl-12 pr-4 font-black outline-none focus:ring-2 ring-indigo-500/30 transition-all text-lg"
                                     />
                                 </div>
                             </div>
@@ -327,7 +327,7 @@ const NegotiationPage = () => {
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
                                     placeholder="Explain your counter offer or ask a question..."
-                                    className="w-full bg-fg/40 border border-border rounded-2xl py-3 px-4 font-medium outline-none focus:ring-2 ring-indigo-500/30 transition-all text-sm h-[52px]"
+                                    className="w-full bg-surface-2 text-fg placeholder:text-muted border border-border rounded-2xl py-3 px-4 font-medium outline-none focus:ring-2 ring-indigo-500/30 transition-all text-sm h-[52px]"
                                 />
                             </div>
                         </div>

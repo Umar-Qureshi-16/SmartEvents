@@ -66,7 +66,7 @@ const DisputeResolutionCenter = ({ disputes = [], onResolve, busyId }) => {
                                                 )}
                                             </p>
                                             {reason && (
-                                                <p className="text-sm text-muted mt-3 p-3 rounded-xl bg-fg/20 border border-border">
+                                                <p className="text-sm text-fg mt-3 p-3 rounded-xl bg-surface-2 border border-border">
                                                     “{reason}”
                                                 </p>
                                             )}

@@ -168,7 +168,7 @@ const EventDetail = () => {
                                     <Calendar size={120} />
                                 </div>
                             )}
-                            <div className="absolute top-8 left-8 bg-fg/60 backdrop-blur-xl border border-border px-6 py-2 rounded-2xl">
+                            <div className="absolute top-8 left-8 bg-surface/90 backdrop-blur-xl border border-border px-6 py-2 rounded-2xl">
                                 <span className="text-[10px] font-black uppercase text-brand tracking-widest">{event.category}</span>
                             </div>
                         </div>
@@ -311,7 +311,7 @@ const EventDetail = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-fg/60 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
@@ -345,7 +345,7 @@ const EventDetail = () => {
                                             type="number"
                                             value={offerPrice}
                                             onChange={(e) => setOfferPrice(e.target.value)}
-                                            className="w-full bg-fg/40 border border-border rounded-2xl py-4 pl-12 pr-6 text-xl font-black text-fg outline-none focus:ring-2 ring-indigo-500/50 transition-all"
+                                            className="w-full bg-surface-2 border border-border rounded-2xl py-4 pl-12 pr-6 text-xl font-black text-fg placeholder:text-muted outline-none focus:ring-2 ring-indigo-500/50 transition-all"
                                             placeholder={event.price}
                                             required
                                             min="1"
@@ -359,7 +359,7 @@ const EventDetail = () => {
                                         rows="3"
                                         value={message}
                                         onChange={(e) => setMessage(e.target.value)}
-                                        className="w-full bg-fg/40 border border-border rounded-2xl p-4 text-sm font-medium text-fg outline-none focus:ring-2 ring-indigo-500/50 transition-all resize-none"
+                                        className="w-full bg-surface-2 border border-border rounded-2xl p-4 text-sm font-medium text-fg placeholder:text-muted outline-none focus:ring-2 ring-indigo-500/50 transition-all resize-none"
                                         placeholder="Outline your requirements or propose a schedule..."
                                     />
                                 </div>

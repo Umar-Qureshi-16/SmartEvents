@@ -37,7 +37,7 @@ class ErrorBoundary extends React.Component {
                             </p>
                         </div>
 
-                        <div className="bg-fg/40 p-4 rounded-2xl border border-border text-left overflow-auto max-h-40">
+                        <div className="bg-surface-2 p-4 rounded-2xl border border-border text-left overflow-auto max-h-40">
                             <p className="text-[10px] text-coral/70 uppercase font-black mb-2 tracking-widest">Fault Details</p>
                             <code className="text-xs text-coral/80 font-mono">
                                 {this.state.error?.toString() || "Unknown Kernel Fault"}

@@ -74,7 +74,7 @@ const ReviewForm = ({ eventId, onSuccess }) => {
                     rows="3"
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    className="w-full bg-fg/40 border border-border rounded-2xl p-4 text-sm font-medium text-fg outline-none focus:ring-2 ring-indigo-500/50 transition-all resize-none"
+                    className="w-full bg-surface-2 border border-border rounded-2xl p-4 text-sm font-medium text-fg placeholder:text-muted outline-none focus:ring-2 ring-indigo-500/50 transition-all resize-none"
                     placeholder="Share details of your experience..."
                 />
             </div>
