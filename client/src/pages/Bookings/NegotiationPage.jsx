@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, XCircle, Send, Plus, DollarSign, Clock, Check, X } from 'lucide-react';
 import axios from '../../api/axios';
@@ -18,7 +18,8 @@ const NegotiationPage = () => {
     const [note, setNote] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     // 'offers' shows the price negotiation; 'design' the shared Design Studio.
-    const [view, setView] = useState('offers');
+    const [searchParams] = useSearchParams();
+    const [view, setView] = useState(searchParams.get('view') === 'design' ? 'design' : 'offers');
 
     const { user } = useSelector((state) => state.auth);
     const { socket } = useWebSockets();

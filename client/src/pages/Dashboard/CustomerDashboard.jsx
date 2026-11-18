@@ -10,6 +10,7 @@ import { useWebSockets } from '../../context/WebSocketContext';
 import StatCard from '../../components/common/StatCard';
 import HeroAIMatchmaker from '../../components/Dashboard/HeroAIMatchmaker';
 import TimelineBoard from '../../components/Dashboard/TimelineBoard';
+import BookingInsight from '../../components/Dashboard/BookingInsight';
 import StarRating from '../../components/reviews/StarRating';
 import {
     Badge, Button, Card, EmptyState, ErrorState, Skeleton, SkeletonList,
@@ -36,6 +37,7 @@ export default function CustomerDashboard({ user }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all');
+    const [insight, setInsight] = useState(null); // which number's detail panel is open
     const { socket } = useWebSockets();
     const myId = String(user?._id || user?.id || '');
 
@@ -139,10 +141,10 @@ export default function CustomerDashboard({ user }) {
 
             {/* Every number opens what it counts */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                <StatCard label="TOTAL BOOKINGS" value={stats.total} icon={Calendar} subtext="Open all bookings" onClick={() => navigate('/bookings')} />
-                <StatCard label="IN NEGOTIATION" value={stats.active} icon={MessageSquare} tone="warning" subtext="Offers and counters" onClick={() => navigate('/bookings?status=negotiating')} />
-                <StatCard label="CONFIRMED" value={stats.confirmed} icon={CheckCircle2} tone="success" subtext="Booked and upcoming" onClick={() => navigate('/bookings?status=confirmed')} />
-                <StatCard label="TOTAL COMMITTED" value={formatCurrency(stats.spend)} icon={DollarSign} tone="success" subtext="See the breakdown" onClick={() => navigate('/me?tab=spending')} />
+                <StatCard label="TOTAL BOOKINGS" value={stats.total} icon={Calendar} subtext="Tap for the overview" onClick={() => setInsight('all')} />
+                <StatCard label="IN NEGOTIATION" value={stats.active} icon={MessageSquare} tone="warning" subtext="Reply, accept or counter" onClick={() => setInsight('negotiating')} />
+                <StatCard label="CONFIRMED" value={stats.confirmed} icon={CheckCircle2} tone="success" subtext="Countdown and next steps" onClick={() => setInsight('confirmed')} />
+                <StatCard label="TOTAL COMMITTED" value={formatCurrency(stats.spend)} icon={DollarSign} tone="success" subtext="Escrow and by vendor" onClick={() => setInsight('committed')} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
@@ -291,6 +293,8 @@ export default function CustomerDashboard({ user }) {
             </div>
 
             <HeroAIMatchmaker />
+
+            {insight && <BookingInsight kind={insight} bookings={bookings} myId={myId} onClose={() => setInsight(null)} onChanged={load} />}
         </div>
     );
 }
