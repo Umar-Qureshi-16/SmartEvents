@@ -15,6 +15,7 @@ export default function VendorReviews({ vendorId, onSummary }) {
     const [data, setData] = useState(null);
     const [eligible, setEligible] = useState([]);
     const [eventId, setEventId] = useState('');
+    const [doneIds, setDoneIds] = useState([]); // events reviewed in this visit
 
     const load = useCallback(async () => {
         try {
@@ -39,7 +40,7 @@ export default function VendorReviews({ vendorId, onSummary }) {
     useEffect(() => {
         if (user?.role !== 'customer' || !data?.vendorUserId) return;
         axios.get('/bookings/my').then((res) => {
-            const reviewed = new Set((data.reviews || []).filter((r) => r.user?.name === user.name).map((r) => String(r.event?._id)));
+            const reviewed = new Set([...doneIds, ...(data.reviews || []).filter((r) => r.user?.name === user.name).map((r) => String(r.event?._id))]);
             const list = (res.data.data || [])
                 .filter((b) => String(b.vendorId?._id || b.vendorId) === data.vendorUserId && ['confirmed', 'completed'].includes(b.status) && b.eventId?._id)
                 .map((b) => ({ id: String(b.eventId._id), title: b.eventId.title }))
@@ -47,7 +48,7 @@ export default function VendorReviews({ vendorId, onSummary }) {
             setEligible(list);
             setEventId((cur) => cur || list[0]?.id || '');
         }).catch(() => setEligible([]));
-    }, [user, data]);
+    }, [user, data, doneIds]);
 
     if (!data) return <div className="text-sm text-muted">Loading reviews…</div>;
     const { summary, reviews } = data;
@@ -90,7 +91,7 @@ export default function VendorReviews({ vendorId, onSummary }) {
                             </select>
                         )}
                         {eligible.length === 1 && <p className="text-xs text-muted">For: {eligible[0].title}</p>}
-                        {eventId && <ReviewForm key={eventId} eventId={eventId} onSuccess={() => { setEventId(''); load(); }} />}
+                        {eventId && <ReviewForm key={eventId} eventId={eventId} onSuccess={() => { setDoneIds((d) => [...d, eventId]); setEventId(''); load(); }} />}
                     </div>
                 ) : (
                     <p className="text-xs text-muted">You can review this vendor once you have a confirmed booking with them. <Link to="/events" className="text-brand font-bold">Browse their events</Link>.</p>

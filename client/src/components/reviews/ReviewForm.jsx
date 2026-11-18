@@ -56,6 +56,8 @@ const ReviewForm = ({ eventId, onSuccess }) => {
                             key={star}
                             className="bg-transparent border-none outline-none focus:outline-none transition-transform hover:scale-110"
                             onClick={() => setRating(star)}
+                            aria-label={`${star} star${star === 1 ? '' : 's'}`}
+                            aria-pressed={rating === star}
                             onMouseEnter={() => setHover(star)}
                             onMouseLeave={() => setHover(0)}
                         >

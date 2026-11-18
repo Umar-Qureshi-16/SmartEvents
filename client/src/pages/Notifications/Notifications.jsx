@@ -82,7 +82,7 @@ export default function Notifications() {
     };
 
     return (
-        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1440px] mx-auto pt-6">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-4xl mx-auto pt-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
@@ -105,7 +105,7 @@ export default function Notifications() {
             </div>
 
             {/* Notifications Grid */}
-            <div className="max-w-3xl space-y-4">
+            <div className="space-y-4">
                 {loading ? (
                     <div className="space-y-4 animate-pulse">
                         <div className="h-16 bg-surface border border-border rounded-2xl"></div>

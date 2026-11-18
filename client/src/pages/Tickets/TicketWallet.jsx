@@ -11,11 +11,19 @@ export default function TicketWallet({ user }) {
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [eligible, setEligible] = useState([]); // confirmed event bookings without a pass yet
+    const [issuing, setIssuing] = useState(null);
 
     const fetchTickets = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('/tickets/my');
+            const [res, bk] = await Promise.all([
+                axios.get('/tickets/my'),
+                axios.get('/bookings/my').catch(() => ({ data: { data: [] } })),
+            ]);
+            const have = new Set((res.data.data || res.data.tickets || []).filter((t) => ['active', 'checked_in'].includes(t.status)).map((t) => String(t.event?._id || t.event)));
+            setEligible((bk.data.data || []).filter((b) => ['confirmed', 'completed'].includes(b.status) && b.eventId?._id && !have.has(String(b.eventId._id)))
+                .filter((b, i, arr) => arr.findIndex((x) => x.eventId._id === b.eventId._id) === i));
             if (res.data.success) {
                 setTickets(res.data.data || []);
             }
@@ -83,6 +91,50 @@ export default function TicketWallet({ user }) {
                     />
                 </div>
             </div>
+
+            {/* Confirmed events that can have a pass */}
+            {eligible.length > 0 && (
+                <section className="adyen-card p-5 bg-surface border border-border rounded-3xl space-y-3" aria-labelledby="get-pass-h">
+                    <h2 id="get-pass-h" className="text-sm font-black text-fg uppercase tracking-wider">Get your entry pass</h2>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {eligible.map((b) => (
+                            <li key={b._id} className="flex items-center gap-3 p-3 rounded-2xl bg-surface-2 border border-border">
+                                {b.eventId.image ? <img src={b.eventId.image} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" /> : <span className="w-12 h-12 rounded-xl bg-success/10 text-success flex items-center justify-center shrink-0"><QrCode size={20} aria-hidden="true" /></span>}
+                                <span className="min-w-0 flex-1">
+                                    <span className="block text-sm font-bold text-fg truncate">{b.eventId.title}</span>
+                                    <span className="block text-[11px] text-muted">{new Date(b.eventDetails?.date || b.eventId.date).toLocaleDateString()}</span>
+                                </span>
+                                <button
+                                    disabled={issuing === b._id}
+                                    onClick={async () => {
+                                        setIssuing(b._id);
+                                        try {
+                                            await axios.post('/tickets/purchase', { eventId: b.eventId._id, ticketType: 'General' });
+                                            toast.success('Pass issued. Its QR code is below.');
+                                            await fetchTickets();
+                                        } catch (err) {
+                                            toast.error(err.response?.data?.message || 'Could not issue the pass.');
+                                        } finally {
+                                            setIssuing(null);
+                                        }
+                                    }}
+                                    className="shrink-0 bg-success hover:opacity-90 text-white text-xs font-bold rounded-xl px-3 py-2 disabled:opacity-50"
+                                >
+                                    {issuing === b._id ? 'Issuing…' : 'Get pass'}
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
+            {filteredTickets.length === 0 && (
+                <div className="adyen-card p-10 text-center bg-surface border border-dashed border-border rounded-3xl space-y-2">
+                    <QrCode size={36} className="mx-auto text-muted" aria-hidden="true" />
+                    <p className="text-sm font-bold text-fg">{searchQuery ? 'No passes match your search.' : 'No passes yet'}</p>
+                    {!searchQuery && <p className="text-xs text-muted">Passes are issued for events you have booked. {eligible.length ? 'Get one above.' : 'Book an event, then come back here for its QR pass.'}</p>}
+                </div>
+            )}
 
             {/* Passes Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
