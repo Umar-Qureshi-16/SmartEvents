@@ -73,6 +73,20 @@ exports.createReview = async (req, res) => {
 // @desc    Get all reviews for an event
 // @route   GET /api/v1/reviews/event/:eventId
 // @access  Public
+// @desc    Star summary and reviews for a vendor (across all their events)
+// @route   GET /api/v1/reviews/vendor/:vendorId   (vendor profile id or user id)
+// @access  Public
+exports.getVendorReviews = async (req, res) => {
+    try {
+        const data = await require('../services/reviewStats').vendorReviews(req.params.vendorId);
+        if (!data) return res.status(404).json({ success: false, message: 'Vendor not found' });
+        res.json({ success: true, data });
+    } catch (error) {
+        console.error('Error fetching vendor reviews:', error);
+        res.status(500).json({ success: false, message: 'Server Error while fetching reviews' });
+    }
+};
+
 exports.getEventReviews = async (req, res) => {
     try {
         const { eventId } = req.params;

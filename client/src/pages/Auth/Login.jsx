@@ -25,6 +25,7 @@ function Login({ onLoginSuccess }) {
     // Seeded demo accounts. These must match server/scripts/seedData.js —
     // run `npm run seed` in server/ before using them. Each button signs in
     // through the real /auth/login endpoint; none of them fake a session.
+    const SHOW_DEMO_LOGINS = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_LOGINS === 'true';
     const testAccounts = [
         {
             role: 'Super Admin',
@@ -160,7 +161,9 @@ function Login({ onLoginSuccess }) {
                     <p className="text-xs text-muted font-medium">Access your reverse bids, events, and payment escrow dashboard</p>
                 </div>
 
-                {/* QUICK ONE-CLICK TEST LOGIN BUTTONS */}
+                {/* One-click demo sign-in: development only (or VITE_SHOW_DEMO_LOGINS=true).
+                    On the live site anyone could otherwise walk into the demo accounts. */}
+                {SHOW_DEMO_LOGINS && (
                 <div className="adyen-card p-4 space-y-3 bg-surface border border-border">
                     <span className="text-[10px] font-mono text-success uppercase font-bold tracking-wider block">
                         ONE-CLICK TEST LOGIN (SELECT ROLE)
@@ -185,6 +188,7 @@ function Login({ onLoginSuccess }) {
                         })}
                     </div>
                 </div>
+                )}
 
                 {/* UNVERIFIED EMAIL ALERT BANNER */}
                 {unverifiedEmail && (

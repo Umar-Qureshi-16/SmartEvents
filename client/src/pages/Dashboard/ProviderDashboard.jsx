@@ -122,7 +122,7 @@ export default function ProviderDashboard({ user }) {
                                         >
                                             <div className="space-y-1 min-w-0">
                                                 <h3 className="text-base font-bold truncate">
-                                                    {lead.eventId?.title || lead.eventDetails?.eventType || 'Custom request'}
+                                                    {lead.eventId?.title || lead.serviceId?.title || lead.eventDetails?.eventType || 'Custom request'}
                                                 </h3>
                                                 <p className="text-xs text-muted font-semibold">
                                                     From {lead.customerId?.name || 'a customer'}

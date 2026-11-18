@@ -73,6 +73,7 @@ const NAV_BY_ROLE = {
             label: 'AI & Planning', path: '/ai-concierge', icon: Sparkles,
             subOptions: [
                 { label: 'AI Assistant', desc: 'Ask Smartie, or tell it what to do', path: '/ai-concierge' },
+                { label: 'Event planner', desc: 'Every step from venue to final review', path: '/planner' },
                 { label: 'Budget tracker', desc: 'Break down and check your spend', path: '/budget-tracker' },
                 { label: 'My tickets', desc: 'QR passes for confirmed events', path: '/tickets' },
             ],

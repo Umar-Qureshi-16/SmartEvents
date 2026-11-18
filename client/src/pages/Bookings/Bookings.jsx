@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
     Calendar, DollarSign, MapPin, CheckCircle2, ArrowRight,
-    MessageSquare, FileText, AlertTriangle, XCircle
+    MessageSquare, FileText, AlertTriangle, XCircle, Star
 } from 'lucide-react';
 
 import axios from '../../api/axios';
@@ -191,7 +191,7 @@ export default function Bookings({ user }) {
                                     )}
 
                                     <h2 className="text-lg font-bold truncate">
-                                        {booking.eventId?.title || `Booking with ${booking.vendorId?.name || 'provider'}`}
+                                        {booking.eventId?.title || (booking.serviceId?.title && `${booking.serviceId.title} package`) || `Booking with ${booking.vendorId?.name || 'provider'}`}
                                     </h2>
 
                                     <div className="space-y-1.5 text-xs text-muted font-medium">
@@ -233,6 +233,10 @@ export default function Bookings({ user }) {
                                                 <Button size="sm" variant="ghost" icon={FileText}
                                                         onClick={() => handleDownloadInvoice(booking)}>
                                                     Invoice
+                                                </Button>
+                                                <Button size="sm" variant="secondary" icon={Star}
+                                                        onClick={() => navigate(`/vendor/${booking.vendorId?._id || booking.vendorId}#reviews`)}>
+                                                    Rate &amp; review
                                                 </Button>
                                                 <Button size="sm" variant="outline" icon={AlertTriangle}
                                                         onClick={() => setDisputeTarget(booking)}>

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 
 import axios from '../../api/axios';
+import StarRating from '../../components/reviews/StarRating';
 import {
     Button, Card, Badge, SkeletonList, EmptyState, ErrorState, formatCurrency
 } from '../../components/ui';
@@ -217,12 +218,7 @@ export default function VendorMarketplace({ user }) {
                                                     <ShieldCheck size={10} aria-hidden="true" /> Trust {v.trustScore}
                                                 </Badge>
                                             )}
-                                            {v.reviewsCount > 0 && (
-                                                <span className="flex items-center gap-1 text-xs text-muted font-semibold">
-                                                    <Star size={12} className="fill-warning text-warning" aria-hidden="true" />
-                                                    {v.rating?.toFixed(1)} ({v.reviewsCount})
-                                                </span>
-                                            )}
+                                            <StarRating value={v.rating || 0} size={12} showValue count={v.reviewsCount || 0} />
                                         </div>
 
                                         <p className="text-sm text-muted line-clamp-2">{v.description}</p>

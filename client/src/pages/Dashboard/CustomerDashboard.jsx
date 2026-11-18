@@ -16,6 +16,7 @@ import {
 } from '../../components/ui';
 
 const QUICK_ACTIONS = [
+    { label: 'Event planner', desc: 'Tasks and vendor packages, step by step', path: '/planner', icon: Sparkles },
     { label: 'Browse events', desc: 'Find something to make an offer on', path: '/events', icon: Calendar },
     { label: 'Find a provider', desc: 'Search the vendor marketplace', path: '/vendors', icon: Store },
     { label: 'My tickets', desc: 'QR passes for confirmed events', path: '/tickets', icon: Ticket },
@@ -66,12 +67,7 @@ export default function CustomerDashboard({ user }) {
         const upcoming = bookings
             .filter(b => b.status === 'confirmed' && b.eventDetails?.date)
             .sort((a, b) => new Date(a.eventDetails.date) - new Date(b.eventDetails.date))[0];
-        if (!upcoming) return null;
-        return {
-            title: upcoming.eventId?.title || upcoming.eventDetails.eventType,
-            type: upcoming.eventDetails.eventType,
-            date: upcoming.eventDetails.date,
-        };
+        return upcoming || null;
     }, [bookings]);
 
     if (loading) {
@@ -140,7 +136,7 @@ export default function CustomerDashboard({ user }) {
                                         >
                                             <div className="space-y-1 min-w-0">
                                                 <h3 className="text-base font-bold truncate">
-                                                    {booking.eventId?.title || booking.eventDetails?.eventType || 'Custom booking'}
+                                                    {booking.eventId?.title || booking.serviceId?.title || booking.eventDetails?.eventType || 'Custom booking'}
                                                 </h3>
                                                 <p className="text-xs text-muted font-semibold truncate">
                                                     {booking.vendorId?.name || 'Provider'} · {booking.eventDetails?.location || '—'}
@@ -165,7 +161,7 @@ export default function CustomerDashboard({ user }) {
                 </section>
 
                 <aside className="lg:col-span-4 space-y-6">
-                    {nextEvent && <TimelineBoard eventDetails={nextEvent} />}
+                    <TimelineBoard nextBooking={nextEvent} />
 
                     <Card className="p-6 space-y-3">
                         <h2 className="text-sm font-bold uppercase tracking-wider">Quick actions</h2>

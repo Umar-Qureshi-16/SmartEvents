@@ -69,6 +69,21 @@ export default function AIConcierge() {
         }
     };
 
+    // Turns the generated milestones into a saved, tickable plan.
+    const saveAsPlan = async () => {
+        try {
+            const res = await axios.post('/plans', {
+                title: `${timelineDetails.eventType} on ${timelineDetails.date}`,
+                eventType: timelineDetails.eventType,
+                date: timelineDetails.date,
+            });
+            toast.success('Saved to your Event planner.');
+            navigate(`/planner?plan=${res.data.data._id}`);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not save the plan.');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
             {/* Header */}
@@ -210,6 +225,11 @@ export default function AIConcierge() {
                                                 </div>
                                             ))}
                                         </div>
+                                        {user?.role === 'customer' && (
+                                            <button onClick={saveAsPlan} className="w-full mt-2 px-4 py-2.5 rounded-xl bg-brand text-white text-xs font-bold hover:bg-brand-hover">
+                                                Save as my plan, with tasks and vendor packages
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>

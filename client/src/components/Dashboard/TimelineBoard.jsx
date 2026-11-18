@@ -1,104 +1,89 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Clock, CheckCircle2, Circle, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { CalendarCheck, CheckCircle2, Circle } from 'lucide-react';
 import axios from '../../api/axios';
+import { Button, formatDate } from '../ui';
 
 /**
- * AI-generated planning milestones for an upcoming event, via POST /ai/timeline.
- *
- * Previously called fetch() directly with a hand-built Authorization header,
- * bypassing the axios refresh-token handling, and swallowed every failure into
- * console.error so the panel just sat empty with no explanation.
+ * Dashboard summary of the organizer's nearest event plan: progress and the
+ * next open tasks. The full checklist, with vendor packages per task, lives on
+ * /planner. With no plan yet it offers to build one from the next booking.
  */
-const TimelineBoard = ({ eventDetails }) => {
-    const [milestones, setMilestones] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+const TimelineBoard = ({ nextBooking }) => {
+    const navigate = useNavigate();
+    const [plan, setPlan] = useState(undefined);
+    const [busy, setBusy] = useState(false);
 
-    const fetchTimeline = useCallback(async () => {
-        if (!eventDetails?.date) return;
-        setLoading(true);
-        setError(null);
+    useEffect(() => {
+        axios.get('/plans')
+            .then((res) => {
+                const list = res.data.data || [];
+                setPlan(list.find((p) => new Date(p.date) >= Date.now() - 86400000) || list[0] || null);
+            })
+            .catch(() => setPlan(null));
+    }, []);
+
+    const createFromBooking = async () => {
+        setBusy(true);
         try {
-            const res = await axios.post('/ai/timeline', { eventDetails });
-            const data = res.data.data;
-            setMilestones(Array.isArray(data) ? data : []);
+            const res = await axios.post('/plans', { bookingId: nextBooking._id });
+            setPlan(res.data.data);
+            toast.success('Plan created.');
         } catch (err) {
-            setError(err.response?.data?.message || 'Could not build a timeline right now.');
+            toast.error(err.response?.data?.message || 'Could not create the plan.');
         } finally {
-            setLoading(false);
+            setBusy(false);
         }
-    }, [eventDetails]);
+    };
 
-    useEffect(() => { fetchTimeline(); }, [fetchTimeline]);
+    if (plan === undefined) return null;
+    const done = plan ? plan.tasks.filter((t) => t.status === 'done').length : 0;
+    const next = plan ? plan.tasks.filter((t) => t.status !== 'done').slice(0, 4) : [];
 
     return (
-        <div className="bg-surface border border-border rounded-3xl shadow-card p-6 md:p-8 h-full flex flex-col">
-            <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-brand/10 flex items-center justify-center text-brand shrink-0">
-                    <Clock size={24} aria-hidden="true" />
+        <div className="bg-surface border border-border rounded-3xl shadow-card p-6 space-y-4">
+            <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-brand/10 flex items-center justify-center text-brand shrink-0">
+                    <CalendarCheck size={22} aria-hidden="true" />
                 </div>
-                <div>
-                    <h3 className="text-lg font-bold text-fg">Planning timeline</h3>
-                    <p className="text-muted text-xs">
-                        {eventDetails?.title ? `For ${eventDetails.title}` : 'Milestones before your event'}
-                    </p>
+                <div className="min-w-0">
+                    <h3 className="text-base font-bold text-fg">Planning timeline</h3>
+                    <p className="text-muted text-xs truncate">{plan ? `For ${plan.title} · ${formatDate(plan.date)}` : 'Every step to your event'}</p>
                 </div>
             </div>
 
-            <div className="flex-1 relative overflow-y-auto pr-1 min-h-[220px]">
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-3 text-muted">
-                        <div className="w-9 h-9 border-2 border-brand/20 border-t-brand rounded-full animate-spin" />
-                        <p className="text-sm font-medium">Planning your milestones…</p>
+            {plan ? (
+                <>
+                    <div>
+                        <div className="flex justify-between text-xs font-bold text-fg mb-1"><span>{done} of {plan.tasks.length} done</span></div>
+                        <div className="h-2 rounded-full bg-surface-2 overflow-hidden">
+                            <div className="h-full bg-success rounded-full" style={{ width: `${plan.tasks.length ? (done / plan.tasks.length) * 100 : 0}%` }} />
+                        </div>
                     </div>
-                ) : error ? (
-                    <div role="alert" className="h-full flex flex-col items-center justify-center text-center gap-3 px-4">
-                        <AlertTriangle size={36} className="text-danger" aria-hidden="true" />
-                        <p className="text-sm font-bold text-fg">{error}</p>
-                        <button onClick={fetchTimeline} className="text-xs font-bold text-brand hover:underline">
-                            Try again
-                        </button>
-                    </div>
-                ) : milestones.length > 0 ? (
-                    <ol className="space-y-6 relative">
-                        <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-border" aria-hidden="true" />
-                        {milestones.map((m, i) => (
-                            <motion.li
-                                key={`${m.milestone}-${i}`}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: Math.min(i * 0.06, 0.4) }}
-                                className="flex gap-5 relative"
-                            >
-                                <span
-                                    className={`z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                                        i === 0 ? 'bg-brand text-white' : 'bg-surface-2 border border-border'
-                                    }`}
-                                    aria-hidden="true"
-                                >
-                                    {i === 0 ? <CheckCircle2 size={12} /> : <Circle size={8} className="text-muted" />}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between gap-3 mb-1">
-                                        <h4 className="font-bold text-fg text-sm">{m.milestone || m.title}</h4>
-                                        <span className="text-[10px] font-extrabold text-muted bg-surface-2 border border-border px-2 py-0.5 rounded-full shrink-0">
-                                            {m.daysBefore != null ? `${m.daysBefore} days before` : 'TBD'}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-muted leading-relaxed">{m.description || m.task}</p>
+                    <ol className="space-y-2.5">
+                        {next.length === 0 && <li className="text-xs text-success font-bold flex items-center gap-2"><CheckCircle2 size={14} aria-hidden="true" />Everything is done.</li>}
+                        {next.map((t) => (
+                            <li key={t._id} className="flex items-start gap-2.5">
+                                <Circle size={14} className="text-muted mt-0.5 shrink-0" aria-hidden="true" />
+                                <div className="min-w-0">
+                                    <p className="text-sm font-bold text-fg">{t.title}</p>
+                                    <p className="text-[11px] text-muted">{t.daysBefore === 1 ? '1 day' : `${t.daysBefore} days`} before{t.dueDate ? ` · due ${formatDate(t.dueDate)}` : ''}</p>
                                 </div>
-                            </motion.li>
+                            </li>
                         ))}
                     </ol>
-                ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center gap-2 text-muted px-4">
-                        <Clock size={40} className="opacity-30" aria-hidden="true" />
-                        <p className="text-sm font-bold text-fg">No timeline yet</p>
-                        <p className="text-xs">Confirm a booking with a date and your milestones will appear here.</p>
-                    </div>
-                )}
-            </div>
+                    <Button size="sm" className="w-full" onClick={() => navigate(`/planner?plan=${plan._id}`)}>Open planner</Button>
+                </>
+            ) : (
+                <div className="space-y-3">
+                    <p className="text-xs text-muted">Get a checklist from venue booking to the final review, with vendor packages for each step.</p>
+                    {nextBooking
+                        ? <Button size="sm" className="w-full" loading={busy} onClick={createFromBooking}>Plan around {nextBooking.eventId?.title || 'my next booking'}</Button>
+                        : <Button size="sm" className="w-full" onClick={() => navigate('/planner')}>Start a plan</Button>}
+                    {nextBooking && <Link to="/planner" className="block text-center text-xs font-bold text-brand">or start a new plan</Link>}
+                </div>
+            )}
         </div>
     );
 };

@@ -26,6 +26,12 @@ class BookingService {
             }
         }
 
+        // A suspended or banned vendor cannot take new bookings.
+        const vendorAccount = await User.findById(vendorId).select('status').lean();
+        if (!vendorAccount || vendorAccount.status === 'banned' || vendorAccount.status === 'restricted') {
+            throw new ConflictError('This vendor is not taking bookings right now.');
+        }
+
         const noteMessage = message || note || eventDetails?.message || 'Initial offer';
         if (!eventDetails) {
             eventDetails = {
@@ -108,15 +114,15 @@ class BookingService {
     }
 
     async getMyBookings(customerId) {
-        return await Booking.find({ customerId }).populate('eventId vendorId').sort({ createdAt: -1 });
+        return await Booking.find({ customerId }).populate('eventId vendorId').populate('serviceId', 'title price').sort({ createdAt: -1 });
     }
 
     async getOrganizerBookings(vendorId) {
-        return await Booking.find({ vendorId }).populate('eventId customerId').sort({ createdAt: -1 });
+        return await Booking.find({ vendorId }).populate('eventId customerId').populate('serviceId', 'title price').sort({ createdAt: -1 });
     }
 
     async getBookingById(id, userId) {
-        const booking = await Booking.findById(id).populate('eventId customerId vendorId');
+        const booking = await Booking.findById(id).populate('eventId customerId vendorId').populate('serviceId', 'title price');
         if (!booking) throw new NotFoundError('Booking not found.');
 
         if (booking.customerId._id.toString() !== userId && booking.vendorId._id.toString() !== userId) {

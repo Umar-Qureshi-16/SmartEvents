@@ -157,6 +157,7 @@ app.get('/', (req, res) => {
     app.use('/api/v1/super-admin', require('./routes/superAdmin'));
     app.use('/api/v1/notifications', require('./routes/notificationRoutes'));
     app.use('/api/v1/reviews', require('./routes/reviewRoutes'));
+    app.use('/api/v1/plans', require('./routes/planRoutes'));
     app.use('/api/v1/tickets', require('./routes/ticketRoutes'));
 
     // Unmatched API routes return a clear 404 rather than falling through.

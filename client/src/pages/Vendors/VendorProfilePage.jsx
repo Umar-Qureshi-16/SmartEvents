@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../../api/axios';
+import VendorReviews from '../../components/reviews/VendorReviews';
+import StarRating from '../../components/reviews/StarRating';
 import { toast } from 'react-hot-toast';
 import { Star, ShieldCheck, MapPin, Tag, Mail, MessageSquare, ArrowRight, DollarSign, Calendar, Sparkles } from 'lucide-react';
 
@@ -157,10 +159,9 @@ export default function VendorProfilePage({ user }) {
                             <MapPin size={14} className="text-success" />
                             <span>{profile.location}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                            <Star size={14} className="text-amber-500 fill-amber-500" />
-                            <span>{profile.rating || 5.0} ★ ({profile.reviewsCount || 0} reviews)</span>
-                        </div>
+                        <a href="#reviews" className="flex items-center gap-1.5 hover:text-fg">
+                            <StarRating value={profile.rating} size={14} showValue count={profile.reviewsCount || 0} />
+                        </a>
                     </div>
                 </div>
 
@@ -244,6 +245,8 @@ export default function VendorProfilePage({ user }) {
                     </div>
                 </div>
             </div>
+
+            <VendorReviews vendorId={profile.userId?._id || id} />
 
             {/* Negotiation Offer Modal */}
             {bookingModalOpen && selectedService && (

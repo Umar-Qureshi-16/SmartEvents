@@ -14,12 +14,12 @@ export const ROLE_GUIDE = {
         examples: ['Show me the platform stats', 'List the open disputes', 'Find all banned users'],
     },
     provider: {
-        greeting: 'Hello! I can answer offers (counter, accept or reject), publish and edit your events, add service packages, block or unblock dates, check guests in and summarise your revenue. Tell me what you need.',
+        greeting: 'Hello! I can answer offers (counter, accept or reject), publish and edit your events, add service packages, list the packages other vendors offer in your field, block or unblock dates, check guests in and summarise your revenue. Tell me what you need.',
         examples: ['Show my bookings', 'Summarise my revenue', 'Counter the newest offer at 5000', 'Block 24 December on my calendar'],
     },
     customer: {
-        greeting: 'Hello! I can find events, make and negotiate offers, accept or cancel bookings, get entry passes, mark events complete, raise disputes and leave reviews. Tell me what you need.',
-        examples: ['Find wedding events under 5000', 'Show my bookings', 'Show my passes', 'Suggest a budget split for a 200-guest wedding'],
+        greeting: 'Hello! I can plan your event step by step (venue, catering, decor, invitations, final review), find and book vendor packages, make and negotiate offers, tick off tasks, get entry passes and leave reviews. Tell me what you need.',
+        examples: ['Plan my wedding on 2026-12-20 in Lahore', 'What is left in my plan?', 'Show catering packages under 100000', 'Show my bookings'],
     },
 };
 
@@ -68,7 +68,7 @@ export default function AgentChat({ role, compact = false }) {
         try {
             const res = await axios.post('/ai/agent/execute', { name: action.name, args: action.args });
             const result = res.data?.data || {};
-            toast.success(result.message || 'Done.');
+            toast.success('Done.');
             setHistory((prev) => [
                 ...prev.map((m, i) => (i === index ? { ...m, action: null, result: `Confirmed: ${action.summary}` } : m)),
                 { role: 'bot', text: result.message || 'Done.', secret: result.temporaryPassword, note: result.note },

@@ -248,3 +248,16 @@ describe('AI assistant: disputes through the shared service', () => {
         expect(after.escrow.status).toBe('refunded');
     });
 });
+
+describe('AI assistant: follows through on what it says it will do', () => {
+    test('an announced change becomes a confirmation card, not an empty promise', async () => {
+        const cust = await makeUser('customer');
+        const plan = (await api().post('/api/v1/plans').set(auth(cust.token)).send({ title: 'Royal Palm', eventType: 'Wedding', date: new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10) })).body.data;
+        complete
+            .mockResolvedValueOnce(text('Your plan has 7 tasks. I will now mark Invitations as done.'))
+            .mockResolvedValueOnce(toolCall('set_plan_task', { planId: plan._id, task: 'Invitations', status: 'done' }));
+        const res = await chat(cust.token, 'Mark invitations as done');
+        expect(res.body.data.pendingAction).toMatchObject({ name: 'set_plan_task' });
+        expect(res.body.data.pendingAction.summary).toContain('the "Royal Palm" plan');
+    });
+});

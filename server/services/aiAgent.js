@@ -544,6 +544,82 @@ const ACTIONS = {
             return { message: `${date} is now blocked.` };
         },
     },
+    my_plans: {
+        roles: ['customer'], mutating: false,
+        description: "The organizer's event plans: each plan's tasks (venue, catering, invitations, logistics, final review...) with due dates, the vendor field that can do them, and whether they are done.",
+        params: {}, required: [],
+        schema: z.object({}),
+        run: async (_a, actor) => {
+            const plans = await require('./planService').listPlans(actor.id);
+            if (!plans.length) return { message: 'No plans yet. Offer to create one with create_plan.' };
+            return plans.map((p) => ({
+                planId: String(p._id), title: p.title, eventType: p.eventType, date: new Date(p.date).toISOString().slice(0, 10),
+                done: `${p.tasks.filter((t) => t.status === 'done').length}/${p.tasks.length}`,
+                tasks: p.tasks.map((t) => ({ taskId: String(t._id), title: t.title, due: t.dueDate ? new Date(t.dueDate).toISOString().slice(0, 10) : null, field: t.category, status: t.status })),
+            }));
+        },
+    },
+    create_plan: {
+        roles: ['customer'], mutating: true,
+        description: 'Create an end-to-end planning checklist for an event (venue booking, catering, decoration, invitations, logistics, final review), with due dates counted back from the event date. Give bookingId to plan around an existing booking, or a title, eventType and date.',
+        params: { title: { type: 'string' }, eventType: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD' }, location: { type: 'string' }, budget: { type: 'number' }, bookingId: { type: 'string' } },
+        required: [],
+        schema: z.object({ title: z.string().max(120).optional(), eventType: z.string().max(60).optional(), date: isoDate.optional(), location: z.string().max(120).optional(), budget: z.coerce.number().min(0).optional(), bookingId: oid.optional() })
+            .refine((a) => a.bookingId || (a.title && a.date), 'Give a booking, or a title and a date.'),
+        summary: (a) => (a.bookingId ? `Create a planning checklist for booking ${a.bookingId}` : `Create a planning checklist for "${a.title}" (${a.eventType || 'event'}) on ${a.date}${a.location ? ` in ${a.location}` : ''}`),
+        run: async (a, actor) => {
+            const p = await require('./planService').createPlan(actor.id, a);
+            return { message: `Plan "${p.title}" is ready with ${p.tasks.length} tasks: ${p.tasks.map((t) => `${t.title} (${t.daysBefore === 1 ? '1 day' : `${t.daysBefore} days`} before${t.status === 'done' ? ', done' : ''})`).join('; ')}. It is on your dashboard.`, planId: String(p._id) };
+        },
+    },
+    set_plan_task: {
+        roles: ['customer'], mutating: true,
+        description: 'Mark a task of an event plan as done, or back to to-do. Use my_plans for the plan id; the task can be its id or its title (for example "Invitations").',
+        params: { planId: { type: 'string' }, task: { type: 'string' }, status: { type: 'string', enum: ['done', 'todo'] } },
+        required: ['planId', 'task', 'status'],
+        schema: z.object({ planId: oid, task: z.string().min(1).max(120), status: z.enum(['done', 'todo']) }),
+        summary: (a) => `Mark "${a.task}" as ${a.status === 'done' ? 'done' : 'to do'} in plan ${a.planId}`,
+        run: async (a, actor) => {
+            const p = await require('./planService').setTaskStatus(actor.id, a.planId, a.task, a.status);
+            return { message: `Updated. ${p.tasks.filter((t) => t.status === 'done').length} of ${p.tasks.length} tasks are done.` };
+        },
+    },
+    add_plan_task: {
+        roles: ['customer'], mutating: true,
+        description: 'Add a task to an event plan, for example "Book a makeup artist" 30 days before.',
+        params: { planId: { type: 'string' }, title: { type: 'string' }, description: { type: 'string' }, daysBefore: { type: 'number' } },
+        required: ['planId', 'title'],
+        schema: z.object({ planId: oid, title: z.string().min(2).max(120), description: z.string().max(600).optional(), daysBefore: z.coerce.number().int().min(0).optional() }),
+        summary: (a) => `Add the task "${a.title}"${a.daysBefore != null ? ` (${a.daysBefore} days before)` : ''} to plan ${a.planId}`,
+        run: async (a, actor) => {
+            await require('./planService').addTask(actor.id, a.planId, a);
+            return { message: `Added "${a.title}" to the plan.` };
+        },
+    },
+    find_packages: {
+        roles: ALL, mutating: false,
+        description: 'List the packages vendors offer in one field (venue, catering, decoration, photography, music, makeup), cheapest first, with price, vendor, city and star rating. Optional maxPrice and location.',
+        params: { category: { type: 'string', enum: ['venue', 'catering', 'decoration', 'photography', 'music', 'makeup'] }, maxPrice: { type: 'number' }, location: { type: 'string' } },
+        required: ['category'],
+        schema: z.object({ category: z.enum(['venue', 'catering', 'decoration', 'photography', 'music', 'makeup']), maxPrice: z.coerce.number().positive().optional(), location: z.string().max(80).optional() }),
+        run: async (a) => {
+            const list = await require('./planService').packages(a);
+            if (!list.length) return { message: `No ${a.category} packages match right now.` };
+            return list.slice(0, 10).map((p) => ({ packageId: String(p._id), title: p.title, price: p.price, vendor: p.vendor.businessName, city: p.vendor.location, stars: p.vendor.reviewsCount ? `${p.vendor.rating}/5 (${p.vendor.reviewsCount})` : 'no reviews yet', description: String(p.description || '').slice(0, 140) }));
+        },
+    },
+    book_package: {
+        roles: ['customer'], mutating: true,
+        description: 'Book a vendor package: sends an opening offer to the vendor (the package price unless the user names one), dated for the event of a plan when planId is given. Use find_packages for the package id.',
+        params: { serviceId: { type: 'string', description: 'packageId from find_packages' }, planId: { type: 'string' }, offerPrice: { type: 'number' }, message: { type: 'string' } },
+        required: ['serviceId'],
+        schema: z.object({ serviceId: oid, planId: oid.optional(), offerPrice: z.coerce.number().positive().optional(), message: z.string().max(500).optional() }),
+        summary: (a) => `Book package ${a.serviceId} with an offer of ${a.offerPrice ?? 'its listed price'}${a.planId ? ` for plan ${a.planId}` : ''}`,
+        run: async (a, actor) => {
+            const b = await require('./planService').bookPackage(actor.id, a);
+            return { message: 'Offer sent to the vendor. When they accept, the matching task in your plan is ticked off automatically.', bookingId: String(b._id) };
+        },
+    },
     make_offer: {
         roles: ['customer'], mutating: true,
         description: 'Book an event: sends an opening price offer to its vendor ("book", "reserve" and "make an offer" all mean this). If the user gives no price, leave offerPrice out and the asking price is used. Use search_events to find the event id.',
@@ -590,6 +666,7 @@ function systemPrompt(actor) {
         `- For tools that change data, call the tool; the user will see a confirmation card. Do not claim the change is done.`,
         `- If the user asks for something your role cannot do, say so plainly.`,
         `- Booking or making an offer on an event is only possible from a customer (Organizer) account. If a vendor, admin or super admin asks to book, explain that and suggest signing in with their Organizer account.`,
+        `- For planning ("plan my wedding", "what is left", "mark invitations done") use the plan tools; to fill a task, find_packages in its field, then book_package.`,
         `- Keep answers short and practical. Plain text, no JSON.`,
     ].join('\n');
 }
@@ -608,6 +685,14 @@ async function humanise(summary, args, actor) {
         if (args.eventId) {
             const e = await Event.findById(args.eventId).select('title').lean();
             if (e) out = out.replace(new RegExp(`(your )?event ${args.eventId}`), `"${e.title}"`);
+        }
+        if (args.planId) {
+            const p = await require('../models/EventPlan').findById(args.planId).select('title').lean();
+            if (p) out = out.replace(`plan ${args.planId}`, `the "${p.title}" plan`);
+        }
+        if (args.serviceId) {
+            const s = await Service.findById(args.serviceId).populate('vendorId', 'businessName').lean();
+            if (s) out = out.replace(`package ${args.serviceId}`, `the "${s.title}" package from ${s.vendorId?.businessName || 'the vendor'}`);
         }
     } catch { /* keep the plain summary */ }
     return out;
@@ -638,12 +723,27 @@ async function chat(history, actor) {
     ];
     const tools = toolsFor(actor.role);
     const lookups = [];
+    let nudged = false;
+    let preface = '';
 
     for (let step = 0; step < MAX_STEPS; step++) {
         const res = await complete({ messages, tools, tool_choice: 'auto', temperature: 0.2, max_tokens: 700 });
         const msg = res.choices?.[0]?.message || {};
         const calls = msg.tool_calls || [];
-        if (!calls.length) return { reply: (msg.content || '').trim() || 'Done.', lookups };
+        if (!calls.length) {
+            const text = (msg.content || '').trim();
+            // The model sometimes announces a change ("I will now mark ... as done")
+            // instead of calling the tool. Ask it once to make the call, so the
+            // user gets the confirmation card rather than an empty promise.
+            if (!nudged && step < MAX_STEPS - 1 && /\b(i will|i'll|i am going to|let me)\b[^.]*\b(now|mark|book|send|create|add|update|cancel|accept|reject)\b/i.test(text)) {
+                nudged = true;
+                preface = text;
+                messages.push({ role: 'assistant', content: text });
+                messages.push({ role: 'user', content: 'Go ahead: call the tool for that now instead of describing it.' });
+                continue;
+            }
+            return { reply: [preface, text].filter(Boolean).join(String.fromCharCode(10, 10)) || 'Done.', lookups };
+        }
 
         messages.push({ role: 'assistant', content: msg.content || '', tool_calls: calls });
         for (const call of calls) {
@@ -661,7 +761,7 @@ async function chat(history, actor) {
 
             if (checked.action.mutating) {
                 return {
-                    reply: (msg.content || '').trim() || 'Please confirm this action.',
+                    reply: (msg.content || '').trim() || preface || 'Please confirm this action.',
                     pendingAction: { name, args: checked.args, summary: await humanise(checked.action.summary(checked.args), checked.args, actor) },
                     lookups,
                 };

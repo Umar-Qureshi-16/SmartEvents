@@ -190,6 +190,9 @@ exports.listPublicVendors = async (req, res) => {
         // Suspended providers should not appear in a public directory.
         const visible = profiles.filter(p => p.userId && p.userId.status === 'active');
 
+        // Real star ratings from customer reviews on each vendor's events.
+        const ratings = await require('../services/reviewStats').ratingsFor(visible.map((p) => p.userId._id));
+
         // Attach a starting price from each provider's cheapest package.
         const withPricing = await Promise.all(visible.map(async (p) => {
             const cheapest = await Service.findOne({ vendorId: p._id })
@@ -203,6 +206,8 @@ exports.listPublicVendors = async (req, res) => {
                 completedEvents: p.userId?.analytics?.completedEvents ?? 0,
                 averageRating: p.userId?.analytics?.averageRating ?? 0,
                 verified: p.userId?.businessDetails?.verified ?? false,
+                rating: ratings.get(String(p.userId._id))?.rating ?? 0,
+                reviewsCount: ratings.get(String(p.userId._id))?.reviewsCount ?? 0,
             };
         }));
 
@@ -241,7 +246,9 @@ exports.getPublicProfile = async (req, res) => {
         }
 
         const services = await Service.find({ vendorId: profile._id });
-        res.json({ success: true, profile, services });
+        const r = (await require('../services/reviewStats').ratingsFor([profile.userId?._id || profile.userId])).values().next().value || {};
+        const shaped = { ...(profile.toObject ? profile.toObject() : profile), rating: r.rating || 0, reviewsCount: r.reviewsCount || 0 };
+        res.json({ success: true, profile: shaped, services });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Error fetching vendor profile', error: error.message });
     }

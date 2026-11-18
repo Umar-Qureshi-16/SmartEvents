@@ -227,13 +227,13 @@ const NegotiationPage = () => {
                             </span>
                         </h2>
                         <p className="text-muted mt-2">
-                            Event: <span className="text-fg font-medium">{booking.eventId?.title || 'Unknown Event'}</span>
+                            Event: <span className="text-fg font-medium">{booking.eventId?.title || (booking.serviceId?.title ? `${booking.serviceId.title} package` : booking.eventDetails?.eventType) || 'Custom booking'}</span>
                         </p>
                     </div>
                     <div className="text-right">
                         <p className="text-[10px] font-black uppercase text-muted tracking-widest">Current Offer</p>
                         <AnimatedPrice price={booking.offerPrice || booking.totalAmount} className="text-4xl font-black text-emerald" />
-                        <p className="text-[10px] font-bold text-muted uppercase mt-1">Base: ${booking.eventId?.price || booking.totalAmount}</p>
+                        <p className="text-[10px] font-bold text-muted uppercase mt-1">Base: ${booking.eventId?.price || booking.serviceId?.price || booking.totalAmount || booking.offerPrice}</p>
                     </div>
                 </div>
 

@@ -40,6 +40,7 @@ const HowItWorks           = lazy(() => import('./pages/Public/HowItWorks'));
 const PricingPasses        = lazy(() => import('./pages/Public/PricingPasses'));
 const About                = lazy(() => import('./pages/Public/About'));
 const AdminPanel           = lazy(() => import('./pages/Admin/AdminPanel'));
+const EventPlanner         = lazy(() => import('./pages/Planner/EventPlanner'));
 const Settings             = lazy(() => import('./pages/Settings/Settings'));
 const NegotiationPage      = lazy(() => import('./pages/Bookings/NegotiationPage'));
 const AvailabilityCalendar = lazy(() => import('./pages/Calendar/AvailabilityCalendar'));
@@ -178,6 +179,7 @@ function App() {
                       <Route path="/notifications" element={<Notifications />} />
                       <Route path="/favorites" element={<Favorites />} />
                       <Route path="/budget-tracker" element={<BudgetTracker />} />
+                      <Route path="/planner" element={user?.role === 'customer' ? <EventPlanner /> : <Navigate to="/dashboard" replace />} />
                       <Route path="/ai-concierge" element={<AIConcierge />} />
                     </Route>
 

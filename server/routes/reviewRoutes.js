@@ -7,6 +7,7 @@ const { validate, reviewCreateSchema } = require('../utils/validation');
 
 router.post('/', verifyToken, validate(reviewCreateSchema), createReview);
 router.get('/event/:eventId', getEventReviews);
+router.get('/vendor/:vendorId', require('../controllers/reviewController').getVendorReviews);
 router.get('/provider', verifyToken, require('../controllers/reviewController').getProviderReviews);
 router.delete('/:id', verifyToken, deleteReview);
 
