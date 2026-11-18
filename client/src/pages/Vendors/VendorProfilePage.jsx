@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
@@ -9,6 +10,7 @@ import axios from '../../api/axios';
 import VendorReviews from '../../components/reviews/VendorReviews';
 import StarRating from '../../components/reviews/StarRating';
 import { formatCurrency } from '../../components/ui';
+import { DetailModal } from '../../components/vendor/ProfileDetails';
 
 const FIELD = {
     venue: 'Venue & hall', catering: 'Catering', decoration: 'Decoration & design',
@@ -17,15 +19,16 @@ const FIELD = {
 
 const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || 'V';
 
-function Stat({ icon: Icon, value, label }) {
+function Stat({ icon: Icon, value, label, onClick }) {
     return (
-        <div className="bg-surface border border-border rounded-2xl px-4 py-3 flex items-center gap-3 min-w-0">
+        <button type="button" onClick={onClick} title={`Open ${label.toLowerCase()}`}
+            className="bg-surface border border-border rounded-2xl px-4 py-3 flex items-center gap-3 min-w-0 text-left hover:border-brand/50 hover:shadow-card transition-all">
             <span className="w-9 h-9 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0"><Icon size={17} aria-hidden="true" /></span>
             <div className="min-w-0">
                 <p className="text-lg font-black text-fg leading-tight truncate">{value}</p>
                 <p className="text-[11px] text-muted font-semibold truncate">{label}</p>
             </div>
-        </div>
+        </button>
     );
 }
 
@@ -90,14 +93,15 @@ function Lightbox({ images, index, onClose, onMove }) {
         window.addEventListener('keydown', key);
         return () => window.removeEventListener('keydown', key);
     }, [onClose, onMove]);
-    return (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Photo viewer" onClick={onClose}>
+    return createPortal(
+        <div className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Photo viewer" onClick={onClose}>
             <button className="absolute top-4 right-4 text-white/80 hover:text-white" aria-label="Close" onClick={onClose}><X size={28} /></button>
             {images.length > 1 && <button className="absolute left-3 text-white/80 hover:text-white" aria-label="Previous photo" onClick={(e) => { e.stopPropagation(); onMove(-1); }}><ChevronLeft size={36} /></button>}
             <img src={images[index]} alt={`Photo ${index + 1} of ${images.length}`} className="max-h-[85vh] max-w-full rounded-2xl object-contain" onClick={(e) => e.stopPropagation()} />
             {images.length > 1 && <button className="absolute right-3 text-white/80 hover:text-white" aria-label="Next photo" onClick={(e) => { e.stopPropagation(); onMove(1); }}><ChevronRight size={36} /></button>}
             <p className="absolute bottom-4 text-white/70 text-xs">{index + 1} / {images.length}</p>
-        </div>
+        </div>,
+        document.body,
     );
 }
 
@@ -111,6 +115,7 @@ export default function VendorProfilePage({ user }) {
     const [following, setFollowing] = useState(false);
     const [followers, setFollowers] = useState(0);
     const [photo, setPhoto] = useState(null);
+    const [detail, setDetail] = useState(null); // 'followers' | 'delivered' | 'trust'
 
     const [modal, setModal] = useState(null); // { service } or { service: null } for a custom quote
     const [offer, setOffer] = useState({ offerPrice: '', date: '', location: '', eventType: 'Wedding', message: '' });
@@ -238,7 +243,7 @@ export default function VendorProfilePage({ user }) {
 
     const { stats = {}, gallery = [] } = profile;
     const cover = profile.coverImage || gallery[0];
-    const trust = profile.userId?.trustScore ?? 70;
+    const trust = profile.trustScore ?? profile.userId?.trustScore ?? 70;
     const verified = trust >= 80;
     const tabs = [
         { key: 'overview', label: 'Overview' },
@@ -290,7 +295,7 @@ export default function VendorProfilePage({ user }) {
                     <div className="flex flex-wrap gap-2 md:pt-[4.5rem]">
                         {isOwner ? (
                             <>
-                                <Link to="/portfolio" className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-sm font-bold rounded-xl px-4 py-2.5"><Pencil size={15} aria-hidden="true" />Edit profile</Link>
+                                <Link to="/my-profile" className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-sm font-bold rounded-xl px-4 py-2.5"><Pencil size={15} aria-hidden="true" />Manage profile</Link>
                                 <Link to="/services" className="inline-flex items-center gap-1.5 border border-border text-fg hover:bg-fg/5 text-sm font-bold rounded-xl px-4 py-2.5"><Plus size={15} aria-hidden="true" />Add package</Link>
                             </>
                         ) : (
@@ -316,12 +321,12 @@ export default function VendorProfilePage({ user }) {
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-6">
-                    <Stat icon={Users} value={followers} label={followers === 1 ? 'Follower' : 'Followers'} />
-                    <Stat icon={CalendarDays} value={stats.events ?? events.length} label="Events offered" />
-                    <Stat icon={Package} value={stats.packages ?? services.length} label="Packages" />
-                    <Stat icon={Check} value={stats.completedBookings ?? 0} label="Delivered" />
-                    <Stat icon={Star} value={profile.reviewsCount ? profile.rating.toFixed(1) : 'New'} label={profile.reviewsCount === 1 ? '1 review' : `${profile.reviewsCount || 0} reviews`} />
-                    <Stat icon={ShieldCheck} value={`${trust}%`} label="Trust score" />
+                    <Stat icon={Users} value={followers} label={followers === 1 ? 'Follower' : 'Followers'} onClick={() => setDetail('followers')} />
+                    <Stat icon={CalendarDays} value={stats.events ?? events.length} label="Events offered" onClick={() => setTab('events')} />
+                    <Stat icon={Package} value={stats.packages ?? services.length} label="Packages" onClick={() => setTab('packages')} />
+                    <Stat icon={Check} value={stats.completedBookings ?? 0} label="Delivered" onClick={() => setDetail('delivered')} />
+                    <Stat icon={Star} value={profile.reviewsCount ? profile.rating.toFixed(1) : 'New'} label={profile.reviewsCount === 1 ? '1 review' : `${profile.reviewsCount || 0} reviews`} onClick={() => setTab('reviews')} />
+                    <Stat icon={ShieldCheck} value={`${trust}%`} label="Trust score" onClick={() => setDetail('trust')} />
                 </div>
 
                 {/* Tabs */}
@@ -435,10 +440,12 @@ export default function VendorProfilePage({ user }) {
                 </div>
             </div>
 
+            {detail && <DetailModal kind={detail} vendorId={vendorUserId} onClose={() => setDetail(null)} />}
+
             {photo != null && gallery.length > 0 && <Lightbox images={gallery} index={photo} onClose={() => setPhoto(null)} onMove={moveLightbox} />}
 
-            {modal && (
-                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="offer-title">
+            {modal && createPortal(
+                <div className="fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="offer-title">
                     <form onSubmit={sendOffer} className="max-w-md w-full bg-surface p-6 border border-border rounded-3xl space-y-4 shadow-2xl">
                         <div>
                             <h2 id="offer-title" className="text-lg font-bold text-fg">{modal.service ? 'Book this package' : `Request a quote from ${profile.businessName}`}</h2>
@@ -476,7 +483,8 @@ export default function VendorProfilePage({ user }) {
                             <button type="submit" disabled={sending} className="flex-1 bg-brand hover:bg-brand-hover text-white rounded-xl py-2.5 text-sm font-bold disabled:opacity-50">{sending ? 'Sending…' : 'Send offer'}</button>
                         </div>
                     </form>
-                </div>
+                </div>,
+                document.body,
             )}
         </div>
     );

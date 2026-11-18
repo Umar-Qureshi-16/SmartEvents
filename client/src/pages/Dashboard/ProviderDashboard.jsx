@@ -16,7 +16,7 @@ import {
 
 const TOOLKIT = [
     { label: 'Service packages', desc: 'Manage your offerings and pricing', path: '/services', icon: Package },
-    { label: 'Portfolio', desc: 'Showcase your past work', path: '/portfolio', icon: Images },
+    { label: 'My public profile', desc: 'Keep your page, gallery and packages fresh', path: '/my-profile', icon: Images },
     { label: 'Availability', desc: 'Block dates you cannot take', path: '/calendar', icon: CalendarDays },
     { label: 'Reviews', desc: 'Feedback across your events', path: '/reviews', icon: Star },
 ];

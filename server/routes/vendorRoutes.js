@@ -23,4 +23,13 @@ router.delete('/services/:id', verifyToken, vendorController.deleteService);
 router.get('/list', vendorController.listPublicVendors);
 router.get('/profile/:id', vendorController.getPublicProfile);
 
+// What sits behind the numbers on a public profile.
+const showcase = require('../services/vendorShowcase');
+const send = (fn) => async (req, res, next) => {
+    try { res.json({ success: true, data: await fn(req.params.id) }); } catch (err) { next(err); }
+};
+router.get('/profile/:id/followers', send(showcase.followers));
+router.get('/profile/:id/delivered', send(showcase.delivered));
+router.get('/profile/:id/trust', send(showcase.trust));
+
 module.exports = router;

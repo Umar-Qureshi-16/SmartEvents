@@ -257,6 +257,7 @@ exports.getPublicProfile = async (req, res) => {
             require('../services/reviewStats').ratingsFor([uid]),
         ]);
         const r = ratings.get(String(uid)) || {};
+        const trust = await require('../services/vendorShowcase').trust(uid);
         // Showcase: the vendor's portfolio first, then photos from its events and packages.
         const isImage = (u) => typeof u === 'string' && (/^https?:\/\//.test(u) || u.startsWith('/uploads/'));
         const gallery = [...new Set([
@@ -281,6 +282,7 @@ exports.getPublicProfile = async (req, res) => {
                 memberSince: profile.userId?.createdAt || profile.createdAt,
             },
             available: !['banned', 'restricted'].includes(profile.userId?.status),
+            trustScore: trust.score,
         };
         res.json({ success: true, profile: shaped, services, events });
     } catch (error) {

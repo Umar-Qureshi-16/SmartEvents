@@ -99,3 +99,30 @@ describe('Public vendor profile', () => {
         expect(profile.available).toBe(true);
     });
 });
+
+describe('Details behind the profile numbers', () => {
+    test('followers (short names), delivered events with ratings, and the trust breakdown', async () => {
+        const prov = await makeUser('provider');
+        await VendorProfile.findOneAndUpdate({ userId: prov.id }, { businessName: 'Detail Hall', category: 'venue', location: 'Lahore' }, { upsert: true });
+        const fan = await makeUser('customer', { name: 'Ayesha Khan Malik' });
+        await api().post('/api/v1/auth/favorites').set(auth(fan.token)).send({ vendorId: prov.id });
+
+        const ev = await makeEvent(prov.id, { title: 'Done Wedding' });
+        const cust = await bookedCustomer(prov.id, ev);
+        await api().post('/api/v1/reviews').set(auth(cust.token)).send({ eventId: String(ev._id), rating: 4, comment: 'Lovely evening overall.' });
+
+        const f = await api().get(`/api/v1/vendor/profile/${prov.id}/followers`);
+        expect(f.body.data.map((x) => x.name)).toEqual(['Ayesha M.']);
+
+        const d = await api().get(`/api/v1/vendor/profile/${prov.id}/delivered`);
+        expect(d.body.data).toEqual([expect.objectContaining({ title: 'Done Wedding', rating: 4 })]);
+        expect(JSON.stringify(d.body)).not.toContain('@test.com');
+
+        const t = await api().get(`/api/v1/vendor/profile/${prov.id}/trust`);
+        expect(t.body.data).toMatchObject({ score: 70, baseline: true, completed: 1, reviews: 1, averageRating: 4 });
+
+        const p = await api().get(`/api/v1/vendor/profile/${prov.id}`);
+        expect(p.body.profile.trustScore).toBe(70);
+        expect((await api().get('/api/v1/vendor/profile/000000000000000000000000/trust')).status).toBe(404);
+    });
+});

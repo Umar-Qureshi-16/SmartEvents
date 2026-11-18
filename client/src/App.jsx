@@ -48,7 +48,7 @@ const Notifications        = lazy(() => import('./pages/Notifications/Notificati
 const BudgetTracker        = lazy(() => import('./pages/AI/BudgetTracker'));
 const AIConcierge          = lazy(() => import('./pages/AI/AIConcierge'));
 const Favorites            = lazy(() => import('./pages/Favorites/Favorites'));
-const PortfolioManager     = lazy(() => import('./pages/Vendors/PortfolioManager'));
+const ProfileManager       = lazy(() => import('./pages/Vendors/ProfileManager'));
 const ProviderReviews      = lazy(() => import('./pages/Reviews/ProviderReviews'));
 const ManageEvents         = lazy(() => import('./pages/Events/ManageEvents'));
 
@@ -189,7 +189,8 @@ function App() {
                       <Route path="/services" element={<Services user={user} />} />
                       <Route path="/leads" element={<Leads user={user} />} />
                       <Route path="/calendar" element={<AvailabilityCalendar />} />
-                      <Route path="/portfolio" element={<PortfolioManager />} />
+                      <Route path="/portfolio" element={<ProfileManager />} />
+                      <Route path="/my-profile" element={<ProfileManager />} />
                       <Route path="/reviews" element={<ProviderReviews />} />
                       <Route path="/my-events" element={<ManageEvents />} />
                       <Route path="/staff/scanner" element={<StaffScanner user={user} />} />
