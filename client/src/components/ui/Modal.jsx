@@ -12,6 +12,10 @@ import { X } from 'lucide-react';
 export default function Modal({ open, onClose, title, description, children, footer, size = 'md' }) {
     const panelRef = useRef(null);
     const previouslyFocused = useRef(null);
+    // Pages pass a new onClose on every render; reading it from a ref keeps the
+    // effect below from re-running (and stealing focus) on each keystroke.
+    const onCloseRef = useRef(onClose);
+    useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
     useEffect(() => {
         if (!open) return;
@@ -22,7 +26,7 @@ export default function Modal({ open, onClose, title, description, children, foo
 
         const onKeyDown = (e) => {
             if (e.key === 'Escape') {
-                onClose?.();
+                onCloseRef.current?.();
                 return;
             }
             if (e.key !== 'Tab') return;
@@ -56,7 +60,7 @@ export default function Modal({ open, onClose, title, description, children, foo
             clearTimeout(t);
             previouslyFocused.current?.focus?.();
         };
-    }, [open, onClose]);
+    }, [open]);
 
     const widths = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' };
 

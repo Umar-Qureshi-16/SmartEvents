@@ -37,6 +37,20 @@ instance.interceptors.response.use(
         const original = error.config;
         const status = error.response?.status;
 
+        // Vercel's bot checkpoint answers API calls with an HTML challenge page.
+        // A normal page load passes it, so reload once (at most every 2 minutes).
+        const body = error.response?.data;
+        if (status === 403 && typeof body === 'string' && body.includes('Vercel Security Checkpoint')) {
+            try {
+                const last = Number(sessionStorage.getItem('checkpointReload') || 0);
+                if (Date.now() - last > 120000) {
+                    sessionStorage.setItem('checkpointReload', String(Date.now()));
+                    window.location.reload();
+                }
+            } catch { window.location.reload(); }
+            return Promise.reject(error);
+        }
+
         if (status === 403 && error.response?.data?.code === 'ACCOUNT_BANNED') {
             store.dispatch(logout());
             return Promise.reject(error);

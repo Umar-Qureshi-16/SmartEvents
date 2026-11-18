@@ -125,7 +125,7 @@ export default function Bookings({ user }) {
     }), [bookings]);
 
     return (
-        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1440px] mx-auto">
             <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
                     <Badge tone="brand">My bookings</Badge>
@@ -177,7 +177,7 @@ export default function Bookings({ user }) {
                     action={filterStatus === 'all' ? { label: 'Explore events', to: '/events' } : undefined}
                 />
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {filtered.map(booking => {
                         const status = BOOKING_STATUS[booking.status] || { label: booking.status, tone: 'neutral' };
                         const canDispute = ['confirmed', 'completed'].includes(booking.status);
@@ -238,7 +238,7 @@ export default function Bookings({ user }) {
                                         )}
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-wrap items-center justify-end gap-2">
                                         {booking.status === 'confirmed' && (
                                             <Button size="sm" icon={CheckCircle2} loading={completing === booking._id}
                                                     onClick={() => completeBooking(booking)}>

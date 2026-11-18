@@ -138,7 +138,7 @@ export default function Leads({ user }) {
     });
 
     return (
-        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto pt-6">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1440px] mx-auto pt-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
@@ -189,7 +189,7 @@ export default function Leads({ user }) {
                     <p className="text-xs text-muted font-semibold mt-1">Once event organizers send you custom bids, they will show up in this center.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {filteredLeads.map(lead => (
                         <div
                             key={lead._id}

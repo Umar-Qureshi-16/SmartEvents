@@ -136,7 +136,7 @@ export default function ManageEvents() {
     const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }));
 
     return (
-        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1280px] mx-auto">
+        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1440px] mx-auto">
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
                     <Badge tone="brand">My listings</Badge>

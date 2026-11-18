@@ -111,7 +111,7 @@ export default function CustomerDashboard({ user }) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-bg p-6 max-w-[1280px] mx-auto space-y-8">
+            <div className="min-h-screen bg-bg p-6 max-w-[1440px] mx-auto space-y-8">
                 <Skeleton className="h-12 w-72" />
                 <SkeletonList count={4} height="h-32" cols="md:grid-cols-4" />
                 <Skeleton className="h-96" />

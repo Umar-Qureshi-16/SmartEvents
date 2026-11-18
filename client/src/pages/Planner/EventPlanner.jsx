@@ -151,7 +151,7 @@ export default function EventPlanner() {
     const pct = plan?.tasks.length ? Math.round((doneCount / plan.tasks.length) * 100) : 0;
 
     return (
-        <div className="min-h-screen bg-bg text-fg p-6 max-w-5xl mx-auto space-y-6">
+        <div className="min-h-screen bg-bg text-fg px-4 md:px-6 py-6 max-w-6xl mx-auto space-y-6">
             <header className="space-y-1">
                 <h1 className="text-2xl font-black text-fg flex items-center gap-2"><CalendarCheck className="text-brand" aria-hidden="true" />Event planner</h1>
                 <p className="text-sm text-muted">Every step from booking the venue to the final review, with vendor packages for each one. You can also just tell Smartie, for example &ldquo;plan my wedding on 20 December in Lahore&rdquo; or &ldquo;mark invitations as done&rdquo;.</p>

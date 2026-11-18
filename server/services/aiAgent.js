@@ -790,6 +790,7 @@ function systemPrompt(actor) {
         can,
         `Rules:`,
         `- Use a tool whenever the user asks you to look something up or to do something you have a tool for.`,
+        `- Never reply that you will or need to look something up: call the tool in this same reply, then answer.`,
         `- Look things up first when you need an id instead of guessing: my_bookings for bookings, my_events for your events,`,
         `  search_events for events, list_disputes for disputes, find_users for accounts. Refer to things by name when you reply, not by id.`,
         `- When the user names a booking or event in words (for example "the Royal Palm offer"), find it first, then act on it.`,
@@ -892,7 +893,7 @@ async function chat(history, actor) {
             // The model sometimes announces a change ("I will now mark ... as done")
             // instead of calling the tool. Ask it once to make the call, so the
             // user gets the confirmation card rather than an empty promise.
-            if (!nudged && step < MAX_STEPS - 1 && /\b(i will|i'll|i am going to|let me)\b[^.]*\b(now|mark|book|send|create|add|update|cancel|accept|reject|publish|look|find|check|fetch|search|get)\b/i.test(text)) {
+            if (!nudged && step < MAX_STEPS - 1 && /\b(i will|i'll|i am going to|i'm going to|let me|i need to|i have to|i must|i should|first,? i|i can look)\b[^.]*\b(now|mark|book|send|create|add|update|cancel|accept|reject|publish|look|find|check|fetch|search|get|id)\b/i.test(text)) {
                 nudged = true;
                 preface = text;
                 messages.push({ role: 'assistant', content: text });

@@ -142,7 +142,7 @@ export default function ExploreEvents({ user }) {
     );
 
     return (
-        <div className="min-h-screen bg-bg text-fg p-6 max-w-[1280px] mx-auto space-y-8">
+        <div className="min-h-screen bg-bg text-fg p-6 max-w-[1440px] mx-auto space-y-8">
             <header className="space-y-3">
                 <Badge tone="brand">Event marketplace</Badge>
                 <h1 className="text-4xl md:text-5xl font-black tracking-tight">
