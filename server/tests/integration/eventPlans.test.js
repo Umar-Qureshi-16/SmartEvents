@@ -126,3 +126,16 @@ describe('Smartie runs the plan end to end', () => {
         expect(plan.tasks.find((t) => t.title === 'Invitations').status).toBe('done');
     });
 });
+
+describe('Packages from a vendor who works in several fields', () => {
+    test("a package's own field decides where it is listed", async () => {
+        const { profile } = await vendorWithPackage('catering', 'Biryani for 300', 150000);
+        await Service.create({ vendorId: profile._id, title: 'Garden Lawn', price: 250000, description: 'Lawn hire', eventType: 'wedding', category: 'venue' });
+        const venue = (await api().get('/api/v1/plans/packages?category=venue')).body.data.map((p) => p.title);
+        const catering = (await api().get('/api/v1/plans/packages?category=catering')).body.data.map((p) => p.title);
+        expect(venue).toContain('Garden Lawn');
+        expect(venue).not.toContain('Biryani for 300');
+        expect(catering).toContain('Biryani for 300');
+        expect(catering).not.toContain('Garden Lawn');
+    });
+});

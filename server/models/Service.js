@@ -6,6 +6,8 @@ const serviceSchema = new mongoose.Schema({
     price: { type: Number, required: true },
     description: { type: String, required: true },
     eventType: { type: String, required: true }, // e.g., wedding, birthday
+    // The vendor field this package belongs to; when empty, the vendor profile's category applies.
+    category: { type: String, enum: ['venue', 'catering', 'decoration', 'photography', 'music', 'makeup', null], default: null },
     images: [{ type: String }],
     isAvailable: { type: Boolean, default: true }
 }, { timestamps: true });

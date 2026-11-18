@@ -178,13 +178,20 @@ async function deletePlan(ownerId, planId) {
  */
 async function packages({ category, maxPrice, location, limit = 24 } = {}) {
     if (category && !CATEGORIES.includes(category)) throw new BadRequestError(`Category must be one of ${CATEGORIES.join(', ')}.`);
-    const profileFilter = category ? { category } : {};
+    const profileFilter = {};
     if (location) profileFilter.location = new RegExp(String(location).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     const profiles = await VendorProfile.find(profileFilter).select('userId businessName category location').lean();
     const active = new Set((await User.find({ _id: { $in: profiles.map((p) => p.userId) }, status: { $nin: ['banned', 'restricted'] } }).select('_id').lean()).map((u) => String(u._id)));
     const visible = profiles.filter((p) => active.has(String(p.userId)));
     if (!visible.length) return [];
     const filter = { vendorId: { $in: visible.map((p) => p._id) }, isAvailable: { $ne: false } };
+    // A package's own field wins; otherwise it takes the vendor's profile category.
+    if (category) {
+        filter.$or = [
+            { category },
+            { category: { $in: [null, undefined] }, vendorId: { $in: visible.filter((p) => p.category === category).map((p) => p._id) } },
+        ];
+    }
     if (maxPrice) filter.price = { $lte: Number(maxPrice) };
     const services = await Service.find(filter).sort({ price: 1 }).limit(Math.min(Number(limit) || 24, 60)).lean();
     const byId = new Map(visible.map((p) => [String(p._id), p]));
@@ -194,6 +201,7 @@ async function packages({ category, maxPrice, location, limit = 24 } = {}) {
         const r = ratings.get(String(p.userId)) || { rating: 0, reviewsCount: 0 };
         return {
             _id: s._id, title: s.title, price: s.price, description: s.description, eventType: s.eventType, image: s.images?.[0] || null,
+            category: s.category || p.category,
             vendor: { userId: p.userId, profileId: p._id, businessName: p.businessName, category: p.category, location: p.location, rating: r.rating, reviewsCount: r.reviewsCount },
         };
     });

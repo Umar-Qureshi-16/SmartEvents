@@ -516,19 +516,21 @@ const ACTIONS = {
         params: {
             title: { type: 'string' }, price: { type: 'number' }, description: { type: 'string' },
             eventType: { type: 'string', description: 'Kind of event the package is for, e.g. wedding, birthday, corporate' },
+            category: { type: 'string', enum: ['venue', 'catering', 'decoration', 'photography', 'music', 'makeup'], description: 'Vendor field of this package; defaults to your profile category' },
         },
         required: ['title', 'price'],
         schema: z.object({
             title: z.string().min(3).max(120), price: z.coerce.number().positive(),
             description: z.string().max(1000).optional(), eventType: z.string().min(2).max(40).optional(),
+            category: z.enum(['venue', 'catering', 'decoration', 'photography', 'music', 'makeup']).optional(),
         }),
-        summary: (a) => `Add service package "${a.title}" at ${a.price}`,
+        summary: (a) => `Add service package "${a.title}" at ${a.price}${a.category ? ` (${a.category})` : ''}`,
         run: async (a, actor) => {
             const profile = await VendorProfile.findOne({ userId: actor.id });
             if (!profile) throw new BadRequestError('Create your vendor profile first.');
             const service = await Service.create({
                 vendorId: profile._id, title: a.title, price: a.price,
-                description: a.description || a.title, eventType: a.eventType || 'general',
+                description: a.description || a.title, eventType: a.eventType || 'general', category: a.category || null,
             });
             return { message: `Service "${service.title}" added.` };
         },
