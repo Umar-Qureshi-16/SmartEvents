@@ -76,3 +76,26 @@ describe('Blocked vendors are hidden from the public', () => {
         expect(list).not.toContain('Hidden Hall');
     });
 });
+
+describe('Public vendor profile', () => {
+    test('shows events, packages, gallery, followers and stats, without the email', async () => {
+        const prov = await makeUser('provider');
+        await VendorProfile.findOneAndUpdate({ userId: prov.id }, { businessName: 'Showcase Hall', category: 'venue', location: 'Lahore', tagline: 'Weddings by the lake', portfolioImages: ['https://img.test/a.jpg'] }, { upsert: true });
+        await makeEvent(prov.id, { title: 'Lake Wedding', image: 'https://img.test/b.jpg' });
+        const fan = await makeUser('customer');
+        expect((await api().post('/api/v1/auth/favorites').set(auth(fan.token)).send({ vendorId: prov.id })).status).toBe(200);
+        // Following is idempotent and only works for vendors.
+        await api().post('/api/v1/auth/favorites').set(auth(fan.token)).send({ vendorId: prov.id });
+        expect((await api().post('/api/v1/auth/favorites').set(auth(fan.token)).send({ vendorId: fan.id })).status).toBe(404);
+
+        const res = await api().get(`/api/v1/vendor/profile/${prov.id}`);
+        expect(res.status).toBe(200);
+        const { profile, events } = res.body;
+        expect(profile.tagline).toBe('Weddings by the lake');
+        expect(profile.stats).toMatchObject({ followers: 1, events: 1, upcomingEvents: 1, packages: 0, completedBookings: 0 });
+        expect(profile.gallery).toEqual(['https://img.test/a.jpg', 'https://img.test/b.jpg']);
+        expect(events.map((e) => e.title)).toEqual(['Lake Wedding']);
+        expect(JSON.stringify(res.body)).not.toContain('@test.com');
+        expect(profile.available).toBe(true);
+    });
+});

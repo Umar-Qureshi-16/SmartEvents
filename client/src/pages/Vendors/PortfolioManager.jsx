@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../../api/axios';
+import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { Image as ImageIcon, Plus, Trash2, ShieldCheck, MapPin, Briefcase, ArrowLeft } from 'lucide-react';
 
 export default function PortfolioManager() {
+    const me = useSelector((state) => state.auth.user);
     const [profile, setProfile] = useState({
         businessName: '',
         category: 'catering',
         location: '',
         description: '',
+        tagline: '',
+        coverImage: '',
         portfolioImages: []
     });
     const [loading, setLoading] = useState(true);
@@ -23,6 +28,8 @@ export default function PortfolioManager() {
                     category: res.data.category || 'catering',
                     location: res.data.location || '',
                     description: res.data.description || '',
+                    tagline: res.data.tagline || '',
+                    coverImage: res.data.coverImage || '',
                     portfolioImages: res.data.portfolioImages || []
                 });
             }
@@ -84,6 +91,9 @@ export default function PortfolioManager() {
                         Portfolio & Profile Manager
                     </h1>
                     <p className="text-xs text-muted font-medium">Manage your public brand, location coverage, and image catalogs.</p>
+                    {(me?._id || me?.id) && (
+                        <Link to={`/vendor/${me._id || me.id}`} className="inline-block text-xs font-bold text-brand hover:underline">See your public profile as customers see it →</Link>
+                    )}
                 </div>
             </div>
 
@@ -139,6 +149,32 @@ export default function PortfolioManager() {
                                         placeholder="e.g. Chicago, IL"
                                         className="w-full bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
                                     />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="pf-tagline" className="text-fg block mb-1">Tagline</label>
+                                    <input
+                                        id="pf-tagline"
+                                        type="text"
+                                        maxLength={140}
+                                        value={profile.tagline}
+                                        onChange={(e) => setProfile({ ...profile, tagline: e.target.value })}
+                                        placeholder="e.g. Lakeside weddings for up to 400 guests"
+                                        className="w-full bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="pf-cover" className="text-fg block mb-1">Cover photo link</label>
+                                    <input
+                                        id="pf-cover"
+                                        type="url"
+                                        value={profile.coverImage}
+                                        onChange={(e) => setProfile({ ...profile, coverImage: e.target.value })}
+                                        placeholder="https://… (wide photo shown at the top of your profile)"
+                                        className="w-full bg-bg border border-border rounded-xl px-3.5 py-2.5 outline-none focus:border-success"
+                                    />
+                                    <p className="text-[11px] text-muted mt-1">Leave empty to use your first portfolio or event photo.</p>
                                 </div>
 
                                 <div>

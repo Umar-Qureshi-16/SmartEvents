@@ -82,6 +82,8 @@ const vendorProfileSchema = z.object({
     category: z.enum(['venue', 'catering', 'decoration', 'photography', 'music', 'makeup']),
     location: z.string().min(2, "Location is required"),
     description: z.string().optional(),
+    tagline: z.string().max(140).optional(),
+    coverImage: z.string().url().or(z.literal('')).optional(),
     packages: z.array(z.object({
         title: z.string().min(2),
         price: z.number().min(0),

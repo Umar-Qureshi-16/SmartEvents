@@ -234,7 +234,7 @@ exports.getPublicProfile = async (req, res) => {
         if (mongoose.Types.ObjectId.isValid(id)) {
             profile = await VendorProfile.findOne({
                 $or: [{ _id: id }, { userId: id }]
-            }).populate('userId', 'name email trustScore');
+            }).populate('userId', 'name trustScore status createdAt');
         }
         
         // Previously this fabricated a vendor ("Grand Hyatt Ballroom", stock
@@ -245,10 +245,44 @@ exports.getPublicProfile = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Vendor profile not found' });
         }
 
-        const services = await Service.find({ vendorId: profile._id });
-        const r = (await require('../services/reviewStats').ratingsFor([profile.userId?._id || profile.userId])).values().next().value || {};
-        const shaped = { ...(profile.toObject ? profile.toObject() : profile), rating: r.rating || 0, reviewsCount: r.reviewsCount || 0 };
-        res.json({ success: true, profile: shaped, services });
+        const uid = profile.userId?._id || profile.userId;
+        const Event = require('../models/Event');
+        const User = require('../models/User');
+        const [services, events, followers, completed, active, ratings] = await Promise.all([
+            Service.find({ vendorId: profile._id, isAvailable: { $ne: false } }).sort({ price: 1 }).lean(),
+            Event.find({ createdBy: uid, status: { $ne: 'cancelled' } }).sort({ date: 1 }).select('title price category date location image status capacity').lean(),
+            User.countDocuments({ favorites: uid }),
+            Booking.countDocuments({ vendorId: uid, status: 'completed' }),
+            Booking.countDocuments({ vendorId: uid, status: 'confirmed' }),
+            require('../services/reviewStats').ratingsFor([uid]),
+        ]);
+        const r = ratings.get(String(uid)) || {};
+        // Showcase: the vendor's portfolio first, then photos from its events and packages.
+        const isImage = (u) => typeof u === 'string' && (/^https?:\/\//.test(u) || u.startsWith('/uploads/'));
+        const gallery = [...new Set([
+            ...(profile.portfolioImages || []),
+            ...events.map((e) => e.image),
+            ...services.flatMap((s) => s.images || []),
+        ].filter(isImage))].slice(0, 24);
+        const now = Date.now();
+        const shaped = {
+            ...(profile.toObject ? profile.toObject() : profile),
+            rating: r.rating || 0,
+            reviewsCount: r.reviewsCount || 0,
+            gallery,
+            stats: {
+                followers,
+                events: events.length,
+                upcomingEvents: events.filter((e) => new Date(e.date).getTime() >= now).length,
+                packages: services.length,
+                completedBookings: completed,
+                activeBookings: active,
+                startingPrice: services.length ? services[0].price : null,
+                memberSince: profile.userId?.createdAt || profile.createdAt,
+            },
+            available: !['banned', 'restricted'].includes(profile.userId?.status),
+        };
+        res.json({ success: true, profile: shaped, services, events });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Error fetching vendor profile', error: error.message });
     }

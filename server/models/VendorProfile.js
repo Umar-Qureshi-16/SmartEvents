@@ -4,6 +4,8 @@ const vendorProfileSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     businessName: { type: String, required: true },
     description: { type: String },
+    tagline: { type: String, maxlength: 140 },
+    coverImage: { type: String },
     category: { type: String, enum: ['venue', 'catering', 'decoration', 'photography', 'music', 'makeup'], required: true },
     location: { type: String, required: true }, // Used for location-based exposure
     portfolioImages: [{ type: String }], // URLs to images/videos

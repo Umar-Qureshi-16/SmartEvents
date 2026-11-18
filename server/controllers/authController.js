@@ -192,6 +192,9 @@ exports.addFavorite = asyncHandler(async (req, res, next) => {
     const User = require('../models/User');
     const { vendorId } = req.body;
     if (!vendorId) return res.status(400).json({ success: false, message: 'vendorId is required' });
+    const vendor = require('mongoose').Types.ObjectId.isValid(vendorId) && await User.findOne({ _id: vendorId, role: 'provider' }).select('_id').lean();
+    if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found' });
+    if (String(vendorId) === String(req.user.id)) return res.status(400).json({ success: false, message: 'You cannot follow yourself' });
 
     const user = await User.findByIdAndUpdate(
         req.user.id,
