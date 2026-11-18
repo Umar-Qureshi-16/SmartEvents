@@ -279,6 +279,49 @@ const ACTIONS = {
         },
     },
 
+    /* ---------- Design Studio (customer and vendor on a booking) ---------- */
+    view_design: {
+        roles: ['customer', 'provider'], mutating: false,
+        description: "A booking's design brief, decor concepts (with tiers, palettes, costs) and the latest design messages.",
+        params: { bookingId: { type: 'string' } }, required: ['bookingId'],
+        schema: z.object({ bookingId: oid }),
+        run: async ({ bookingId }, actor) => {
+            const d = await require('./designService').getDesign(bookingId, actor.id);
+            return { ...d, concepts: d.concepts.map((c) => ({ conceptId: String(c._id), title: c.title, tier: c.tier, totalCost: c.totalCost, selected: c.selected, palette: c.palette, elements: c.elements })), messages: d.messages.slice(-6) };
+        },
+    },
+    update_design_brief: {
+        roles: ['customer', 'provider'], mutating: true,
+        description: 'Update the shared design brief of a booking: theme, style, colours (hex like #c9a227), decor budget, guest count, notes.',
+        params: {
+            bookingId: { type: 'string' }, theme: { type: 'string' }, style: { type: 'string' },
+            colors: { type: 'array', items: { type: 'string' } }, budget: { type: 'number' }, guestCount: { type: 'number' }, notes: { type: 'string' },
+        },
+        required: ['bookingId'],
+        schema: z.object({
+            bookingId: oid, theme: z.string().max(120).optional(), style: z.string().max(120).optional(),
+            colors: z.array(z.string().regex(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i, 'use hex colours like #c9a227')).max(8).optional(),
+            budget: z.coerce.number().min(0).optional(), guestCount: z.coerce.number().int().min(0).optional(), notes: z.string().max(2000).optional(),
+        }),
+        summary: (a) => `Update the design brief of booking ${a.bookingId}: ${Object.entries(a).filter(([k]) => k !== 'bookingId').map(([k, v]) => `${k} = ${Array.isArray(v) ? v.join(' ') : v}`).join(', ')}`,
+        run: async ({ bookingId, ...brief }, actor) => {
+            await require('./designService').updateBrief(bookingId, actor.id, brief);
+            return { message: 'Design brief updated. The other party sees it live in the Design Studio.' };
+        },
+    },
+    generate_design_concepts: {
+        roles: ['customer', 'provider'], mutating: true,
+        description: 'Draft three decor concepts (Essential, Signature, Luxe) for a booking from its design brief, all within its budget.',
+        params: { bookingId: { type: 'string' } }, required: ['bookingId'],
+        schema: z.object({ bookingId: oid }),
+        summary: (a) => `Draft three decor concepts for booking ${a.bookingId}`,
+        run: async ({ bookingId }, actor) => {
+            const d = await require('./designService').generateConcepts(bookingId, actor.id);
+            const fresh = d.concepts.filter((c) => !c.selected).slice(-3);
+            return { message: `Drafted ${fresh.length} concepts: ${fresh.map((c) => `${c.tier} "${c.title}" (${c.totalCost})`).join('; ')}. Open the booking's Design Studio to compare and choose one.` };
+        },
+    },
+
     /* ---------- passes and reviews ---------- */
     get_pass: {
         roles: ['customer'], mutating: true,

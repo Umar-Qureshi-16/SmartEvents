@@ -17,4 +17,11 @@ router.put('/:id/reject', verifyToken, bookingController.rejectBooking);
 router.put('/:id/cancel', verifyToken, bookingController.cancelBooking);
 router.put('/:id/complete', verifyToken, authorize('customer'), bookingController.completeBooking);
 
+// Design Studio (customer and vendor on the booking only; checked in the service).
+router.get('/:id/design', verifyToken, bookingController.getDesign);
+router.put('/:id/design/brief', verifyToken, bookingController.updateDesignBrief);
+router.post('/:id/design/messages', verifyToken, bookingController.addDesignMessage);
+router.post('/:id/design/concepts', verifyToken, bookingController.generateDesignConcepts);
+router.put('/:id/design/concepts/:conceptId/select', verifyToken, bookingController.selectDesignConcept);
+
 module.exports = router;

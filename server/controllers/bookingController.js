@@ -93,3 +93,28 @@ exports.completeBooking = asyncHandler(async (req, res, next) => {
     const booking = await bookingService.updateStatus(req.params.id, 'completed', req.user.id);
     res.json({ success: true, data: booking, message: 'Booking marked complete. Escrow funds released to the provider.' });
 });
+
+// ---------------------------------------------------------------------------
+// Design Studio: brief, decor discussion and AI concepts (parties only).
+// ---------------------------------------------------------------------------
+const designService = require('../services/designService');
+
+exports.getDesign = asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await designService.getDesign(req.params.id, req.user.id) });
+});
+
+exports.updateDesignBrief = asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await designService.updateBrief(req.params.id, req.user.id, req.body || {}) });
+});
+
+exports.addDesignMessage = asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await designService.addMessage(req.params.id, req.user.id, req.body?.text) });
+});
+
+exports.generateDesignConcepts = asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await designService.generateConcepts(req.params.id, req.user.id) });
+});
+
+exports.selectDesignConcept = asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await designService.selectConcept(req.params.id, req.user.id, req.params.conceptId) });
+});

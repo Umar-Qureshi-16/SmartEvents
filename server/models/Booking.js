@@ -39,6 +39,42 @@ const bookingSchema = new mongoose.Schema({
         },
         offeredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         timestamp: { type: Date, default: Date.now }
+    }],
+
+    // Design Studio: what the event should look like, shared by both parties.
+    designBrief: {
+        theme: { type: String, maxlength: 120 },
+        style: { type: String, maxlength: 120 },
+        colors: [{ type: String, maxlength: 20 }],
+        budget: { type: Number, min: 0 },
+        guestCount: { type: Number, min: 0 },
+        notes: { type: String, maxlength: 2000 },
+        references: [{
+            url: { type: String, maxlength: 600 },
+            caption: { type: String, maxlength: 160 },
+            addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        }],
+        updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        updatedAt: { type: Date },
+    },
+    // Concepts the AI drafted from the brief; one can be selected to follow.
+    designConcepts: [{
+        title: String,
+        tier: { type: String, enum: ['Essential', 'Signature', 'Luxe'] },
+        summary: String,
+        palette: [String],
+        elements: [{ item: String, description: String, cost: Number }],
+        totalCost: Number,
+        selected: { type: Boolean, default: false },
+        selectedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        source: { type: String, enum: ['ai', 'template'], default: 'ai' },
+        createdAt: { type: Date, default: Date.now },
+    }],
+    // Conversation about decor, theme and style, kept apart from price offers.
+    designMessages: [{
+        author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        text: { type: String, maxlength: 1500 },
+        createdAt: { type: Date, default: Date.now },
     }]
 }, { timestamps: true, optimisticConcurrency: true });
 

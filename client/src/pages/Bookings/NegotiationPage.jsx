@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import AnimatedPrice from '../../components/AnimatedPrice';
 import { useWebSockets } from '../../context/WebSocketContext';
 import { useSelector } from 'react-redux';
+import DesignStudio from '../../components/design/DesignStudio';
 
 const NegotiationPage = () => {
     const { bookingId } = useParams();
@@ -16,6 +17,8 @@ const NegotiationPage = () => {
     const [counterPrice, setCounterPrice] = useState('');
     const [note, setNote] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // 'offers' shows the price negotiation; 'design' the shared Design Studio.
+    const [view, setView] = useState('offers');
 
     const { user } = useSelector((state) => state.auth);
     const { socket } = useWebSockets();
@@ -205,7 +208,7 @@ const NegotiationPage = () => {
 
     return (
         <div className="min-h-screen bg-ink text-fg pt-24 pb-20 px-6">
-            <div className="max-w-4xl mx-auto space-y-8 flex flex-col h-[calc(100vh-140px)]">
+            <div className={`${view === 'design' ? 'max-w-6xl' : 'max-w-4xl'} mx-auto space-y-6 flex flex-col h-[calc(100vh-140px)]`}>
 
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border flex-shrink-0">
@@ -242,6 +245,18 @@ const NegotiationPage = () => {
                     </motion.div>
                 )}
 
+                <div role="tablist" aria-label="Booking workspace" className="flex gap-1 bg-surface-2 p-1 rounded-full w-fit flex-shrink-0">
+                    {[['offers', 'Price negotiation'], ['design', 'Design Studio']].map(([key, label]) => (
+                        <button key={key} type="button" role="tab" aria-selected={view === key} onClick={() => setView(key)}
+                            className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${view === key ? 'bg-brand text-white shadow-sm' : 'text-muted hover:text-fg'}`}>
+                            {label}
+                        </button>
+                    ))}
+                </div>
+
+                {view === 'design' && <DesignStudio bookingId={bookingId} currentUserId={user?._id || user?.id} />}
+
+                {view === 'offers' && (<>
                 {/* Chat Section */}
                 <div
                     ref={chatContainerRef}
@@ -364,6 +379,7 @@ const NegotiationPage = () => {
                         Waiting for other party to respond
                     </motion.div>
                 )}
+                </>)}
             </div>
         </div>
     );
