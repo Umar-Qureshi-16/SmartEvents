@@ -114,15 +114,15 @@ class BookingService {
     }
 
     async getMyBookings(customerId) {
-        return await Booking.find({ customerId }).populate('eventId vendorId').populate('serviceId', 'title price').sort({ createdAt: -1 });
+        return await Booking.find({ customerId }).populate('eventId').populate('vendorId', 'name email role trustScore').populate('serviceId', 'title price').sort({ createdAt: -1 });
     }
 
     async getOrganizerBookings(vendorId) {
-        return await Booking.find({ vendorId }).populate('eventId customerId').populate('serviceId', 'title price').sort({ createdAt: -1 });
+        return await Booking.find({ vendorId }).populate('eventId').populate('customerId', 'name role trustScore profile.avatar profile.city').populate('serviceId', 'title price').sort({ createdAt: -1 });
     }
 
     async getBookingById(id, userId) {
-        const booking = await Booking.findById(id).populate('eventId customerId vendorId').populate('serviceId', 'title price');
+        const booking = await Booking.findById(id).populate('eventId').populate('customerId', 'name role trustScore profile.avatar profile.city').populate('vendorId', 'name role trustScore profile.avatar profile.city').populate('serviceId', 'title price');
         if (!booking) throw new NotFoundError('Booking not found.');
 
         if (booking.customerId._id.toString() !== userId && booking.vendorId._id.toString() !== userId) {

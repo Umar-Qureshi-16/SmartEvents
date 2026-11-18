@@ -12,6 +12,7 @@ import HeroAIMatchmaker from '../../components/Dashboard/HeroAIMatchmaker';
 import TimelineBoard from '../../components/Dashboard/TimelineBoard';
 import BookingInsight from '../../components/Dashboard/BookingInsight';
 import StarRating from '../../components/reviews/StarRating';
+import { AttentionList, NextUp, Panel, QuickGrid } from '../../components/Dashboard/DashboardBits';
 import {
     Badge, Button, Card, EmptyState, ErrorState, Skeleton, SkeletonList,
     formatCurrency, formatDate, BOOKING_STATUS,
@@ -24,6 +25,7 @@ const QUICK_ACTIONS = [
     { label: 'Find a vendor', desc: 'Profiles, packages and reviews', path: '/vendors', icon: Store },
     { label: 'My tickets', desc: 'QR passes for confirmed events', path: '/tickets', icon: Ticket },
     { label: 'Budget tracker', desc: 'Split and check your spend', path: '/budget-tracker', icon: DollarSign },
+    { label: 'My profile', desc: 'Plans, following, reviews', path: '/me', icon: UserCircle },
 ];
 const FILTERS = [['all', 'All'], ['active', 'In negotiation'], ['confirmed', 'Confirmed'], ['completed', 'Completed']];
 
@@ -118,13 +120,13 @@ export default function CustomerDashboard({ user }) {
     }
 
     return (
-        <div className="min-h-screen bg-bg text-fg space-y-8 p-4 md:p-6 max-w-[1280px] mx-auto">
+        <div className="min-h-screen bg-bg text-fg px-4 md:px-6 lg:px-8 py-6 max-w-[1440px] mx-auto space-y-6">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <Link to="/me" className="flex items-center gap-4 group">
                     <span className="w-14 h-14 rounded-full bg-brand/10 text-brand text-xl font-black flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-transparent group-hover:ring-brand transition">
                         {me?.user?.avatar ? <img src={me.user.avatar} alt="" className="w-full h-full object-cover" /> : (user?.name || 'U').charAt(0).toUpperCase()}
                     </span>
-                    <span className="space-y-0.5">
+                    <span>
                         <span className="block text-2xl md:text-3xl font-black tracking-tight">
                             Welcome back, <span className="text-success">{user?.name?.split(' ')[0] || 'there'}</span>
                         </span>
@@ -139,96 +141,58 @@ export default function CustomerDashboard({ user }) {
                 </div>
             </header>
 
-            {/* Every number opens what it counts */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {/* Every number opens its own overview */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard label="TOTAL BOOKINGS" value={stats.total} icon={Calendar} subtext="Tap for the overview" onClick={() => setInsight('all')} />
                 <StatCard label="IN NEGOTIATION" value={stats.active} icon={MessageSquare} tone="warning" subtext="Reply, accept or counter" onClick={() => setInsight('negotiating')} />
                 <StatCard label="CONFIRMED" value={stats.confirmed} icon={CheckCircle2} tone="success" subtext="Countdown and next steps" onClick={() => setInsight('confirmed')} />
                 <StatCard label="TOTAL COMMITTED" value={formatCurrency(stats.spend)} icon={DollarSign} tone="success" subtext="Escrow and by vendor" onClick={() => setInsight('committed')} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-                <div className="lg:col-span-8 space-y-6">
-                    {/* Next event */}
-                    {nextEvent ? (
-                        <Link to={`/negotiate/${nextEvent._id}`} className="group relative block rounded-3xl overflow-hidden border border-border bg-surface shadow-card">
-                            <div className="relative h-44 md:h-52 bg-gradient-to-br from-brand/40 to-success/30">
-                                {nextEvent.eventId?.image && <img src={nextEvent.eventId.image} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500" />}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                                <div className="absolute bottom-0 left-0 right-0 p-5 text-white flex items-end justify-between gap-4">
-                                    <div className="min-w-0">
-                                        <p className="text-[11px] font-bold uppercase tracking-wider text-white/80">Your next event</p>
-                                        <h2 className="text-xl md:text-2xl font-black truncate">{titleOf(nextEvent)}</h2>
-                                        <p className="text-xs text-white/85 flex flex-wrap gap-x-3">
-                                            <span>{formatDate(nextEvent.eventDetails.date)}</span>
-                                            <span className="inline-flex items-center gap-1"><MapPin size={12} aria-hidden="true" />{nextEvent.eventDetails.location}</span>
-                                            <span>with {nextEvent.vendorId?.name}</span>
-                                        </p>
-                                    </div>
-                                    <div className="text-center bg-white/15 backdrop-blur rounded-2xl px-4 py-2 shrink-0">
-                                        <p className="text-2xl font-black leading-none">{daysUntil(nextEvent.eventDetails.date)}</p>
-                                        <p className="text-[10px] font-bold uppercase">{daysUntil(nextEvent.eventDetails.date) === 1 ? 'day to go' : 'days to go'}</p>
-                                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                {/* Main column */}
+                <div className="lg:col-span-2 space-y-6">
+                    <NextUp
+                        to={nextEvent && `/negotiate/${nextEvent._id}`}
+                        label="Your next event" title={nextEvent && titleOf(nextEvent)}
+                        date={nextEvent && formatDate(nextEvent.eventDetails.date)} location={nextEvent?.eventDetails?.location}
+                        withName={nextEvent?.vendorId?.name} image={nextEvent?.eventId?.image}
+                        days={nextEvent && daysUntil(nextEvent.eventDetails.date)}
+                        empty={(
+                            <Panel className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <h2 className="text-lg font-bold">No confirmed event yet</h2>
+                                    <p className="text-sm text-muted">Start a plan and Smartie lists every step with vendor packages, or browse events to make an offer.</p>
                                 </div>
-                            </div>
-                        </Link>
-                    ) : (
-                        <Card className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div>
-                                <h2 className="text-lg font-bold">No confirmed event yet</h2>
-                                <p className="text-sm text-muted">Start a plan and Smartie lists every step with vendor packages, or browse events to make an offer.</p>
-                            </div>
-                            <Button icon={Sparkles} onClick={() => navigate('/planner')}>Start a plan</Button>
-                        </Card>
-                    )}
+                                <Button icon={Sparkles} onClick={() => navigate('/planner')}>Start a plan</Button>
+                            </Panel>
+                        )}
+                    />
 
-                    {/* Needs your attention */}
-                    {todo.length > 0 && (
-                        <Card className="p-5 space-y-3">
-                            <h2 className="text-sm font-black uppercase tracking-wider flex items-center gap-2"><AlertCircle size={16} className="text-warning" aria-hidden="true" />Needs your attention</h2>
-                            <ul className="divide-y divide-border">
-                                {todo.map(({ key, icon: Icon, text, cta, to, tone }) => (
-                                    <li key={key}>
-                                        <Link to={to} className="flex items-center gap-3 py-3 group">
-                                            <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${tone === 'warning' ? 'bg-warning/10 text-warning' : tone === 'success' ? 'bg-success/10 text-success' : 'bg-brand/10 text-brand'}`}><Icon size={16} aria-hidden="true" /></span>
-                                            <span className="flex-1 text-sm text-fg">{text}</span>
-                                            <span className="text-xs font-bold text-brand inline-flex items-center gap-1 group-hover:underline shrink-0">{cta}<ArrowRight size={12} aria-hidden="true" /></span>
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </Card>
-                    )}
-
-                    {/* Bookings */}
-                    <Card className="p-5 md:p-6 space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <h2 className="text-lg font-bold">Your bookings</h2>
-                            <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Filter bookings">
-                                {FILTERS.map(([k, l]) => (
-                                    <button key={k} role="tab" aria-selected={filter === k} onClick={() => setFilter(k)}
-                                        className={`text-xs font-bold rounded-full px-3 py-1.5 border ${filter === k ? 'bg-brand text-white border-brand' : 'border-border text-fg hover:border-brand/50'}`}>{l}</button>
-                                ))}
-                            </div>
+                    <Panel title="Your bookings" icon={Calendar} action={(
+                        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Filter bookings">
+                            {FILTERS.map(([k, l]) => (
+                                <button key={k} role="tab" aria-selected={filter === k} onClick={() => setFilter(k)}
+                                    className={`text-xs font-bold rounded-full px-3 py-1 border ${filter === k ? 'bg-brand text-white border-brand' : 'border-border text-fg hover:border-brand/50'}`}>{l}</button>
+                            ))}
                         </div>
-
+                    )}>
                         {error ? (
                             <ErrorState message={error} onRetry={load} />
                         ) : bookings.length === 0 ? (
                             <EmptyState icon={Calendar} title="No bookings yet"
-                                description="Find an event or a vendor you like, then make an offer at the price that works for you. They can accept it or counter."
+                                description="Find an event or a vendor you like, then make an offer at the price that works for you."
                                 action={{ label: 'Explore events', to: '/events' }} />
                         ) : shown.length === 0 ? (
-                            <p className="text-sm text-muted py-6 text-center">Nothing here. Try another filter.</p>
+                            <p className="text-sm text-muted py-4 text-center">Nothing here. Try another filter.</p>
                         ) : (
-                            <ul className="space-y-3">
+                            <ul className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
                                 {shown.map((b) => {
                                     const status = BOOKING_STATUS[b.status] || { label: b.status, tone: 'neutral' };
-                                    const img = b.eventId?.image;
                                     return (
                                         <li key={b._id}>
-                                            <Link to={`/negotiate/${b._id}`} className="p-3 rounded-2xl bg-surface-2 border border-border hover:border-brand/50 hover:shadow-card transition-all flex items-center gap-3">
-                                                {img ? <img src={img} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" loading="lazy" /> : <span className="w-14 h-14 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0"><Calendar size={20} aria-hidden="true" /></span>}
+                                            <Link to={`/negotiate/${b._id}`} className="h-full p-3 rounded-2xl bg-surface-2 border border-border hover:border-brand/50 transition-colors flex items-center gap-3">
+                                                {b.eventId?.image ? <img src={b.eventId.image} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" loading="lazy" /> : <span className="w-12 h-12 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0"><Calendar size={18} aria-hidden="true" /></span>}
                                                 <span className="min-w-0 flex-1">
                                                     <span className="block text-sm font-bold truncate">{titleOf(b)}</span>
                                                     <span className="block text-[11px] text-muted truncate">{b.vendorId?.name || 'Vendor'} · {formatDate(b.eventDetails?.date)}</span>
@@ -243,26 +207,25 @@ export default function CustomerDashboard({ user }) {
                                 })}
                             </ul>
                         )}
-                        {bookings.length > 0 && <Link to="/bookings" className="block text-center text-sm font-bold text-brand hover:underline">Open all {bookings.length} bookings</Link>}
-                    </Card>
+                        {bookings.length > 0 && <Link to="/bookings" className="block text-center text-sm font-bold text-brand hover:underline mt-3">Open all {bookings.length} bookings</Link>}
+                    </Panel>
+
+                    <HeroAIMatchmaker />
                 </div>
 
-                <aside className="lg:col-span-4 space-y-6">
+                {/* Side column */}
+                <aside className="space-y-6">
+                    <AttentionList items={todo} />
                     <TimelineBoard nextBooking={nextEvent} />
-
-                    <Card className="p-5 space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-sm font-black uppercase tracking-wider flex items-center gap-2"><Heart size={15} className="text-brand" aria-hidden="true" />Following</h2>
-                            <Link to="/me?tab=following" className="text-xs font-bold text-brand">See all</Link>
-                        </div>
+                    <Panel title="Following" icon={Heart} action={<Link to="/me?tab=following" className="text-xs font-bold text-brand">See all</Link>}>
                         {(me?.following || []).length === 0 ? (
                             <p className="text-xs text-muted">Follow vendors you like to keep them one click away. <Link to="/vendors" className="text-brand font-bold">Find vendors</Link></p>
                         ) : (
-                            <ul className="space-y-2">
-                                {me.following.slice(0, 4).map((v) => (
+                            <ul className="space-y-1">
+                                {me.following.slice(0, 3).map((v) => (
                                     <li key={v.userId}>
-                                        <Link to={`/vendor/${v.userId}`} className="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-2">
-                                            <span className="w-10 h-10 rounded-xl bg-brand/10 text-brand font-black flex items-center justify-center overflow-hidden shrink-0">
+                                        <Link to={`/vendor/${v.userId}`} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-surface-2">
+                                            <span className="w-9 h-9 rounded-lg bg-brand/10 text-brand font-black flex items-center justify-center overflow-hidden shrink-0">
                                                 {v.image ? <img src={v.image} alt="" className="w-full h-full object-cover" /> : v.businessName.charAt(0)}
                                             </span>
                                             <span className="min-w-0 flex-1">
@@ -274,25 +237,12 @@ export default function CustomerDashboard({ user }) {
                                 ))}
                             </ul>
                         )}
-                    </Card>
-
-                    <Card className="p-5 space-y-2">
-                        <h2 className="text-sm font-black uppercase tracking-wider">Quick actions</h2>
-                        {QUICK_ACTIONS.map(({ label, desc, path, icon: Icon }) => (
-                            <Link key={path} to={path} className="w-full p-3 rounded-xl hover:bg-surface-2 flex items-center gap-3 transition-colors group">
-                                <span className="w-9 h-9 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0"><Icon size={16} aria-hidden="true" /></span>
-                                <span className="min-w-0 flex-1">
-                                    <span className="block text-xs font-bold truncate">{label}</span>
-                                    <span className="block text-[11px] text-muted truncate">{desc}</span>
-                                </span>
-                                <ArrowUpRight size={14} className="text-muted group-hover:text-brand transition-colors shrink-0" aria-hidden="true" />
-                            </Link>
-                        ))}
-                    </Card>
+                    </Panel>
+                    <Panel title="Quick actions">
+                        <QuickGrid items={QUICK_ACTIONS} />
+                    </Panel>
                 </aside>
             </div>
-
-            <HeroAIMatchmaker />
 
             {insight && <BookingInsight kind={insight} bookings={bookings} myId={myId} onClose={() => setInsight(null)} onChanged={load} />}
         </div>
