@@ -31,12 +31,16 @@ if (import.meta.env.PROD && backendOrigin) {
   fetch(`${backendOrigin}/api/v1/health`, { mode: 'no-cors' }).catch(() => {});
 }
 
+import { ConfirmProvider } from './components/ui/ConfirmProvider';
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <Provider store={store}>
       <BrowserRouter>
         <GoogleOAuthProvider clientId={googleClientId}>
-          <App />
+          <ConfirmProvider>
+            <App />
+          </ConfirmProvider>
         </GoogleOAuthProvider>
       </BrowserRouter>
     </Provider>

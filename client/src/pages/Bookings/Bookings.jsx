@@ -9,7 +9,7 @@ import {
 import axios from '../../api/axios';
 import StatCard from '../../components/common/StatCard';
 import {
-    Button, Card, Badge, Textarea, Modal, SkeletonList, EmptyState, ErrorState,
+    Button, Card, Badge, Textarea, Modal, useConfirm, SkeletonList, EmptyState, ErrorState,
     formatCurrency, formatDate, BOOKING_STATUS
 } from '../../components/ui';
 
@@ -17,6 +17,7 @@ const FILTERS = ['all', 'pending', 'negotiating', 'confirmed', 'completed', 'dis
 
 export default function Bookings({ user }) {
     const navigate = useNavigate();
+    const confirm = useConfirm();
     // The filter lives in the address (?status=confirmed), so dashboard and
     // profile numbers can open the matching list directly.
     const [params, setParams] = useSearchParams();
@@ -68,7 +69,7 @@ export default function Bookings({ user }) {
 
     // Customer confirms delivery: the simulated escrow is released to the provider.
     const completeBooking = async (booking) => {
-        if (!window.confirm('Confirm the service was delivered? This releases the escrow funds to the provider.')) return;
+        if (!(await confirm({ title: 'Mark this booking complete?', message: 'Confirm the service was delivered. This releases the escrow payment to the vendor and opens reviews.', confirmLabel: 'Complete & release' }))) return;
         setCompleting(booking._id);
         try {
             await axios.put(`/bookings/${booking._id}/complete`);

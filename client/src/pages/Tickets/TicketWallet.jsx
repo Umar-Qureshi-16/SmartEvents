@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ticket as TicketIcon, QrCode, Calendar, MapPin, Download, Search, ShieldCheck, X, Sparkles } from 'lucide-react';
 import axios from '../../api/axios';
+import { useConfirm } from '../../components/ui';
 import { toast } from 'react-hot-toast';
 
 export default function TicketWallet({ user }) {
+    const confirm = useConfirm();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [tickets, setTickets] = useState([]);
@@ -30,7 +32,7 @@ export default function TicketWallet({ user }) {
     }, []);
 
     const cancelTicket = async (ticket) => {
-        if (!window.confirm('Cancel this pass? It will no longer be valid for entry.')) return;
+        if (!(await confirm({ title: 'Cancel this pass?', message: 'It will no longer be valid for entry.', confirmLabel: 'Cancel pass', cancelLabel: 'Keep it', tone: 'danger' }))) return;
         try {
             await axios.put(`/tickets/${ticket._id}/cancel`);
             toast.success('Ticket cancelled.');

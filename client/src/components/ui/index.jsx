@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Loader2, AlertTriangle, RefreshCw, Inbox } from 'lucide-react';
 
 export { default as Modal } from './Modal';
+export { ConfirmProvider, useConfirm } from './ConfirmProvider';
 export { default as PasswordField } from './PasswordField';
 
 /* -------------------------------------------------------------------------- */

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { CalendarCheck, CheckCircle2, Circle, ChevronDown, ChevronUp, Plus, Sparkles, Trash2 } from 'lucide-react';
 import axios from '../../api/axios';
-import { Badge, Button, Card, EmptyState, Input, Skeleton, formatDate } from '../../components/ui';
+import { Badge, Button, Card, EmptyState, Input, Skeleton, formatDate, useConfirm } from '../../components/ui';
 import PackageList, { FIELD_LABELS } from '../../components/planner/PackageList';
 import BudgetPlanner from '../../components/planner/BudgetPlanner';
 
@@ -92,6 +92,7 @@ function TaskRow({ task, plan, onToggle, now }) {
 }
 
 export default function EventPlanner() {
+    const confirm = useConfirm();
     const [params, setParams] = useSearchParams();
     const [plans, setPlans] = useState(null);
     const activeId = params.get('plan');
@@ -124,7 +125,7 @@ export default function EventPlanner() {
     };
 
     const remove = async () => {
-        if (!window.confirm(`Delete the plan "${plan.title}"? Your bookings are not affected.`)) return;
+        if (!(await confirm({ title: 'Delete this plan?', message: `"${plan.title}" and its tasks will be removed. Your bookings are not affected.`, confirmLabel: 'Delete plan', tone: 'danger' }))) return;
         try {
             await axios.delete(`/plans/${plan._id}`);
             setPlans((list) => list.filter((p) => p._id !== plan._id));

@@ -140,8 +140,9 @@ const NegotiationPage = () => {
             }
 
             if (res.data.success) {
-                toast.success(`Action '${actionType}' successful.`);
-                setBooking(res.data.data);
+                toast.success({ accept: 'Offer accepted. The booking is confirmed.', counter: 'Counter offer sent.', reject: 'Offer declined.' }[actionType] || 'Done.');
+                // The reply lacks the populated event and people; reload the full booking.
+                await fetchBooking();
             } else {
                 throw new Error("Action not marked successful");
             }

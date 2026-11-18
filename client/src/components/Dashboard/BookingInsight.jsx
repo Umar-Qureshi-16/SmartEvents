@@ -72,7 +72,7 @@ function Negotiation({ b, myId, onChanged, role }) {
             if (kind === 'accept') await axios.put(`/bookings/${b._id}/accept`);
             if (kind === 'counter') {
                 if (!(Number(price) > 0)) { toast.error('Enter your counter price.'); setBusy(null); return; }
-                await axios.post(`/bookings/${b._id}/negotiate`, { price: Number(price), message: 'Counter offer from the dashboard' });
+                await axios.post(`/bookings/${b._id}/negotiate`, { price: Number(price), message: `Counter offer of ${formatCurrency(Number(price))}` });
             }
             toast.success(kind === 'accept' ? 'Accepted. The booking is confirmed.' : 'Counter offer sent.');
             setPrice('');

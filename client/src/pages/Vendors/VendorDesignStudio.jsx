@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { Eye, EyeOff, Palette, Sparkles, Trash2, ExternalLink } from 'lucide-react';
 import axios from '../../api/axios';
-import { formatCurrency } from '../../components/ui';
+import { formatCurrency, useConfirm } from '../../components/ui';
 import DesignVisual from '../../components/design/DesignVisual';
 
 const TYPES = ['Wedding', 'Nikah', 'Mehndi', 'Walima', 'Birthday', 'Corporate', 'Conference'];
@@ -82,6 +82,7 @@ function DesignCard({ d, onChange, onDelete }) {
 
 /** The vendor's own design library: AI drafts, edit, publish to profile. */
 export default function VendorDesignStudio() {
+    const confirm = useConfirm();
     const me = useSelector((s) => s.auth.user);
     const [designs, setDesigns] = useState(null);
     const [form, setForm] = useState({ theme: '', style: '', eventType: 'Wedding', budget: '', colors: '', notes: '' });
@@ -110,7 +111,7 @@ export default function VendorDesignStudio() {
     };
 
     const del = async (d) => {
-        if (!window.confirm(`Delete "${d.title}"? This cannot be undone.`)) return;
+        if (!(await confirm({ title: 'Delete this design?', message: `"${d.title}" will be removed from your studio and profile. This cannot be undone.`, confirmLabel: 'Delete', tone: 'danger' }))) return;
         try {
             await axios.delete(`/designs/${d._id}`);
             setDesigns((list) => list.filter((x) => x._id !== d._id));

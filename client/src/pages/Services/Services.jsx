@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../../api/axios';
+import { useConfirm } from '../../components/ui';
 import { toast } from 'react-hot-toast';
 import { Plus, Trash2, Calendar, Package, ArrowLeft, Star, Tag, Users, CheckCircle2 } from 'lucide-react';
 
@@ -13,6 +14,7 @@ const CATEGORY_MAP = {
 };
 
 function Services() {
+    const confirm = useConfirm();
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddForm, setShowAddForm] = useState(false);
@@ -73,7 +75,7 @@ function Services() {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to remove this service offering?')) return;
+        if (!(await confirm({ title: 'Remove this package?', message: 'Organizers will no longer see or book it. Existing bookings are not affected.', confirmLabel: 'Remove', tone: 'danger' }))) return;
         try {
             const res = await axios.delete(`/vendor/services/${id}`);
             if (res.data.success) {
