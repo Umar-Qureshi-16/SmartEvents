@@ -210,7 +210,12 @@ export default function Leads({ user }) {
                                 </div>
 
                                 <h3 className="text-lg font-bold text-fg truncate">
-                                    Lead from {lead.customerId?.name || 'Verified Organizer'}
+                                    Lead from{' '}
+                                    {lead.customerId?._id ? (
+                                        <button type="button" onClick={() => navigate(`/organizer/${lead.customerId._id}`)} className="underline decoration-dotted underline-offset-4 hover:text-brand" title="See this organizer's profile">
+                                            {lead.customerId.name}
+                                        </button>
+                                    ) : 'Verified Organizer'}
                                 </h3>
 
                                 <div className="space-y-1 text-xs text-muted font-semibold">

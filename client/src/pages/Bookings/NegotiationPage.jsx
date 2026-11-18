@@ -229,6 +229,19 @@ const NegotiationPage = () => {
                         <p className="text-muted mt-2">
                             Event: <span className="text-fg font-medium">{booking.eventId?.title || (booking.serviceId?.title ? `${booking.serviceId.title} package` : booking.eventDetails?.eventType) || 'Custom booking'}</span>
                         </p>
+                        {(() => {
+                            const iAmVendor = String(booking.vendorId?._id || booking.vendorId) === String(user?._id || user?.id);
+                            const other = iAmVendor ? booking.customerId : booking.vendorId;
+                            if (!other?._id) return null;
+                            return (
+                                <p className="text-muted text-sm mt-1">
+                                    With{' '}
+                                    <button type="button" onClick={() => navigate(iAmVendor ? `/organizer/${other._id}` : `/vendor/${other._id}`)}
+                                        className="text-brand font-bold hover:underline">{other.name}</button>
+                                    <span className="text-xs"> ({iAmVendor ? 'organizer' : 'vendor'} profile)</span>
+                                </p>
+                            );
+                        })()}
                     </div>
                     <div className="text-right">
                         <p className="text-[10px] font-black uppercase text-muted tracking-widest">Current Offer</p>

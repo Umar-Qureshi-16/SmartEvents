@@ -1,7 +1,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
-export default function StatCard({ label, value, trend, icon: Icon, subtext, tone = 'brand' }) {
+export default function StatCard({ label, value, trend, icon: Icon, subtext, tone = 'brand', onClick }) {
     const tones = {
         brand: 'bg-brand/10 text-brand',
         success: 'bg-success/10 text-success',
@@ -10,8 +10,11 @@ export default function StatCard({ label, value, trend, icon: Icon, subtext, ton
     };
     const trendDown = typeof trend === 'string' && trend.trim().startsWith('-');
 
+    // With onClick the card is a button that opens what the number counts.
+    const Tag = onClick ? 'button' : 'div';
     return (
-        <div className="bg-surface border border-border rounded-3xl shadow-card p-6 flex flex-col justify-between gap-4 hover:border-brand/40 transition-colors">
+        <Tag type={onClick ? 'button' : undefined} onClick={onClick}
+            className={`w-full text-left bg-surface border border-border rounded-3xl shadow-card p-6 flex flex-col justify-between gap-4 hover:border-brand/40 transition-colors ${onClick ? 'cursor-pointer hover:-translate-y-0.5 transition-transform focus-visible:ring-2 focus-visible:ring-brand' : ''}`}>
             <div className="flex items-center justify-between gap-2">
                 <span className="text-[10px] font-mono text-muted uppercase font-bold tracking-wider">{label}</span>
                 {Icon && (
@@ -35,6 +38,6 @@ export default function StatCard({ label, value, trend, icon: Icon, subtext, ton
                     )}
                 </div>
             </div>
-        </div>
+        </Tag>
     );
 }

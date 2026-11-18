@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
     Calendar, DollarSign, MapPin, CheckCircle2, ArrowRight,
@@ -17,7 +17,11 @@ const FILTERS = ['all', 'pending', 'negotiating', 'confirmed', 'completed', 'dis
 
 export default function Bookings({ user }) {
     const navigate = useNavigate();
-    const [filterStatus, setFilterStatus] = useState('all');
+    // The filter lives in the address (?status=confirmed), so dashboard and
+    // profile numbers can open the matching list directly.
+    const [params, setParams] = useSearchParams();
+    const filterStatus = FILTERS.includes(params.get('status')) ? params.get('status') : 'all';
+    const setFilterStatus = (s) => setParams(s === 'all' ? {} : { status: s }, { replace: true });
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -104,7 +108,10 @@ export default function Bookings({ user }) {
     };
 
     const filtered = useMemo(
-        () => (filterStatus === 'all' ? bookings : bookings.filter(b => b.status === filterStatus)),
+        // "In negotiation" covers both a fresh offer and a counter.
+        () => (filterStatus === 'all' ? bookings
+            : filterStatus === 'negotiating' ? bookings.filter(b => ['pending', 'negotiating'].includes(b.status))
+            : bookings.filter(b => b.status === filterStatus)),
         [bookings, filterStatus]
     );
 
@@ -131,10 +138,10 @@ export default function Bookings({ user }) {
             </header>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard label="TOTAL BOOKINGS" value={totals.all} icon={Calendar} />
-                <StatCard label="IN NEGOTIATION" value={totals.negotiating} icon={MessageSquare} />
-                <StatCard label="CONFIRMED" value={totals.confirmed} icon={CheckCircle2} />
-                <StatCard label="AGREED VALUE" value={formatCurrency(totals.value)} icon={DollarSign} />
+                <StatCard label="TOTAL BOOKINGS" value={totals.all} icon={Calendar} onClick={() => setFilterStatus('all')} />
+                <StatCard label="IN NEGOTIATION" value={totals.negotiating} icon={MessageSquare} onClick={() => setFilterStatus('negotiating')} />
+                <StatCard label="CONFIRMED" value={totals.confirmed} icon={CheckCircle2} onClick={() => setFilterStatus('confirmed')} />
+                <StatCard label="AGREED VALUE" value={formatCurrency(totals.value)} icon={DollarSign} onClick={() => navigate('/me?tab=spending')} />
             </div>
 
             <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto">
@@ -177,7 +184,12 @@ export default function Bookings({ user }) {
                         const canNegotiate = ['pending', 'negotiating'].includes(booking.status);
 
                         return (
-                            <Card key={booking._id} className="p-6 flex flex-col justify-between gap-4 hover:border-brand/40 transition-colors">
+                            <Card key={booking._id}
+                                  role="link" tabIndex={0}
+                                  aria-label={`Open ${booking.eventId?.title || booking.serviceId?.title || 'booking'}`}
+                                  onClick={(e) => { if (!e.target.closest('button, a')) navigate(`/negotiate/${booking._id}`); }}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) navigate(`/negotiate/${booking._id}`); }}
+                                  className="p-6 flex flex-col justify-between gap-4 hover:border-brand/40 hover:shadow-card cursor-pointer transition-all">
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between gap-2">
                                         <Badge tone="brand">{booking.eventDetails?.eventType || 'Custom request'}</Badge>
@@ -193,6 +205,11 @@ export default function Bookings({ user }) {
                                     <h2 className="text-lg font-bold truncate">
                                         {booking.eventId?.title || (booking.serviceId?.title && `${booking.serviceId.title} package`) || `Booking with ${booking.vendorId?.name || 'provider'}`}
                                     </h2>
+                                    {booking.vendorId?._id && (
+                                        <p className="text-xs text-muted -mt-2">
+                                            with <a href={`/vendor/${booking.vendorId._id}`} onClick={(e) => { e.preventDefault(); navigate(`/vendor/${booking.vendorId._id}`); }} className="font-bold text-brand hover:underline">{booking.vendorId.name}</a>
+                                        </p>
+                                    )}
 
                                     <div className="space-y-1.5 text-xs text-muted font-medium">
                                         <div className="flex items-center gap-1.5">

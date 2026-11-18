@@ -49,6 +49,8 @@ const BudgetTracker        = lazy(() => import('./pages/AI/BudgetTracker'));
 const AIConcierge          = lazy(() => import('./pages/AI/AIConcierge'));
 const Favorites            = lazy(() => import('./pages/Favorites/Favorites'));
 const ProfileManager       = lazy(() => import('./pages/Vendors/ProfileManager'));
+const OrganizerProfile     = lazy(() => import('./pages/Organizer/OrganizerProfile'));
+const OrganizerCard        = lazy(() => import('./pages/Organizer/OrganizerCard'));
 const ProviderReviews      = lazy(() => import('./pages/Reviews/ProviderReviews'));
 const ManageEvents         = lazy(() => import('./pages/Events/ManageEvents'));
 
@@ -179,6 +181,8 @@ function App() {
                       <Route path="/notifications" element={<Notifications />} />
                       <Route path="/favorites" element={<Favorites />} />
                       <Route path="/budget-tracker" element={<BudgetTracker />} />
+                      <Route path="/me" element={user?.role === 'customer' ? <OrganizerProfile /> : <Navigate to={user?.role === 'provider' ? '/my-profile' : '/settings'} replace />} />
+                      <Route path="/organizer/:id" element={<OrganizerCard />} />
                       <Route path="/planner" element={user?.role === 'customer' ? <EventPlanner /> : <Navigate to="/dashboard" replace />} />
                       <Route path="/ai-concierge" element={<AIConcierge />} />
                     </Route>

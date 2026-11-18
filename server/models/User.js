@@ -27,6 +27,14 @@ const userSchema = new mongoose.Schema({
     verified: { type: Boolean, default: false }
   },
   favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  // Organizer profile (vendors keep theirs in VendorProfile).
+  profile: {
+    bio: { type: String, maxlength: 600 },
+    city: { type: String, maxlength: 80 },
+    avatar: { type: String },
+    coverImage: { type: String },
+    interests: [{ type: String, maxlength: 40 }],
+  },
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date }
 }, { timestamps: true });

@@ -59,6 +59,7 @@ const NAV_BY_ROLE = {
             label: 'My Bookings', path: '/bookings', icon: CalendarDays,
             subOptions: [
                 { label: 'All bookings', desc: 'Offers, negotiations and confirmations', path: '/bookings' },
+                { label: 'My profile', desc: 'Your plans, following, reviews and spending', path: '/me' },
                 { label: 'Favourites', desc: 'Providers you have shortlisted', path: '/favorites' },
             ],
         },
@@ -128,6 +129,9 @@ const QUICK_LINKS = [
 
 export default function DynamicNavbar({ user, onLogout }) {
     const location = useLocation();
+    const profileLink = user?.role === 'customer' ? [{ label: 'My profile', path: '/me', icon: User }]
+        : user?.role === 'provider' ? [{ label: 'My public profile', path: '/my-profile', icon: User }] : [];
+    const quickLinks = [...profileLink, ...QUICK_LINKS];
     const { socket } = useWebSockets();
 
     const [activeSubmenu, setActiveSubmenu] = useState(null);
@@ -394,7 +398,7 @@ export default function DynamicNavbar({ user, onLogout }) {
                                                                 {user.role}
                                                             </span>
                                                         </div>
-                                                        {QUICK_LINKS.map(({ label, path, icon: Icon }) => (
+                                                        {quickLinks.map(({ label, path, icon: Icon }) => (
                                                             <Link key={path} to={path}
                                                                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-xs font-semibold transition-colors">
                                                                 <Icon size={14} aria-hidden="true" /> {label}
@@ -479,7 +483,7 @@ export default function DynamicNavbar({ user, onLogout }) {
                                 mobile menu only rendered auth buttons for guests. */}
                             {user ? (
                                 <div className="pt-2 border-t border-white/10 space-y-1.5">
-                                    {QUICK_LINKS.map(({ label, path, icon: Icon }) => (
+                                    {quickLinks.map(({ label, path, icon: Icon }) => (
                                         <Link key={path} to={path} onClick={() => setMobileMenuOpen(false)}
                                               className="flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-white/10">
                                             <Icon size={14} aria-hidden="true" /> {label}
