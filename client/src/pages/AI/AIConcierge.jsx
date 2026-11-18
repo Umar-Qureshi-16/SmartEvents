@@ -90,7 +90,7 @@ export default function AIConcierge() {
                 <div className="lg:col-span-8 space-y-6">
                     {/* TAB 1: CHAT (live-data context) */}
                     {activeTab === 'chat' && (
-                        <div className="adyen-card bg-surface border border-border rounded-3xl overflow-hidden flex flex-col h-[550px] shadow-sm">
+                        <div className="adyen-card bg-surface border border-border rounded-3xl overflow-hidden flex flex-col h-[calc(100vh-15rem)] min-h-[520px] shadow-sm">
                             <div className="p-4 bg-surface-2 border-b border-border flex items-center gap-2">
                                 <Bot size={16} className="text-success" />
                                 <span className="text-xs font-bold text-fg">Chat with Smartie</span>

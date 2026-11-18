@@ -228,7 +228,7 @@ const NegotiationPage = () => {
                             </span>
                         </h2>
                         <p className="text-muted mt-2">
-                            Event: <span className="text-fg font-medium">{booking.eventId?.title || (booking.serviceId?.title ? `${booking.serviceId.title} package` : booking.eventDetails?.eventType) || 'Custom booking'}</span>
+                            Event: <span className="text-fg font-medium">{booking.eventId?.title || (booking.serviceId?.title ? `${booking.serviceId.title} package` : booking.designConcepts?.find((c) => c.selected)?.title || booking.eventDetails?.eventType) || 'Custom booking'}</span>
                         </p>
                         {(() => {
                             const iAmVendor = String(booking.vendorId?._id || booking.vendorId) === String(user?._id || user?.id);

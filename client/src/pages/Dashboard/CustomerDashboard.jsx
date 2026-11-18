@@ -29,7 +29,7 @@ const QUICK_ACTIONS = [
 ];
 const FILTERS = [['all', 'All'], ['active', 'In negotiation'], ['confirmed', 'Confirmed'], ['completed', 'Completed']];
 
-const titleOf = (b) => b.eventId?.title || b.serviceId?.title || b.eventDetails?.eventType || 'Custom booking';
+const titleOf = (b) => b.eventId?.title || b.serviceId?.title || b.designConcepts?.find((c) => c.selected)?.title || b.eventDetails?.eventType || 'Custom booking';
 const daysUntil = (d) => Math.ceil((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / DAY);
 
 export default function CustomerDashboard({ user }) {

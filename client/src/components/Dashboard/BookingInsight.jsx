@@ -9,7 +9,7 @@ import axios from '../../api/axios';
 import { Badge, formatCurrency, formatDate, BOOKING_STATUS } from '../ui';
 
 const DAY = 86400000;
-const titleOf = (b) => b.eventId?.title || b.serviceId?.title || b.eventDetails?.eventType || 'Custom booking';
+const titleOf = (b) => b.eventId?.title || b.serviceId?.title || b.designConcepts?.find((c) => c.selected)?.title || b.eventDetails?.eventType || 'Custom booking';
 const daysUntil = (d) => Math.ceil((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / DAY);
 const lastMove = (b) => b.negotiationHistory?.[b.negotiationHistory.length - 1];
 const isMine = (entry, myId) => entry && String(entry.offeredBy?._id || entry.offeredBy) === myId;

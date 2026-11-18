@@ -28,7 +28,7 @@ const TOOLKIT = [
 ];
 const FILTERS = [['offers', 'Offers'], ['upcoming', 'Upcoming'], ['completed', 'Completed'], ['all', 'All']];
 
-const titleOf = (b) => b.eventId?.title || b.serviceId?.title || b.eventDetails?.eventType || 'Custom request';
+const titleOf = (b) => b.eventId?.title || b.serviceId?.title || b.designConcepts?.find((c) => c.selected)?.title || b.eventDetails?.eventType || 'Custom request';
 const daysUntil = (d) => Math.ceil((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / DAY);
 const OPEN = ['pending', 'negotiating'];
 

@@ -203,7 +203,7 @@ export default function Bookings({ user }) {
                                     )}
 
                                     <h2 className="text-lg font-bold truncate">
-                                        {booking.eventId?.title || (booking.serviceId?.title && `${booking.serviceId.title} package`) || `Booking with ${booking.vendorId?.name || 'provider'}`}
+                                        {booking.eventId?.title || (booking.serviceId?.title && `${booking.serviceId.title} package`) || booking.designConcepts?.find((c) => c.selected)?.title || `Booking with ${booking.vendorId?.name || 'provider'}`}
                                     </h2>
                                     {booking.vendorId?._id && (
                                         <p className="text-xs text-muted -mt-2">
