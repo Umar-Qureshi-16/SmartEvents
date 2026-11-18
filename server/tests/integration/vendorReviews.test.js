@@ -62,3 +62,17 @@ describe('Vendor reviews and star ratings', () => {
         expect(res.body.message).toMatch(/not taking bookings/);
     });
 });
+
+describe('Blocked vendors are hidden from the public', () => {
+    test('their events leave the event list', async () => {
+        const live = await makeUser('provider');
+        const gone = await makeUser('provider');
+        await makeEvent(live.id, { title: 'Visible Hall' });
+        await makeEvent(gone.id, { title: 'Hidden Hall' });
+        await User.updateOne({ _id: gone.id }, { status: 'banned' });
+        const titles = (await api().get('/api/v1/events?limit=50')).body;
+        const list = JSON.stringify(titles);
+        expect(list).toContain('Visible Hall');
+        expect(list).not.toContain('Hidden Hall');
+    });
+});

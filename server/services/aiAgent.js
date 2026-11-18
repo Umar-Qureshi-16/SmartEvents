@@ -143,6 +143,8 @@ const ACTIONS = {
             if (query) filter.title = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
             if (category) filter.category = category;
             if (maxPrice) filter.price = { $lte: maxPrice };
+            const blocked = await User.find({ status: { $in: ['banned', 'restricted'] } }).distinct('_id');
+            if (blocked.length) filter.createdBy = { $nin: blocked };
             const events = await Event.find(filter).select('title category price date location').limit(10).lean();
             return events.map((e) => ({ eventId: String(e._id), title: e.title, category: e.category, price: e.price, date: e.date, location: e.location }));
         },

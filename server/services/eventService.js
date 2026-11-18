@@ -32,6 +32,11 @@ class EventService {
             ];
         }
 
+        // Events of blocked or suspended vendors stay in the database (their
+        // bookings and reviews remain) but are not offered to the public.
+        const blocked = await require('../models/User').find({ status: { $in: ['banned', 'restricted'] } }).distinct('_id');
+        if (blocked.length) query.createdBy = { $nin: blocked };
+
         let sortOptions = { createdAt: -1 };
         if (sortBy === 'price_asc') sortOptions = { price: 1 };
         if (sortBy === 'price_desc') sortOptions = { price: -1 };
