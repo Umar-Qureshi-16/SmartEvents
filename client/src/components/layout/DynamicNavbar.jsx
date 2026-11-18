@@ -135,6 +135,7 @@ export default function DynamicNavbar({ user, onLogout }) {
     const quickLinks = [...profileLink, ...QUICK_LINKS];
     const { socket } = useWebSockets();
 
+    const [isHovered, setIsHovered] = useState(false);
     const [activeSubmenu, setActiveSubmenu] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
@@ -205,17 +206,28 @@ export default function DynamicNavbar({ user, onLogout }) {
         };
     }, []);
 
-    // The bar always shows its links. It used to shrink to a 150px "MENU" pill that
-    // only opened on hover, which hid navigation from touch and keyboard users.
-    const expanded = true;
+    // The bar rests as a small "MENU" pill and opens into the full bar when the
+    // pointer reaches it. Keyboard focus opens it too, and on touch screens a tap
+    // on the pill opens it, so nobody is locked out of the navigation.
+    const expanded = isHovered || mobileMenuOpen;
+    const collapse = () => {
+        setIsHovered(false);
+        setProfileOpen(false);
+        setNotificationOpen(false);
+        setActiveSubmenu(null);
+    };
 
     return (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full px-4 flex justify-center pointer-events-none">
             <motion.div
                 ref={containerRef}
-                onMouseLeave={() => setActiveSubmenu(null)}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={collapse}
+                onFocusCapture={() => setIsHovered(true)}
+                onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) collapse(); }}
+                onClick={() => { if (!expanded) setIsHovered(true); }}
                 animate={{
-                    width: 'min(1150px, 94vw)',
+                    width: expanded ? 'min(1150px, 94vw)' : '150px',
                     borderRadius: mobileMenuOpen ? '28px' : '9999px',
                 }}
                 transition={{ type: 'spring', stiffness: 350, damping: 30 }}
@@ -225,6 +237,21 @@ export default function DynamicNavbar({ user, onLogout }) {
                     <Link to="/" className="shrink-0" aria-label="SmartEvents home">
                         <EventManagerLogo collapsed={!expanded} />
                     </Link>
+
+                    {!expanded && (
+                        <motion.button
+                            type="button"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            onClick={(e) => { e.stopPropagation(); setIsHovered(true); }}
+                            aria-label="Open the menu"
+                            aria-expanded="false"
+                            className="flex items-center gap-2 select-none bg-transparent"
+                        >
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" aria-hidden="true" />
+                            <span className="text-white font-black text-xs uppercase tracking-widest">Menu</span>
+                        </motion.button>
+                    )}
 
                     {/* ---------- Desktop links ---------- */}
                     <AnimatePresence>
