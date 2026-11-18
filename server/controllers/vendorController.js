@@ -179,7 +179,7 @@ exports.listPublicVendors = async (req, res) => {
 
         const [profiles, total] = await Promise.all([
             VendorProfile.find(query)
-                .populate('userId', 'name email trustScore status businessDetails analytics')
+                .populate('userId', 'name trustScore status businessDetails analytics')
                 .skip(skip)
                 .limit(Number(limit))
                 .sort({ rating: -1, createdAt: -1 })
