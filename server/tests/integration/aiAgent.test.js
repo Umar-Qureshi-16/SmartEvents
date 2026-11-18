@@ -261,3 +261,20 @@ describe('AI assistant: follows through on what it says it will do', () => {
         expect(res.body.data.pendingAction.summary).toContain('the "Royal Palm" plan');
     });
 });
+
+describe('AI assistant: remembers what it just did', () => {
+    test('the id of something just created reaches the next message, so "publish it" works', async () => {
+        const vendor = await makeUser('provider');
+        await require('../../models/VendorProfile').findOneAndUpdate({ userId: vendor.id }, { businessName: 'Mem Decor', category: 'decoration', location: 'Lahore' }, { upsert: true });
+        complete.mockRejectedValueOnce(new Error('offline')); // design generator falls back to a template
+        const made = await execute(vendor.token, 'generate_design', { budget: 300, colors: 'maroon, gold' });
+        expect(made.status).toBe(200);
+        const designId = made.body.data.designId;
+
+        complete.mockResolvedValueOnce(toolCall('publish_design', { designId }));
+        const res = await chat(vendor.token, 'Publish it');
+        const sent = complete.mock.calls[complete.mock.calls.length - 1][0].messages.map((m) => m.content).join('\n');
+        expect(sent).toContain(designId);
+        expect(res.body.data.pendingAction).toMatchObject({ name: 'publish_design' });
+    });
+});

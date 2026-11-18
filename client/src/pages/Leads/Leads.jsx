@@ -152,10 +152,10 @@ export default function Leads({ user }) {
 
             {/* Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard label="TOTAL PROPOSALS" value={leads.length} icon={MessageSquare} />
-                <StatCard label="ACTIVE CHATS" value={leads.filter(l => ['pending', 'negotiating'].includes(l.status)).length} icon={Clock} />
-                <StatCard label="LOCKED ESCROWS" value={leads.filter(l => l.status === 'confirmed').length} icon={CheckCircle2} />
-                <StatCard label="POTENTIAL REVENUE" value={`$${leads.reduce((acc, l) => acc + l.offerPrice, 0).toLocaleString()}`} icon={DollarSign} />
+                <StatCard label="TOTAL PROPOSALS" value={leads.length} icon={MessageSquare} subtext="Show all" onClick={() => setFilterStatus('all')} />
+                <StatCard label="ACTIVE CHATS" value={leads.filter(l => ['pending', 'negotiating'].includes(l.status)).length} icon={Clock} subtext="Accept or counter" onClick={() => setFilterStatus('active')} />
+                <StatCard label="LOCKED ESCROWS" value={leads.filter(l => l.status === 'confirmed').length} icon={CheckCircle2} subtext="Confirmed deals" onClick={() => setFilterStatus('confirmed')} />
+                <StatCard label="POTENTIAL REVENUE" value={`$${leads.reduce((acc, l) => acc + l.offerPrice, 0).toLocaleString()}`} icon={DollarSign} subtext="Revenue and payouts" onClick={() => navigate('/revenue')} />
             </div>
 
             {/* Status Filter Tab row */}

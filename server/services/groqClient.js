@@ -36,6 +36,12 @@ const GROQ_FALLBACK = env.GROQ_FALLBACK_MODEL || 'llama-3.1-8b-instant';
 const MODEL = provider.name === 'openrouter' ? OR_PRIMARY : GROQ_PRIMARY;
 const FALLBACK_MODEL = provider.name === 'openrouter' ? OR_FALLBACK : GROQ_FALLBACK;
 
+// Free OpenRouter models that handle tool calls, used when the account has no
+// credit left so the assistant keeps working (slower, rate-limited).
+const FREE_MODELS = (env.OPENROUTER_FREE_MODELS || 'nvidia/nemotron-3.5-super-vl:free,nvidia/nemotron-3-ultra-550b-a55b:free,openrouter/free')
+    .split(',').map((m) => m.trim()).filter(Boolean);
+let paidBlockedUntil = 0; // after a "no credits" reply, skip the paid model for a while
+
 function mapModel(requested) {
     if (!requested) return MODEL;
     if (provider.name !== 'openrouter') return requested;
@@ -136,10 +142,26 @@ async function complete(params) {
         }
         return out;
     };
+    const tryFree = async (first) => {
+        let last = first;
+        for (const m of FREE_MODELS) {
+            try { return await run(m); } catch (err) {
+                last = classify(err);
+                console.error(`[AI] free model ${m} failed (${last.code}):`, detailOf(err));
+            }
+        }
+        throw last;
+    };
+    if (provider.name === 'openrouter' && Date.now() < paidBlockedUntil) return tryFree(new AIError('no_credits', 'OpenRouter reports insufficient credits.'));
     try {
         return await run(model);
     } catch (err) {
         const e = classify(err);
+        if (e.code === 'no_credits' && provider.name === 'openrouter' && FREE_MODELS.length) {
+            console.warn('[AI] OpenRouter has no credit left; using free models for the next 15 minutes.');
+            paidBlockedUntil = Date.now() + 15 * 60 * 1000;
+            return tryFree(e);
+        }
         console.error(`[AI] ${providerLabel()} call failed (model=${model}, status=${err?.status}, code=${e.code}):`, detailOf(err));
         if (['bad_model', 'rate_limit', 'upstream'].includes(e.code) && model !== FALLBACK_MODEL) {
             try {

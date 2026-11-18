@@ -8,7 +8,7 @@ import {
 import axios from '../../api/axios';
 import { useWebSockets } from '../../context/WebSocketContext';
 import StatCard from '../../components/common/StatCard';
-import HeroAIMatchmaker from '../../components/Dashboard/HeroAIMatchmaker';
+import BudgetPlanner from '../../components/planner/BudgetPlanner';
 import TimelineBoard from '../../components/Dashboard/TimelineBoard';
 import BookingInsight from '../../components/Dashboard/BookingInsight';
 import StarRating from '../../components/reviews/StarRating';
@@ -210,7 +210,7 @@ export default function CustomerDashboard({ user }) {
                         {bookings.length > 0 && <Link to="/bookings" className="block text-center text-sm font-bold text-brand hover:underline mt-3">Open all {bookings.length} bookings</Link>}
                     </Panel>
 
-                    <HeroAIMatchmaker />
+                    <BudgetPlanner compact />
                 </div>
 
                 {/* Side column */}

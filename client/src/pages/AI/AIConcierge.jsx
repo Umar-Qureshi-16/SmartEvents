@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from '../../api/axios';
+import BudgetPlanner from '../../components/planner/BudgetPlanner';
 import AgentChat from '../../components/ai/AgentChat';
 import { toast } from 'react-hot-toast';
 import { Sparkles, Send, FileText, Calendar, DollarSign, ArrowRight, Bot, User, Cpu, Check, X, Loader2, Copy, ShieldCheck } from 'lucide-react';
@@ -10,37 +11,17 @@ export default function AIConcierge() {
     const navigate = useNavigate();
     const { user } = useSelector((state) => state.auth);
     const isAdmin = ['admin', 'superadmin'].includes(user?.role);
+    const isCustomer = user?.role === 'customer';
+    const isProvider = user?.role === 'provider';
     const [activeTab, setActiveTab] = useState('chat');
     const [loading, setLoading] = useState(false);
 
 
 
-    // RFP state
-    const [rfpQuery, setRfpQuery] = useState('');
-    const [rfpResult, setRfpResult] = useState(null);
 
     // Timeline state
     const [timelineDetails, setTimelineDetails] = useState({ date: '', eventType: 'Wedding' });
     const [timelineResult, setTimelineResult] = useState(null);
-
-    const handleRfpSubmit = async (e) => {
-        e.preventDefault();
-        if (!rfpQuery.trim()) return;
-        setLoading(true);
-
-        try {
-            const res = await axios.post('/ai/rfp', { query: rfpQuery });
-            if (res.data.success) {
-                setRfpResult(res.data.data);
-                toast.success('Event RFP generated!');
-            }
-        } catch (err) {
-            console.error(err);
-            toast.error('Failed to generate RFP.');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleTimelineSubmit = async (e) => {
         e.preventDefault();
@@ -98,8 +79,9 @@ export default function AIConcierge() {
 
                 <div className="flex items-center gap-2 bg-surface-2 p-1 rounded-full text-xs font-bold uppercase shrink-0">
                     <button onClick={() => setActiveTab('chat')} className={`px-4 py-2 rounded-full transition-all ${activeTab === 'chat' ? 'bg-success text-white shadow-sm' : 'text-muted hover:text-fg'}`}>Chatbot</button>
-                    {!isAdmin && <button onClick={() => setActiveTab('rfp')} className={`px-4 py-2 rounded-full transition-all ${activeTab === 'rfp' ? 'bg-success text-white shadow-sm' : 'text-muted hover:text-fg'}`}>RFP Builder</button>}
-                    {!isAdmin && <button onClick={() => setActiveTab('timeline')} className={`px-4 py-2 rounded-full transition-all ${activeTab === 'timeline' ? 'bg-success text-white shadow-sm' : 'text-muted hover:text-fg'}`}>Timeline Plan</button>}
+                    {isCustomer && <button onClick={() => setActiveTab('budget')} className={`px-4 py-2 rounded-full transition-all ${activeTab === 'budget' ? 'bg-success text-white shadow-sm' : 'text-muted hover:text-fg'}`}>Budget planner</button>}
+                    {isProvider && <button onClick={() => navigate('/design-studio')} className="px-4 py-2 rounded-full transition-all text-muted hover:text-fg">Design studio</button>}
+                    {isCustomer && <button onClick={() => setActiveTab('timeline')} className={`px-4 py-2 rounded-full transition-all ${activeTab === 'timeline' ? 'bg-success text-white shadow-sm' : 'text-muted hover:text-fg'}`}>Timeline Plan</button>}
                 </div>
             </div>
 
@@ -118,49 +100,8 @@ export default function AIConcierge() {
                         </div>
                     )}
 
-                    {/* TAB 2: RFP GENERATOR */}
-                    {activeTab === 'rfp' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="adyen-card p-6 bg-surface border border-border space-y-4">
-                                <h3 className="text-sm font-black text-fg uppercase tracking-wider">Describe Event Scope</h3>
-                                <form onSubmit={handleRfpSubmit} className="space-y-4 text-xs font-semibold">
-                                    <textarea
-                                        rows="4"
-                                        required
-                                        placeholder="e.g. Wedding banquet in Chicago with 150 guests, looking for premium decoration and catering..."
-                                        value={rfpQuery}
-                                        onChange={(e) => setRfpQuery(e.target.value)}
-                                        className="w-full bg-bg border border-border rounded-xl p-3 outline-none focus:border-success"
-                                    />
-                                    <button type="submit" disabled={loading} className="w-full btn-adyen-primary py-3 rounded-full justify-center shadow-glow">
-                                        <Sparkles size={16} />
-                                        <span>{loading ? 'Structuring RFP...' : 'Generate Spec Outline'}</span>
-                                    </button>
-                                </form>
-                            </div>
-
-                            <div className="adyen-card p-6 bg-surface border border-border rounded-3xl min-h-[300px] flex flex-col justify-between">
-                                {!rfpResult ? (
-                                    <div className="text-center text-muted my-auto">
-                                        <FileText size={40} className="mx-auto opacity-15 mb-2" />
-                                        <p className="text-xs font-semibold">No spec blueprint generated yet.</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4 text-xs font-semibold">
-                                        <span className="adyen-badge bg-success/15 text-success border-none font-bold uppercase">{rfpResult.category}</span>
-                                        <h4 className="text-sm font-bold text-fg">{rfpResult.title}</h4>
-                                        <p className="text-muted leading-relaxed font-medium">{rfpResult.description}</p>
-                                        <div className="pt-3 border-t border-border space-y-2">
-                                            <span className="text-[10px] font-mono text-muted block uppercase font-bold">RFP requirements</span>
-                                            <ul className="list-disc list-inside space-y-1 text-muted font-medium">
-                                                {rfpResult.requirements?.map((req, idx) => <li key={idx}>{req}</li>)}
-                                            </ul>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
+                    {/* TAB 2: BUDGET PLANNER (organizers) */}
+                    {activeTab === 'budget' && <BudgetPlanner />}
 
                     {/* TAB 3: TIMELINE GENERATOR */}
                     {activeTab === 'timeline' && (

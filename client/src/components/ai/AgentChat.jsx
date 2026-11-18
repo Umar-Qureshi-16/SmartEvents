@@ -14,12 +14,12 @@ export const ROLE_GUIDE = {
         examples: ['Show me the platform stats', 'List the open disputes', 'Find all banned users'],
     },
     provider: {
-        greeting: 'Hello! I can answer offers (counter, accept or reject), publish and edit your events, add service packages, list the packages other vendors offer in your field, block or unblock dates, check guests in and summarise your revenue. Tell me what you need.',
-        examples: ['Show my bookings', 'Summarise my revenue', 'Counter the newest offer at 5000', 'Block 24 December on my calendar'],
+        greeting: 'Hello! I can answer offers (accept, counter or reject), publish and edit your events with photos, add service packages, create designs with AI and publish them on your profile, block dates, check guests in and summarise your revenue. Tell me what you need.',
+        examples: ['Create a maroon and gold nikah stage design for 400', 'Publish a rooftop nikah event on 2026-12-20 for 100', 'Show my bookings', 'Summarise my revenue'],
     },
     customer: {
         greeting: 'Hello! I can plan your event step by step (venue, catering, decor, invitations, final review), find and book vendor packages, make and negotiate offers, tick off tasks, get entry passes and leave reviews. Tell me what you need.',
-        examples: ['Plan my wedding on 2026-12-20 in Lahore', 'What is left in my plan?', 'Show catering packages under 100000', 'Show my bookings'],
+        examples: ['I have 1500 for my nikah in Lahore', 'Plan my wedding on 2026-12-20 in Lahore', 'Show decor designs under 800', 'What is left in my plan?'],
     },
 };
 

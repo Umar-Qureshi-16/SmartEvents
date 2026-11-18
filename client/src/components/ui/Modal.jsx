@@ -81,7 +81,7 @@ export default function Modal({ open, onClose, title, description, children, foo
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.96, y: 12 }}
                         transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-                        className={`relative w-full ${widths[size]} bg-surface border border-border rounded-3xl shadow-2xl overflow-hidden`}
+                        className={`relative w-full ${widths[size]} max-h-[90vh] flex flex-col bg-surface border border-border rounded-3xl shadow-2xl overflow-hidden`}
                     >
                         <div className="flex items-start justify-between gap-4 p-6 border-b border-border">
                             <div>
@@ -98,7 +98,7 @@ export default function Modal({ open, onClose, title, description, children, foo
                             </button>
                         </div>
 
-                        <div className="p-6">{children}</div>
+                        <div className="p-6 overflow-y-auto">{children}</div>
 
                         {footer && (
                             <div className="px-6 py-4 border-t border-border bg-fg/[0.02] flex justify-end gap-3">

@@ -17,8 +17,10 @@ import GlobalAuditLogs from '../../components/SuperAdmin/GlobalAuditLogs';
 import SystemHealthMonitor from '../../components/SuperAdmin/SystemHealthMonitor';
 import PlatformPulseFeed from '../../components/SuperAdmin/PlatformPulseFeed';
 import SignupCodeSettings from '../../components/SuperAdmin/SignupCodeSettings';
+import BusinessOverview from '../../components/Admin/BusinessOverview';
 
 const TABS = [
+    { id: 'business', label: 'Business', icon: DollarSign },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'fraud', label: 'Fraud', icon: ShieldAlert },
     { id: 'disputes', label: 'Disputes', icon: Gavel },
@@ -32,7 +34,7 @@ const HEALTH_POLL_MS = 15000;
 const MAX_SAMPLES = 20;
 
 export default function SuperAdminDashboard({ user }) {
-    const [tab, setTab] = useState('analytics');
+    const [tab, setTab] = useState('business');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [busyId, setBusyId] = useState(null);
@@ -236,13 +238,13 @@ export default function SuperAdminDashboard({ user }) {
                 </header>
 
                 <section aria-label="Platform summary" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Kpi icon={Users} label="Total Users" value={(stats.totalUsers ?? 0).toLocaleString()}
+                    <Kpi onClick={() => setTab('providers')} icon={Users} label="Total Users" value={(stats.totalUsers ?? 0).toLocaleString()}
                          sub={`${stats.providers ?? 0} providers · ${stats.customers ?? 0} customers`} />
-                    <Kpi icon={DollarSign} label="Gross Revenue" value={`$${(stats.revenue ?? 0).toLocaleString()}`}
+                    <Kpi onClick={() => setTab('business')} icon={DollarSign} label="Gross Revenue" value={`$${(stats.revenue ?? 0).toLocaleString()}`}
                          sub={`${stats.closedDeals ?? 0} closed deals`} tone="text-success" />
-                    <Kpi icon={UserCheck} label="Active Bookings" value={(stats.activeBookings ?? 0).toLocaleString()}
+                    <Kpi onClick={() => setTab('business')} icon={UserCheck} label="Active Bookings" value={(stats.activeBookings ?? 0).toLocaleString()}
                          sub="pending, negotiating, confirmed" />
-                    <Kpi icon={AlertTriangle} label="Open Disputes" value={(stats.disputes ?? 0).toLocaleString()}
+                    <Kpi onClick={() => setTab('disputes')} icon={AlertTriangle} label="Open Disputes" value={(stats.disputes ?? 0).toLocaleString()}
                          sub={`${stats.bannedUsers ?? 0} suspended accounts`}
                          tone={stats.disputes > 0 ? 'text-amber-400' : 'text-muted'} />
                 </section>
@@ -284,6 +286,7 @@ export default function SuperAdminDashboard({ user }) {
                             <PlatformPulseFeed events={pulseEvents} connected={Boolean(socket?.connected)} />
                         </div>
                     )}
+                    {tab === 'business' && <BusinessOverview />}
                     {tab === 'fraud' && <FraudDetectionCenter risks={risks} onGovern={govern} busyId={busyId} />}
                     {tab === 'disputes' && <DisputeResolutionCenter disputes={disputes} onResolve={resolveDispute} busyId={busyId} />}
                     {tab === 'providers' && <ProviderGovernance providers={providers} onGovern={govern} busyId={busyId} />}
@@ -303,13 +306,13 @@ export default function SuperAdminDashboard({ user }) {
     );
 }
 
-const Kpi = ({ icon: Icon, label, value, sub, tone = 'text-fg' }) => (
-    <div className="glass p-5 rounded-3xl border-border space-y-2">
+const Kpi = ({ icon: Icon, label, value, sub, tone = 'text-fg', onClick }) => (
+    <button type="button" onClick={onClick} className="text-left glass p-5 rounded-3xl border-border space-y-2 hover:border-brand/50 hover:shadow-card transition-all">
         <div className="flex items-center gap-2 text-muted">
             <Icon size={14} aria-hidden="true" />
             <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
         </div>
         <p className={`text-2xl font-black ${tone}`}>{value}</p>
         <p className="text-[10px] text-muted">{sub}</p>
-    </div>
+    </button>
 );

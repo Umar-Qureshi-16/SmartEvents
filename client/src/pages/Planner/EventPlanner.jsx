@@ -5,6 +5,7 @@ import { CalendarCheck, CheckCircle2, Circle, ChevronDown, ChevronUp, Plus, Spar
 import axios from '../../api/axios';
 import { Badge, Button, Card, EmptyState, Input, Skeleton, formatDate } from '../../components/ui';
 import PackageList, { FIELD_LABELS } from '../../components/planner/PackageList';
+import BudgetPlanner from '../../components/planner/BudgetPlanner';
 
 const EVENT_TYPES = ['Wedding', 'Mehndi', 'Walima', 'Birthday', 'Corporate', 'Conference', 'Concert', 'Exhibition'];
 const DAY = 86400000;
@@ -156,8 +157,10 @@ export default function EventPlanner() {
                 <p className="text-sm text-muted">Every step from booking the venue to the final review, with vendor packages for each one. You can also just tell Smartie, for example &ldquo;plan my wedding on 20 December in Lahore&rdquo; or &ldquo;mark invitations as done&rdquo;.</p>
             </header>
 
+            <BudgetPlanner />
+
             <Card className="p-5 space-y-3">
-                <h2 className="text-sm font-bold text-fg">Start a new plan</h2>
+                <h2 className="text-sm font-bold text-fg">Or start a plan without a budget</h2>
                 <NewPlanForm onCreated={(p) => { replace(p); setParams({ plan: p._id }); }} />
             </Card>
 

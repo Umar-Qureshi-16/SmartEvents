@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-    ArrowRight, CalendarDays, CheckCircle2, DollarSign, Images, Inbox, MessageSquare, Package, Plus,
+    ArrowRight, CalendarDays, Palette, CheckCircle2, DollarSign, Images, Inbox, MessageSquare, Package, Plus,
     QrCode, ShieldCheck, Star, Store, Users,
 } from 'lucide-react';
 
@@ -18,11 +18,13 @@ import {
 const DAY = 86400000;
 const TOOLKIT = [
     { label: 'Service packages', path: '/services', icon: Package },
+    { label: 'Design studio', path: '/design-studio', icon: Palette },
     { label: 'My events', path: '/my-events', icon: CalendarDays },
     { label: 'Public profile', path: '/my-profile', icon: Images },
     { label: 'Availability', path: '/calendar', icon: CalendarDays },
     { label: 'Revenue', path: '/revenue', icon: DollarSign },
     { label: 'Ticket scanner', path: '/staff/scanner', icon: QrCode },
+    { label: 'Reviews', path: '/reviews', icon: Star },
 ];
 const FILTERS = [['offers', 'Offers'], ['upcoming', 'Upcoming'], ['completed', 'Completed'], ['all', 'All']];
 

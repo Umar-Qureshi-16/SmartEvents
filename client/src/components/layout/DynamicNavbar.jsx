@@ -95,6 +95,7 @@ const NAV_BY_ROLE = {
             subOptions: [
                 { label: 'My events', desc: 'Publish and manage event listings', path: '/my-events' },
                 { label: 'Service packages', desc: 'Manage your offerings and prices', path: '/services' },
+                { label: 'Design studio', desc: 'Create designs with AI and publish them', path: '/design-studio' },
                 { label: 'My public profile', desc: 'Details, gallery, followers, reviews, trust', path: '/my-profile' },
                 { label: 'Availability', desc: 'Block dates you cannot take', path: '/calendar' },
             ],

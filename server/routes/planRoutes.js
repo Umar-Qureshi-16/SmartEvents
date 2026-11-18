@@ -15,6 +15,10 @@ router.get('/packages', wrap(async (req, res) => {
 
 router.use(verifyToken, authorize('customer'));
 
+// Budget planner: spread a total over real packages, then book the chosen set.
+router.post('/budget', wrap(async (req, res) => res.json({ success: true, data: await require('../services/budgetPlanner').planBudget(req.body || {}) })));
+router.post('/budget/book', wrap(async (req, res) => res.status(201).json({ success: true, data: await require('../services/budgetPlanner').bookBundle(req.user.id, req.body || {}) })));
+
 router.get('/', wrap(async (req, res) => res.json({ success: true, data: await plans.listPlans(req.user.id) })));
 router.post('/', wrap(async (req, res) => res.status(201).json({ success: true, data: await plans.createPlan(req.user.id, req.body || {}) })));
 router.post('/book-package', wrap(async (req, res) => {

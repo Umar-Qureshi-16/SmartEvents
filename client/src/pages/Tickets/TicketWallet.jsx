@@ -145,7 +145,7 @@ export default function TicketWallet({ user }) {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="adyen-card max-w-sm w-full bg-surface p-6 border border-border rounded-3xl space-y-6 shadow-2xl relative"
+                            className="adyen-card max-w-sm w-full max-h-[90vh] overflow-y-auto bg-surface p-6 border border-border rounded-3xl space-y-6 shadow-2xl relative"
                         >
                             <button
                                 onClick={() => setSelectedTicket(null)}

@@ -93,7 +93,7 @@ async function syncWithBookings(plan) {
 }
 
 async function createPlan(ownerId, input) {
-    let { title, eventType, date, location, budget, bookingId } = input;
+    let { title, eventType, date, location, budget, bookingId, quick } = input;
     if (bookingId) {
         if (!mongoose.Types.ObjectId.isValid(bookingId)) throw new BadRequestError('Invalid booking id.');
         const existing = await EventPlan.findOne({ owner: ownerId, sourceBooking: bookingId });
@@ -109,7 +109,10 @@ async function createPlan(ownerId, input) {
     eventType = eventType || 'Event';
 
     let raw = [];
-    try { raw = await aiTasks({ title, eventType, date, location, budget }); } catch (err) { console.warn('[plan] AI unavailable:', err.message); }
+    // quick: use the standard task list straight away (e.g. when booking a bundle), no AI round trip.
+    if (!quick) {
+        try { raw = await aiTasks({ title, eventType, date, location, budget }); } catch (err) { console.warn('[plan] AI unavailable:', err.message); }
+    }
     let tasks = normalise(raw, date);
     if (tasks.length < 3) tasks = normalise(templateTasks(eventType), date);
 

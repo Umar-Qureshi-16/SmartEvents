@@ -322,7 +322,7 @@ const EventDetail = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="w-full max-w-lg bg-surface rounded-3xl border border-border p-8 shadow-2xl relative"
+                            className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-surface rounded-3xl border border-border p-8 shadow-2xl relative"
                         >
                             <button
                                 onClick={() => setIsModalOpen(false)}

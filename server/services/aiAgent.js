@@ -84,6 +84,15 @@ const bookingSummary = (b, role) => ({
     escrow: b.escrow?.status,
 });
 
+// Models sometimes send a list as text ('["a","b"]' or 'a, b'); accept both.
+// An empty or "null" value counts as not given.
+const list = (inner) => z.preprocess((v) => {
+    if (v === null) return undefined;
+    if (typeof v !== 'string') return v;
+    if (/^(null|undefined|none|)$/i.test(v.trim())) return undefined;
+    try { const parsed = JSON.parse(v); if (Array.isArray(parsed)) return parsed; } catch { /* not JSON */ }
+    return v.split(/[,;]+/).map((x) => x.trim()).filter(Boolean);
+}, z.array(inner).optional());
 const oid = z.string().refine((v) => mongoose.Types.ObjectId.isValid(v), 'Invalid id');
 const isoDate = z.string().refine((v) => !Number.isNaN(Date.parse(v)), 'Use a date such as 2026-12-20');
 
@@ -302,7 +311,7 @@ const ACTIONS = {
         required: ['bookingId'],
         schema: z.object({
             bookingId: oid, theme: z.string().max(120).optional(), style: z.string().max(120).optional(),
-            colors: z.array(z.string().regex(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i, 'use hex colours like #c9a227')).max(8).optional(),
+            colors: list(z.string().max(30)).transform((c) => require('./vendorDesignService').toHex(c)).optional(),
             budget: z.coerce.number().min(0).optional(), guestCount: z.coerce.number().int().min(0).optional(), notes: z.string().max(2000).optional(),
         }),
         summary: (a) => `Update the design brief of booking ${a.bookingId}: ${Object.entries(a).filter(([k]) => k !== 'bookingId').map(([k, v]) => `${k} = ${Array.isArray(v) ? v.join(' ') : v}`).join(', ')}`,
@@ -365,13 +374,13 @@ const ACTIONS = {
         description: 'Change one of your events: title, price, date, capacity, location or description. Use my_events for the id.',
         params: {
             eventId: { type: 'string' }, title: { type: 'string' }, price: { type: 'number' }, date: { type: 'string' },
-            capacity: { type: 'number' }, location: { type: 'string' }, description: { type: 'string' },
+            capacity: { type: 'number' }, location: { type: 'string' }, description: { type: 'string' }, image: { type: 'string' },
         },
         required: ['eventId'],
         schema: z.object({
             eventId: oid, title: z.string().min(3).max(120).optional(), price: z.coerce.number().positive().optional(),
             date: isoDate.optional(), capacity: z.coerce.number().int().positive().optional(),
-            location: z.string().min(2).max(120).optional(), description: z.string().min(10).max(2000).optional(),
+            location: z.string().min(2).max(120).optional(), description: z.string().min(10).max(2000).optional(), image: z.string().url().optional(),
         }),
         summary: (a) => `Update event ${a.eventId}: ${Object.entries(a).filter(([k]) => k !== 'eventId').map(([k, v]) => `${k} = ${v}`).join(', ')}`,
         run: async ({ eventId, ...changes }, actor) => {
@@ -498,14 +507,15 @@ const ACTIONS = {
         params: {
             title: { type: 'string' }, category: { type: 'string', enum: EVENT_CATEGORIES }, date: { type: 'string', description: 'ISO date, e.g. 2026-12-20' },
             price: { type: 'number' }, capacity: { type: 'number' }, location: { type: 'string' }, description: { type: 'string' },
+            image: { type: 'string', description: 'optional photo link (https://...)' },
         },
         required: ['title', 'category', 'date', 'price', 'capacity', 'location', 'description'],
         schema: z.object({
             title: z.string().min(3).max(120), category: z.enum(EVENT_CATEGORIES), date: isoDate,
             price: z.coerce.number().positive(), capacity: z.coerce.number().int().positive(),
-            location: z.string().min(2).max(120), description: z.string().min(10).max(2000),
+            location: z.string().min(2).max(120), description: z.string().min(10).max(2000), image: z.string().url().optional(),
         }),
-        summary: (a) => `Publish "${a.title}" (${a.category}) on ${a.date} in ${a.location}, price ${a.price}, capacity ${a.capacity}`,
+        summary: (a) => `Publish "${a.title}" (${a.category}) on ${a.date} in ${a.location}, price ${a.price}, capacity ${a.capacity}${a.image ? ', with a photo' : ''}`,
         run: async (a, actor) => {
             const eventService = require('./eventService');
             const ev = await eventService.createEvent({ ...a, date: new Date(a.date) }, actor.id);
@@ -624,6 +634,123 @@ const ACTIONS = {
             return { message: 'Offer sent to the vendor. When they accept, the matching task in your plan is ticked off automatically.', bookingId: String(b._id) };
         },
     },
+    budget_plan: {
+        roles: ['customer'], mutating: false,
+        description: 'Spread a total budget over real vendor packages, one per field (venue, catering, decoration, photography, makeup, music), best-rated that fit, with alternatives. Use when the organizer says how much they want to spend, e.g. "I have 1500 for my nikah in Lahore". Optional fields limits which vendor fields to include.',
+        params: {
+            budget: { type: 'number' }, eventType: { type: 'string' }, city: { type: 'string' },
+            fields: { type: 'array', items: { type: 'string', enum: ['venue', 'catering', 'decoration', 'photography', 'music', 'makeup'] } },
+        },
+        required: ['budget'],
+        schema: z.object({
+            budget: z.coerce.number().positive(), eventType: z.string().max(60).optional(), city: z.string().max(80).optional(),
+            fields: list(z.enum(['venue', 'catering', 'decoration', 'photography', 'music', 'makeup'])).optional(),
+        }),
+        run: async (a) => {
+            const p = await require('./budgetPlanner').planBudget(a);
+            return {
+                budget: p.budget, total: p.total, remaining: p.remaining,
+                picks: p.items.map((i) => (i.package
+                    ? { field: i.field, packageId: String(i.package._id), title: i.package.title, price: i.package.price, vendor: i.package.vendor.businessName, stars: i.package.vendor.reviewsCount ? i.package.vendor.rating : 'new', alternatives: i.alternatives.map((x) => `${x.title} (${x.vendor.businessName}) ${x.price}`) }
+                    : { field: i.field, none: i.note })),
+                next: 'To book these, call book_bundle with the packageIds, a title and the event date.',
+            };
+        },
+    },
+    book_bundle: {
+        roles: ['customer'], mutating: true,
+        description: 'Book several vendor packages at once for one event: creates the event plan and sends an offer to each vendor at the package price. Use after budget_plan; needs the event date.',
+        params: {
+            serviceIds: { type: 'array', items: { type: 'string' }, description: 'packageIds from budget_plan or find_packages' },
+            title: { type: 'string' }, eventType: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD' }, city: { type: 'string' },
+        },
+        required: ['serviceIds', 'date'],
+        schema: z.object({ serviceIds: list(oid).refine((v) => Array.isArray(v) && v.length > 0, 'choose at least one package'), title: z.string().max(120).optional(), eventType: z.string().max(60).optional(), date: isoDate, city: z.string().max(80).optional() }),
+        summary: (a) => `Create the plan "${a.title || a.eventType || 'event'}" on ${a.date}${a.city ? ` in ${a.city}` : ''} and send offers for ${a.serviceIds.length} package${a.serviceIds.length === 1 ? '' : 's'}`,
+        run: async (a, actor) => {
+            const r = await require('./budgetPlanner').bookBundle(actor.id, a);
+            return { message: `Plan created and ${r.sent.length} offer${r.sent.length === 1 ? '' : 's'} sent${r.failed.length ? `; ${r.failed.length} could not be sent (${r.failed.map((f) => f.reason).join('; ')})` : ''}. Track replies under In negotiation on your dashboard.`, planId: r.planId };
+        },
+    },
+    find_designs: {
+        roles: ALL, mutating: false,
+        description: 'Published vendor designs (decor or service looks with itemised costs and a colour palette), cheapest first. Optional eventType and maxCost.',
+        params: { eventType: { type: 'string' }, maxCost: { type: 'number' } },
+        required: [],
+        schema: z.object({ eventType: z.string().max(60).optional(), maxCost: z.coerce.number().positive().optional() }),
+        run: async (a) => {
+            const list = await require('./vendorDesignService').browse(a);
+            if (!list.length) return { message: 'No published designs match yet.' };
+            return list.slice(0, 10).map((d) => ({ designId: String(d._id), title: d.title, price: d.totalCost, vendor: d.vendorProfile?.businessName, eventType: d.eventType, items: d.elements.map((e) => e.item).join(', ') }));
+        },
+    },
+    book_design: {
+        roles: ['customer'], mutating: true,
+        description: "Book a vendor's published design: sends an offer at its price (or the organizer's price) and puts the design in the booking's Design Studio. Needs the event date.",
+        params: { designId: { type: 'string' }, date: { type: 'string' }, location: { type: 'string' }, offerPrice: { type: 'number' } },
+        required: ['designId', 'date'],
+        schema: z.object({ designId: oid, date: isoDate, location: z.string().max(120).optional(), offerPrice: z.coerce.number().positive().optional() }),
+        summary: (a) => `Book design ${a.designId} for ${a.date}${a.offerPrice ? ` at ${a.offerPrice}` : ' at its listed price'}`,
+        run: async (a, actor) => {
+            const b = await require('./vendorDesignService').book(actor.id, a.designId, a);
+            return { message: 'Offer sent with the design attached. Open the booking to discuss it in the Design Studio.', bookingId: String(b._id) };
+        },
+    },
+    generate_design: {
+        roles: ['provider'], mutating: true,
+        description: 'Create a new design for your profile with AI: theme, style, event type and the price it should come to. Saved as a draft; publish it with publish_design.',
+        params: {
+            theme: { type: 'string' }, style: { type: 'string' }, eventType: { type: 'string' }, budget: { type: 'number', description: 'the price of the design' },
+            colors: { type: 'array', items: { type: 'string' } }, notes: { type: 'string' }, image: { type: 'string', description: 'optional photo link' },
+        },
+        required: ['budget'],
+        schema: z.object({
+            theme: z.string().max(120).optional(), style: z.string().max(120).optional(), eventType: z.string().max(60).optional(),
+            budget: z.coerce.number().positive(), colors: list(z.string().max(30)).optional(),
+            notes: z.string().max(600).optional(), image: z.string().url().optional(),
+        }),
+        summary: (a) => `Draft a design for a ${a.eventType || 'event'}${a.theme ? `, theme ${a.theme}` : ''}${a.style ? `, style ${a.style}` : ''}${a.colors?.length ? `, colours ${a.colors.join(' ')}` : ''}, costing up to ${a.budget}`,
+        run: async (a, actor) => {
+            // People say "maroon and gold"; the palette stores hex codes.
+            const d = await require('./vendorDesignService').generate(actor.id, { ...a, colors: require('./vendorDesignService').toHex(a.colors) });
+            return { message: `Drafted "${d.title}" at ${d.totalCost}: ${d.elements.map((e) => `${e.item} ${e.cost}`).join(', ')}. It is a draft; say "publish it" or open Design studio to edit.`, designId: String(d._id) };
+        },
+    },
+    my_designs: {
+        roles: ['provider'], mutating: false,
+        description: 'Your designs (drafts and published) with price and items.',
+        params: {}, required: [], schema: z.object({}),
+        run: async (_a, actor) => (await require('./vendorDesignService').mine(actor.id)).map((d) => ({ designId: String(d._id), title: d.title, price: d.totalCost, published: d.published, eventType: d.eventType })),
+    },
+    publish_design: {
+        roles: ['provider'], mutating: true,
+        description: 'Publish or unpublish one of your designs on your profile, and optionally change its title, price or photo. Use my_designs for the id.',
+        params: { designId: { type: 'string' }, published: { type: 'boolean' }, title: { type: 'string' }, price: { type: 'number' }, image: { type: 'string' } },
+        required: ['designId'],
+        schema: z.object({ designId: oid, published: z.boolean().optional(), title: z.string().max(120).optional(), price: z.coerce.number().positive().optional(), image: z.string().url().optional() }),
+        summary: (a) => `${a.published === false ? 'Unpublish' : 'Publish'} design ${a.designId}${a.price ? ` at ${a.price}` : ''}${a.title ? ` as "${a.title}"` : ''}`,
+        run: async (a, actor) => {
+            const d = await require('./vendorDesignService').update(actor.id, a.designId, { published: a.published ?? true, title: a.title, totalCost: a.price, image: a.image });
+            return { message: `"${d.title}" is ${d.published ? 'now on your profile' : 'hidden from your profile'} at ${d.totalCost}.` };
+        },
+    },
+    list_bookings: {
+        roles: ADMINS, mutating: false,
+        description: 'Bookings across the platform, newest first. Optional status (open, pending, negotiating, confirmed, completed, disputed, cancelled) and a search by organizer, vendor or event name.',
+        params: { status: { type: 'string' }, q: { type: 'string' } },
+        required: [],
+        schema: z.object({ status: z.string().max(20).optional(), q: z.string().max(80).optional() }),
+        run: async (a) => {
+            const r = await require('./adminOverview').listBookings({ ...a, limit: 15 });
+            return { total: r.total, bookings: r.items.map((b) => `${b.title}: ${b.organizer} with ${b.vendor}, ${b.status}, ${b.price}`) };
+        },
+    },
+    revenue_report: {
+        roles: ADMINS, mutating: false,
+        description: 'Business overview: accounts by role and sign-ups, bookings by status, gross booking value, escrow held, released, refunded, the 2.5% platform fee, revenue by month, by vendor field and top vendors.',
+        params: {}, required: [], schema: z.object({}),
+        run: async () => require('./adminOverview').overview(),
+    },
     make_offer: {
         roles: ['customer'], mutating: true,
         description: 'Book an event: sends an opening price offer to its vendor ("book", "reserve" and "make an offer" all mean this). If the user gives no price, leave offerPrice out and the asking price is used. Use search_events to find the event id.',
@@ -671,6 +798,8 @@ function systemPrompt(actor) {
         `- If the user asks for something your role cannot do, say so plainly.`,
         `- Booking or making an offer on an event is only possible from a customer (Organizer) account. If a vendor, admin or super admin asks to book, explain that and suggest signing in with their Organizer account.`,
         `- For planning ("plan my wedding", "what is left", "mark invitations done") use the plan tools; to fill a task, find_packages in its field, then book_package.`,
+        `- When an organizer gives a total budget ("I have 1500 for my nikah"), call budget_plan, list the picks with prices and the total, then offer to book them with book_bundle (ask for the date if missing).`,
+        `- Vendors can draft designs with generate_design and publish them with publish_design; organizers can browse them with find_designs and book with book_design.`,
         `- Keep answers short and practical. Plain text, no JSON.`,
     ].join('\n');
 }
@@ -693,6 +822,10 @@ async function humanise(summary, args, actor) {
         if (args.planId) {
             const p = await require('../models/EventPlan').findById(args.planId).select('title').lean();
             if (p) out = out.replace(`plan ${args.planId}`, `the "${p.title}" plan`);
+        }
+        if (args.designId) {
+            const d = await require('../models/VendorDesign').findById(args.designId).select('title').lean();
+            if (d) out = out.replace(`design ${args.designId}`, `the "${d.title}" design`);
         }
         if (args.serviceId) {
             const s = await Service.findById(args.serviceId).populate('vendorId', 'businessName').lean();
@@ -720,9 +853,29 @@ function validate(name, args, role) {
  * One conversational turn. Runs read-only tools itself; stops and returns a
  * proposal as soon as the model asks for a change.
  */
+/*
+ * Short memory of each user's recent tool results (ids included), so a follow-up
+ * like "publish it" or "book them" can refer to what Smartie just found or made.
+ * The chat history from the browser only carries the visible text.
+ */
+const MEMORY_MS = 30 * 60 * 1000;
+const recent = new Map(); // userId -> [{ at, name, text }]
+function remember(userId, name, result) {
+    const list = (recent.get(userId) || []).filter((r) => Date.now() - r.at < MEMORY_MS);
+    list.push({ at: Date.now(), name, text: JSON.stringify(result).slice(0, 1500) });
+    recent.set(userId, list.slice(-6));
+}
+function memoryNote(userId) {
+    const list = (recent.get(userId) || []).filter((r) => Date.now() - r.at < MEMORY_MS);
+    if (!list.length) return null;
+    return `Results of your recent tool calls for this user (use these ids for follow-ups such as "publish it" or "book them"):\n${list.map((r) => `- ${r.name}: ${r.text}`).join('\n')}`;
+}
+
 async function chat(history, actor) {
+    const note = memoryNote(actor.id);
     const messages = [
         { role: 'system', content: systemPrompt(actor) },
+        ...(note ? [{ role: 'system', content: note }] : []),
         ...history.slice(-MAX_HISTORY).map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content || '').slice(0, 4000) })),
     ];
     const tools = toolsFor(actor.role);
@@ -739,7 +892,7 @@ async function chat(history, actor) {
             // The model sometimes announces a change ("I will now mark ... as done")
             // instead of calling the tool. Ask it once to make the call, so the
             // user gets the confirmation card rather than an empty promise.
-            if (!nudged && step < MAX_STEPS - 1 && /\b(i will|i'll|i am going to|let me)\b[^.]*\b(now|mark|book|send|create|add|update|cancel|accept|reject)\b/i.test(text)) {
+            if (!nudged && step < MAX_STEPS - 1 && /\b(i will|i'll|i am going to|let me)\b[^.]*\b(now|mark|book|send|create|add|update|cancel|accept|reject|publish|look|find|check|fetch|search|get)\b/i.test(text)) {
                 nudged = true;
                 preface = text;
                 messages.push({ role: 'assistant', content: text });
@@ -775,6 +928,7 @@ async function chat(history, actor) {
             try {
                 result = await checked.action.run(checked.args, actor);
                 lookups.push(name);
+                remember(actor.id, name, result);
             } catch (err) {
                 result = { error: err.message };
             }
@@ -788,7 +942,9 @@ async function chat(history, actor) {
 async function execute(name, args, actor) {
     const { action, args: clean } = validate(name, args, actor.role);
     if (!action.mutating) throw new BadRequestError('Only changes need confirming.');
-    return action.run(clean, actor);
+    const result = await action.run(clean, actor);
+    remember(actor.id, name, result);
+    return result;
 }
 
 module.exports = { chat, execute, ACTIONS, actionsFor };

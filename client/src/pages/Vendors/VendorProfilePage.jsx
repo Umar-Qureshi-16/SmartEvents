@@ -11,6 +11,7 @@ import VendorReviews from '../../components/reviews/VendorReviews';
 import StarRating from '../../components/reviews/StarRating';
 import { formatCurrency } from '../../components/ui';
 import { DetailModal } from '../../components/vendor/ProfileDetails';
+import DesignVisual from '../../components/design/DesignVisual';
 
 const FIELD = {
     venue: 'Venue & hall', catering: 'Catering', decoration: 'Decoration & design',
@@ -50,6 +51,34 @@ function PackageCard({ pkg, onBook }) {
                     <button onClick={() => onBook(pkg)} className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-xs font-bold rounded-xl px-4 py-2.5">
                         Book &amp; negotiate <ArrowRight size={13} aria-hidden="true" />
                     </button>
+                </div>
+            </div>
+        </article>
+    );
+}
+
+function DesignCard({ d, onBook }) {
+    return (
+        <article className="bg-surface border border-border rounded-3xl overflow-hidden flex flex-col hover:border-brand/50 hover:shadow-card transition-all">
+            <div className="aspect-[16/10] bg-surface-2">
+                {d.image ? <img src={d.image} alt={`Picture of ${d.title}`} className="w-full h-full object-cover" loading="lazy" /> : <DesignVisual design={d} className="w-full h-full" />}
+            </div>
+            <div className="p-5 flex flex-col gap-3 flex-1">
+                <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand">{d.eventType}{d.theme ? ` · ${d.theme}` : ''}</p>
+                    <h3 className="text-base font-bold text-fg leading-snug">{d.title}</h3>
+                </div>
+                {d.summary && <p className="text-sm text-muted leading-relaxed">{d.summary}</p>}
+                <div className="flex gap-1" aria-label="Colour palette">{(d.palette || []).map((c) => <span key={c} title={c} className="w-5 h-5 rounded-full border border-border" style={{ background: c }} />)}</div>
+                <ul className="text-xs space-y-1 flex-1">
+                    {d.elements.map((e) => <li key={e.item} className="flex justify-between gap-2"><span className="text-fg">{e.item}</span><span className="text-muted">{formatCurrency(e.cost)}</span></li>)}
+                </ul>
+                <div className="flex items-end justify-between gap-3 pt-3 border-t border-border">
+                    <div>
+                        <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Design price</p>
+                        <p className="text-xl font-black text-success">{formatCurrency(d.totalCost)}</p>
+                    </div>
+                    <button onClick={() => onBook(d)} className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-xs font-bold rounded-xl px-4 py-2.5">Book this design <ArrowRight size={13} aria-hidden="true" /></button>
                 </div>
             </div>
         </article>
@@ -117,7 +146,11 @@ export default function VendorProfilePage({ user }) {
     const [photo, setPhoto] = useState(null);
     const [detail, setDetail] = useState(null); // 'followers' | 'delivered' | 'trust'
 
-    const [modal, setModal] = useState(null); // { service } or { service: null } for a custom quote
+    const [modal, setModal] = useState(null); // { service } / { design } / { service: null } for a custom quote
+    const [designs, setDesigns] = useState([]);
+    useEffect(() => {
+        axios.get('/designs', { params: { vendor: id } }).then((r) => setDesigns(r.data.data || [])).catch(() => setDesigns([]));
+    }, [id]);
     const [offer, setOffer] = useState({ offerPrice: '', date: '', location: '', eventType: 'Wedding', message: '' });
     const [sending, setSending] = useState(false);
 
@@ -185,12 +218,25 @@ export default function VendorProfilePage({ user }) {
         });
         setModal({ service: service || null });
     };
+    const openDesign = (design) => {
+        if (!user) { toast.error('Sign in as an organizer to book a design.'); navigate('/login'); return; }
+        if (user.role !== 'customer') { toast.error('Only organizer accounts can book vendors.'); return; }
+        setOffer({ offerPrice: design.totalCost, date: '', location: profile.location || '', eventType: design.eventType || 'Wedding', message: `Hello! I would like the "${design.title}" design.` });
+        setModal({ design });
+    };
 
     const sendOffer = async (e) => {
         e.preventDefault();
         if (!offer.offerPrice || !offer.date) { toast.error('Add your budget and the event date.'); return; }
         setSending(true);
         try {
+            if (modal.design) {
+                const r = await axios.post(`/designs/${modal.design._id}/book`, { date: offer.date, location: offer.location, offerPrice: Number(offer.offerPrice), message: offer.message });
+                toast.success('Design booked. It is waiting for you in the Design Studio.');
+                setModal(null);
+                navigate(`/negotiate/${r.data.data.bookingId}?view=design`);
+                return;
+            }
             const res = await axios.post('/bookings', {
                 vendorId: vendorUserId,
                 ...(modal.service ? { serviceId: modal.service._id } : {}),
@@ -248,6 +294,7 @@ export default function VendorProfilePage({ user }) {
     const tabs = [
         { key: 'overview', label: 'Overview' },
         { key: 'packages', label: 'Packages', count: services.length },
+        { key: 'designs', label: 'Designs', count: designs.length },
         { key: 'events', label: 'Events', count: events.length },
         { key: 'gallery', label: 'Gallery', count: gallery.length },
         { key: 'reviews', label: 'Reviews', count: profile.reviewsCount },
@@ -416,6 +463,12 @@ export default function VendorProfilePage({ user }) {
                             : <p className="text-sm text-muted py-10 text-center">No packages listed yet. You can still request a quote.</p>
                     )}
 
+                    {tab === 'designs' && (
+                        designs.length
+                            ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{designs.map((d) => <DesignCard key={d._id} d={d} onBook={openDesign} />)}</div>
+                            : <p className="text-sm text-muted py-10 text-center">No designs published yet.</p>
+                    )}
+
                     {tab === 'events' && (
                         events.length
                             ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{events.map((ev) => <EventCard key={ev._id} ev={ev} />)}</div>
@@ -446,10 +499,11 @@ export default function VendorProfilePage({ user }) {
 
             {modal && createPortal(
                 <div className="fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="offer-title">
-                    <form onSubmit={sendOffer} className="max-w-md w-full bg-surface p-6 border border-border rounded-3xl space-y-4 shadow-2xl">
+                    <form onSubmit={sendOffer} className="max-w-md w-full max-h-[90vh] overflow-y-auto bg-surface p-6 border border-border rounded-3xl space-y-4 shadow-2xl">
                         <div>
-                            <h2 id="offer-title" className="text-lg font-bold text-fg">{modal.service ? 'Book this package' : `Request a quote from ${profile.businessName}`}</h2>
+                            <h2 id="offer-title" className="text-lg font-bold text-fg">{modal.design ? 'Book this design' : modal.service ? 'Book this package' : `Request a quote from ${profile.businessName}`}</h2>
                             {modal.service && <p className="text-xs text-muted">{modal.service.title} · listed at {formatCurrency(modal.service.price)}</p>}
+                            {modal.design && <p className="text-xs text-muted">{modal.design.title} · {formatCurrency(modal.design.totalCost)} · it opens in your Design Studio to adjust</p>}
                         </div>
                         <div>
                             <label htmlFor="offer-price" className="text-xs font-bold text-fg block mb-1">Your budget</label>

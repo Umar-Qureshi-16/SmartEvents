@@ -6,10 +6,11 @@ import DataTable from '../../components/common/DataTable';
 import Drawer from '../../components/common/Drawer';
 import DisputeResolutionCenter from '../../components/SuperAdmin/DisputeResolutionCenter';
 import axios from '../../api/axios';
+import BusinessOverview from '../../components/Admin/BusinessOverview';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 
 export default function AdminPanel({ user }) {
-    const [activeTab, setTab] = useState('users');
+    const [activeTab, setTab] = useState('business');
     const [loading, setLoading] = useState(true);
     const [usersList, setUsersList] = useState([]);
     const [auditLogs, setAuditLogs] = useState([]);
@@ -154,36 +155,20 @@ export default function AdminPanel({ user }) {
         )}
     ];
 
-    const chartData = [
-        { name: 'Jan', bookings: 45, revenue: 12000 },
-        { name: 'Feb', bookings: 60, revenue: 18000 },
-        { name: 'Mar', bookings: 85, revenue: 24000 },
-        { name: 'Apr', bookings: 120, revenue: 35000 },
-        { name: 'May', bookings: 150, revenue: 45000 },
-        { name: 'Jun', bookings: 210, revenue: 64000 }
-    ];
-
-    const pieData = [
-        { name: 'Confirmed', value: 65, color: '#0ABF53' },
-        { name: 'Negotiating', value: 20, color: '#f59e0b' },
-        { name: 'Cancelled', value: 10, color: '#ef4444' },
-        { name: 'Disputed', value: 5, color: '#6366f1' }
-    ];
-
     return (
-        <div className="min-h-screen bg-bg text-fg p-6 max-w-[1280px] mx-auto space-y-8 pt-6">
+        <div className="min-h-screen bg-bg text-fg px-4 md:px-6 lg:px-8 py-6 max-w-[1440px] mx-auto space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border pb-6">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
                         <ShieldCheck className="text-success" size={20} />
-                        <span className="font-mono text-xs text-success uppercase font-bold tracking-wider">SUPER ADMIN GOVERNANCE PANEL</span>
+                        <span className="font-mono text-xs text-success uppercase font-bold tracking-wider">Admin console</span>
                     </div>
-                    <h1 className="text-3xl font-black tracking-tight text-fg">Platform Command Center</h1>
+                    <h1 className="text-3xl font-black tracking-tight text-fg">Platform overview</h1>
                 </div>
 
                 <div className="flex items-center gap-2 bg-surface-2 p-1.5 rounded-full flex-wrap">
-                    {['users', 'verification', 'analytics', 'disputes', 'audit'].map(tab => (
+                    {['business', 'users', 'verification', 'disputes', 'audit'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setTab(tab)}
@@ -197,11 +182,11 @@ export default function AdminPanel({ user }) {
 
             {/* StatCards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <StatCard label="TOTAL USERS" value={stats.totalUsers} icon={Users} />
-                <StatCard label="TOTAL EVENTS" value={stats.totalEvents} icon={Calendar} />
-                <StatCard label="TOTAL BOOKINGS" value={stats.totalBookings} icon={DollarSign} />
-                <StatCard label="DISPUTES IN BOX" value={disputesList.length} icon={AlertCircle} />
-                <StatCard label="VERIFIED VENDORS" value={usersList.filter(u => u.role === 'provider').length} icon={ShieldCheck} />
+                <StatCard label="ACCOUNTS" value={stats.totalUsers} icon={Users} subtext="Manage users" onClick={() => setTab('users')} />
+                <StatCard label="BOOKINGS" value={stats.totalBookings} icon={DollarSign} subtext="Money and bookings" onClick={() => setTab('business')} />
+                <StatCard label="EVENTS LISTED" value={stats.totalEvents} icon={Calendar} subtext="Browse events" onClick={() => { window.location.href = '/events'; }} />
+                <StatCard label="OPEN DISPUTES" value={disputesList.length} icon={AlertCircle} subtext="Resolve" onClick={() => setTab('disputes')} />
+                <StatCard label="VENDORS" value={usersList.filter(u => u.role === 'provider').length} icon={ShieldCheck} subtext="Verify vendors" onClick={() => setTab('verification')} />
             </div>
 
             {loading ? (
@@ -217,7 +202,13 @@ export default function AdminPanel({ user }) {
                             columns={userColumns}
                             data={usersList}
                             searchPlaceholder="Search accounts..."
-                            onExport={() => toast.success('Exported Users catalog to CSV.')}
+                            onExport={() => {
+                                const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+                                const rows = [['Name', 'Email', 'Role', 'Status', 'Created'], ...usersList.map((u) => [u.name, u.email, u.role, u.status || 'active', new Date(u.createdAt).toISOString().slice(0, 10)])];
+                                const url = URL.createObjectURL(new Blob([rows.map((r) => r.map(esc).join(',')).join('\n')], { type: 'text/csv' }));
+                                const a = document.createElement('a'); a.href = url; a.download = 'smartevents-users.csv'; a.click(); URL.revokeObjectURL(url);
+                                toast.success(`Exported ${usersList.length} accounts.`);
+                            }}
                         />
                     )}
 
@@ -270,54 +261,8 @@ export default function AdminPanel({ user }) {
                         </div>
                     )}
 
-                    {/* TAB 2: ANALYTICS */}
-                    {activeTab === 'analytics' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                            <div className="lg:col-span-8 adyen-card p-6 bg-surface border border-border space-y-6">
-                                <h3 className="text-sm font-black text-fg uppercase tracking-wider">Escrow Volume & Billings Trend</h3>
-                                <div className="h-80">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={chartData}>
-                                            <defs>
-                                                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#0ABF53" stopOpacity={0.2}/>
-                                                    <stop offset="95%" stopColor="#0ABF53" stopOpacity={0}/>
-                                                </linearGradient>
-                                            </defs>
-                                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                                            <YAxis stroke="#94a3b8" fontSize={11} />
-                                            <Tooltip />
-                                            <Area type="monotone" dataKey="revenue" stroke="#0ABF53" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-
-                            <div className="lg:col-span-4 adyen-card p-6 bg-surface border border-border space-y-6 flex flex-col justify-between">
-                                <h3 className="text-sm font-black text-fg uppercase tracking-wider">Bookings Status Spread</h3>
-                                <div className="h-64 flex justify-center">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie data={pieData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                                                {pieData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-                                    {pieData.map((item, idx) => (
-                                        <div key={idx} className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                                            <span>{item.name} ({item.value}%)</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {/* BUSINESS: live accounts, bookings and money */}
+                    {activeTab === 'business' && <BusinessOverview />}
 
                     {/* TAB 3: DISPUTES */}
                     {activeTab === 'disputes' && (
