@@ -207,9 +207,11 @@ export default function BookingInsight({ kind, bookings, myId, onClose, onChange
     const link = { all: '/bookings', negotiating: '/bookings?status=negotiating', confirmed: '/bookings?status=confirmed', committed: '/me?tab=spending' }[kind];
 
     return createPortal(
-        <div className="fixed inset-0 z-[95] bg-black/50 backdrop-blur-sm flex justify-end" onClick={onClose}>
+        // Centred over the dashboard (a sheet from the bottom on phones). It used to be
+        // pinned to the right edge, which on wide screens put it far from the content.
+        <div className="fixed inset-0 z-[95] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-6" onClick={onClose}>
             <aside role="dialog" aria-modal="true" aria-labelledby="insight-h" onClick={(e) => e.stopPropagation()}
-                className="w-full sm:max-w-md h-full bg-bg border-l border-border shadow-2xl flex flex-col">
+                className="w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[85vh] bg-bg border border-border rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-[insight-in_160ms_ease-out]">
                 <header className="flex items-center justify-between gap-3 p-5 border-b border-border bg-surface">
                     <h2 id="insight-h" className="text-base font-black text-fg flex items-center gap-2">
                         <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${tone}`}><Icon size={17} aria-hidden="true" /></span>{title}
