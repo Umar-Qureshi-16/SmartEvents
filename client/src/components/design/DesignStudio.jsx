@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { Palette, Sparkles, Save, Plus, Trash2, Check, Send, Loader2, Image as ImageIcon, Users, Wallet } from 'lucide-react';
 import axios from '../../api/axios';
-import DesignVisual from './DesignVisual';
+import DesignPicture from './DesignPicture';
 import { useWebSockets } from '../../context/WebSocketContext';
 
 const STYLES = ['Traditional', 'Modern', 'Minimal', 'Royal', 'Rustic', 'Floral', 'Boho', 'Glam'];
@@ -232,7 +232,11 @@ export default function DesignStudio({ bookingId, currentUserId }) {
                         const pct = budget ? Math.min(100, Math.round((c.totalCost / budget) * 100)) : 0;
                         return (
                             <article key={c._id} className={`bg-surface border rounded-3xl p-5 space-y-3 ${c.selected ? 'border-success ring-2 ring-success/30' : 'border-border'}`}>
-                                <DesignVisual design={{ ...c, theme: design.brief?.theme, style: design.brief?.style }} className="aspect-[16/10] rounded-2xl -mx-1" />
+                                <DesignPicture
+                                    design={{ ...c, theme: design.brief?.theme, style: design.brief?.style }}
+                                    path={`/designs/concepts/${bookingId}/${c._id}/image`}
+                                    className="aspect-[16/10] rounded-2xl -mx-1"
+                                />
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
                                         <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${TIER_TONE[c.tier] || ''}`}>{c.tier}</span>

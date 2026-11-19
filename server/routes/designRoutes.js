@@ -10,14 +10,17 @@ const wrap = (fn, status = 200) => async (req, res, next) => {
 // Public: published designs (by vendor, event type, budget).
 router.get('/', wrap((req) => designs.browse({ vendor: req.query.vendor, eventType: req.query.eventType, maxCost: req.query.maxCost })));
 
-// The AI-rendered picture of a design, when one exists.
-router.get('/:id/image', async (req, res, next) => {
+// Pictures of designs. The first request makes the picture (a few seconds);
+// later ones are served from the database.
+const sendImage = (find) => async (req, res, next) => {
     try {
-        const img = await designs.imageOf(req.params.id);
-        if (!img) return res.status(404).json({ success: false, message: 'No picture for this design.' });
+        const img = await find(req);
+        if (!img) return res.set({ 'Cache-Control': 'no-store', 'Retry-After': '5' }).status(404).json({ success: false, message: 'No picture for this design yet.' });
         res.set('Cache-Control', 'public, max-age=86400').type(img.mime).send(img.data);
     } catch (err) { next(err); }
-});
+};
+router.get('/:id/image', sendImage((req) => designs.imageOf(req.params.id)));
+router.get('/concepts/:bookingId/:conceptId/image', sendImage((req) => designs.conceptImage(req.params.bookingId, req.params.conceptId)));
 
 // Organizers book a design.
 router.post('/:id/book', verifyToken, authorize('customer'), wrap(async (req) => {

@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
-import { Eye, EyeOff, Palette, Sparkles, Trash2, ExternalLink } from 'lucide-react';
+import { Eye, EyeOff, Palette, Sparkles, Trash2, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import axios from '../../api/axios';
 import { formatCurrency, useConfirm } from '../../components/ui';
-import DesignVisual from '../../components/design/DesignVisual';
+import DesignPicture from '../../components/design/DesignPicture';
 
 const TYPES = ['Wedding', 'Nikah', 'Mehndi', 'Walima', 'Birthday', 'Corporate', 'Conference'];
 const field = 'w-full bg-surface-2 border border-border rounded-xl px-3 py-2 text-sm text-fg placeholder:text-muted';
@@ -33,7 +33,7 @@ function DesignCard({ d, onChange, onDelete }) {
     return (
         <li className="bg-surface border border-border rounded-3xl overflow-hidden flex flex-col">
             <div className="aspect-[16/10] relative bg-surface-2">
-                {d.image ? <img src={d.image} alt={`Picture of ${d.title}`} className="w-full h-full object-cover" /> : <DesignVisual design={d} className="w-full h-full" />}
+                <DesignPicture design={d} src={d.image} path={`/designs/${d._id}/image`} className="w-full h-full" />
                 <span className={`absolute top-3 left-3 text-[10px] font-black uppercase rounded-full px-2 py-0.5 ${d.published ? 'bg-success text-white' : 'bg-black/60 text-white'}`}>{d.published ? 'Published' : 'Draft'}</span>
                 {d.source === 'ai' && <span className="absolute top-3 right-3 text-[10px] font-black uppercase rounded-full px-2 py-0.5 bg-black/60 text-white">AI</span>}
             </div>
@@ -63,16 +63,21 @@ function DesignCard({ d, onChange, onDelete }) {
                         className={`inline-flex items-center gap-1 text-xs font-bold rounded-xl px-3 py-2 ${d.published ? 'border border-border text-fg hover:bg-fg/5' : 'bg-success text-white hover:opacity-90'}`}>
                         {d.published ? <EyeOff size={13} aria-hidden="true" /> : <Eye size={13} aria-hidden="true" />}{d.published ? 'Unpublish' : 'Publish'}
                     </button>
-                    {!d.image && (
-                        <button onClick={async () => {
-                            setBusy(true);
-                            try {
-                                const r = await axios.post(`/designs/${d._id}/render`);
-                                if (r.data.data.rendered) { onChange(r.data.data.design); toast.success('AI picture created.'); }
-                                else toast('AI pictures need image credit on the AI account. The concept drawing is shown meanwhile.', { icon: 'ℹ️' });
-                            } catch { toast.error('Could not create a picture.'); } finally { setBusy(false); }
-                        }} disabled={busy} className="border border-border text-fg hover:bg-fg/5 text-xs font-bold rounded-xl px-3 py-2">AI picture</button>
-                    )}
+                    <button onClick={async () => {
+                        setBusy(true);
+                        const wait = toast.loading('Creating a new picture of this design…');
+                        try {
+                            const r = await axios.post(`/designs/${d._id}/render`);
+                            if (r.data.data.rendered) {
+                                const n = r.data.data.design;
+                                onChange(n);
+                                setEdit((e) => ({ ...e, image: n.image || '' }));
+                                toast.success('New picture created.', { id: wait });
+                            } else toast.error('The image service is busy. Try again in a minute.', { id: wait });
+                        } catch { toast.error('Could not create a picture.', { id: wait }); } finally { setBusy(false); }
+                    }} disabled={busy} className="inline-flex items-center gap-1 border border-border text-fg hover:bg-fg/5 text-xs font-bold rounded-xl px-3 py-2">
+                        <ImageIcon size={13} aria-hidden="true" />New picture
+                    </button>
                     <button onClick={() => onDelete(d)} aria-label={`Delete ${d.title}`} className="ml-auto text-muted hover:text-danger p-2"><Trash2 size={15} /></button>
                 </div>
             </div>
@@ -102,7 +107,7 @@ export default function VendorDesignStudio() {
         try {
             const res = await axios.post('/designs/generate', { ...form, budget: Number(form.budget), colors });
             setDesigns((list) => [res.data.data, ...(list || [])]);
-            toast.success('Design drafted. Review it, then publish.');
+            toast.success('Design drafted. Its picture appears in a few seconds; review it, then publish.');
         } catch (err) {
             toast.error(err.response?.data?.message || 'Could not draft the design.');
         } finally {

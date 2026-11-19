@@ -9,6 +9,8 @@ const VendorProfile = require('../models/VendorProfile');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
 const { complete } = require('./groqClient');
+const { renderDecor, once } = require('./decorImage');
+const DesignRender = require('../models/DesignRender');
 const { BadRequestError, ForbiddenError, NotFoundError } = require('../utils/AppError');
 
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -98,9 +100,10 @@ Reply with JSON only: {"title":"string","summary":"two sentences","palette":["#h
         vendor: vendorId, eventType: input.eventType || 'Wedding', theme: input.theme, style: input.style,
         image: isUrl(input.image) ? input.image : undefined, published: false, source, ...design,
     });
-    // A picture of the décor when no photo was given (needs AI image credit).
-    if (!created.image) await renderImage(created);
-    return VendorDesign.findById(created._id).lean();
+    // A picture of the décor when no photo was given. It takes a few seconds,
+    // so it runs in the background; the picture endpoint waits for it.
+    if (!created.image) renderImage(created).catch(() => {});
+    return created.toObject();
 }
 
 const owned = async (vendorId, id) => {
@@ -136,45 +139,68 @@ async function remove(vendorId, id) {
 }
 
 /**
- * Asks an image model for a picture of the décor. Needs OpenRouter credit; when
- * it is not available the design keeps its drawn concept (drawn in the browser).
+ * Makes a photo-style picture of the décor (see services/decorImage.js) and
+ * stores it on the design. Returns false when no image service answered; the
+ * design then keeps its drawn concept.
  */
-async function renderImage(design) {
-    const env = require('../config/env');
-    const key = [env.OPENROUTER_API_KEY, env.GROQ_API_KEY].find((k) => typeof k === 'string' && k.startsWith('sk-or-'));
-    if (!key || env.isTest) return false;
-    const prompt = `Photorealistic wide photo of an event stage decoration in Pakistan for a ${design.eventType || 'wedding'}: ${design.title}. `
-        + `${design.theme ? `Theme: ${design.theme}. ` : ''}${design.style ? `Style: ${design.style}. ` : ''}`
-        + `Colours: ${(design.palette || []).join(', ')}. Includes: ${design.elements.map((e) => e.item).join(', ')}. Elegant lighting, no people, no text.`;
-    try {
-        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'X-Title': 'SmartEvents' },
-            body: JSON.stringify({ model: env.DESIGN_IMAGE_MODEL || 'google/gemini-2.5-flash-image', modalities: ['image', 'text'], messages: [{ role: 'user', content: prompt }] }),
-            signal: AbortSignal.timeout(60000),
+function renderImage(design, opts = {}) {
+    return once(`design:${design._id}`, async () => {
+        const img = await renderDecor(design, opts);
+        if (!img) return false;
+        await VendorDesign.updateOne({ _id: design._id }, {
+            $set: { 'render.data': img.data, 'render.mime': img.mime, image: `/api/v1/designs/${design._id}/image?v=${Date.now()}` },
         });
-        const data = await res.json().catch(() => ({}));
-        const url = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url || '';
-        const m = /^data:(image\/[a-z+]+);base64,(.+)$/i.exec(url);
-        if (!res.ok || !m) { console.warn('[designs] image render unavailable:', data?.error?.message || res.status); return false; }
-        await VendorDesign.updateOne({ _id: design._id }, { $set: { 'render.data': Buffer.from(m[2], 'base64'), 'render.mime': m[1], image: `/api/v1/designs/${design._id}/image` } });
         return true;
-    } catch (err) {
-        console.warn('[designs] image render failed:', err.message);
-        return false;
-    }
+    });
 }
 
 async function rerender(vendorId, id) {
     const d = await owned(vendorId, id);
-    const ok = await renderImage(d);
+    // A custom photo link is replaced by a fresh AI picture on request.
+    const ok = await renderImage(d.toObject(), { seed: Math.floor(Math.random() * 1e6) });
     return { rendered: ok, design: (await VendorDesign.findById(id).lean()) };
 }
 
+const bytes = (d) => (d?.buffer ? Buffer.from(d.buffer) : d);
+// A request waits this long for a picture still being made; the page asks
+// again a few seconds later and picks it up once it is stored.
+const WAIT_MS = 20000;
+const within = (p) => Promise.race([p, new Promise((r) => setTimeout(() => r(null), WAIT_MS))]);
+
+/** The stored picture of a design; makes one first if it has none yet. */
 async function imageOf(id) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    const d = await VendorDesign.findById(id).select('+render.data +render.mime').lean();
-    return d?.render?.data ? { data: d.render.data.buffer ? Buffer.from(d.render.data.buffer) : d.render.data, mime: d.render.mime } : null;
+    let d = await VendorDesign.findById(id).select('+render.data +render.mime').lean();
+    if (!d) return null;
+    if (!d.render?.data) {
+        if (!(await within(renderImage(d)))) return null;
+        d = await VendorDesign.findById(id).select('+render.data +render.mime').lean();
+    }
+    return d?.render?.data ? { data: bytes(d.render.data), mime: d.render.mime } : null;
+}
+
+/** The picture of one of a booking's design concepts, made on first view. */
+async function conceptImage(bookingId, conceptId) {
+    if (![bookingId, conceptId].every((x) => mongoose.Types.ObjectId.isValid(x))) return null;
+    const key = `concept:${conceptId}`;
+    const stored = await DesignRender.findOne({ key }).lean();
+    if (stored) return { data: bytes(stored.data), mime: stored.mime };
+    const booking = await Booking.findOne({ _id: bookingId, 'designConcepts._id': conceptId })
+        .select('designConcepts designBrief eventDetails eventId').populate('eventId', 'category').lean();
+    const concept = booking?.designConcepts?.find((c) => String(c._id) === String(conceptId));
+    if (!concept) return null;
+    const design = {
+        ...concept,
+        theme: booking.designBrief?.theme,
+        style: booking.designBrief?.style,
+        eventType: booking.eventDetails?.eventType || booking.eventId?.category || 'Wedding',
+    };
+    return within(once(key, async () => {
+        const img = await renderDecor(design);
+        if (!img) return null;
+        await DesignRender.updateOne({ key }, { $set: { data: img.data, mime: img.mime } }, { upsert: true });
+        return img;
+    }));
 }
 
 const mine = (vendorId) => VendorDesign.find({ vendor: vendorId }).sort({ createdAt: -1 }).lean();
@@ -221,4 +247,4 @@ async function book(customerId, id, { date, location, offerPrice, message } = {}
     return booking;
 }
 
-module.exports = { generate, update, remove, mine, browse, book, toHex, renderImage, rerender, imageOf };
+module.exports = { generate, update, remove, mine, browse, book, toHex, renderImage, rerender, imageOf, conceptImage };
