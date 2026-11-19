@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, CheckCircle2, XCircle, Send, Plus, DollarSign, Clock, Check, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, CheckCircle2, XCircle, Send, DollarSign, Clock, Check, X, MessageSquare } from 'lucide-react';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
 import AnimatedPrice from '../../components/AnimatedPrice';
@@ -76,7 +76,7 @@ const NegotiationPage = () => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
-    }, [booking?.negotiationHistory]);
+    }, [booking?.negotiationHistory, view]);
 
     const fetchBooking = async () => {
         try {
@@ -184,83 +184,79 @@ const NegotiationPage = () => {
         </div>
     );
 
-    const isCustomer = user?.role === 'customer';
-    const isVendor = user?.role === 'provider' || user?.role === 'vendor';
-    const canAction = ['pending', 'negotiating'].includes(booking.status);
-
-    // Determine whose turn it is
-    // If the last actor was customer, it's vendor's turn, and vice versa.
-    const lastHistoryItem = booking.negotiationHistory && booking.negotiationHistory.length > 0
-        ? booking.negotiationHistory[booking.negotiationHistory.length - 1]
-        : null;
-
-    let isMyTurn = true;
+    const myIdStr = (user?._id || user?.id)?.toString();
+    const vendorIdStr = (booking.vendorId?._id || booking.vendorId)?.toString();
     const customerIdStr = (booking.customerId?._id || booking.customerId)?.toString();
-    if (lastHistoryItem) {
-        const lastOfferedById = lastHistoryItem.offeredBy?._id || lastHistoryItem.offeredBy;
-        const lastActorWasCustomer = lastOfferedById?.toString() === customerIdStr;
-        if (isCustomer && lastActorWasCustomer) isMyTurn = false;
-        if (isVendor && !lastActorWasCustomer) isMyTurn = false;
-    } else {
-        // If no history, typically customer creates it, so it's vendor's turn.
-        isMyTurn = isVendor;
-    }
+    const iAmVendor = vendorIdStr === myIdStr;
+    const other = iAmVendor ? booking.customerId : booking.vendorId;
+    const otherName = other?.name || (iAmVendor ? 'The organizer' : 'The vendor');
+    const history = booking.negotiationHistory || [];
+    const canAction = ['pending', 'negotiating'].includes(booking.status);
+    const accepted = ['accepted', 'confirmed', 'completed'].includes(booking.status);
+    const isCompleted = !canAction;
+    const currentPrice = booking.offerPrice || booking.totalAmount;
 
-    const isCompleted = ['accepted', 'confirmed', 'rejected', 'cancelled'].includes(booking.status);
+    // Whose turn: the side that did NOT make the last offer. With no history
+    // the customer opened the booking, so the vendor answers first.
+    const last = history[history.length - 1];
+    const lastBy = (last?.offeredBy?._id || last?.offeredBy)?.toString();
+    const isMyTurn = last ? lastBy !== myIdStr : iAmVendor;
+
+    const eventName = booking.eventId?.title
+        || (booking.serviceId?.title ? `${booking.serviceId.title} package` : null)
+        || booking.designConcepts?.find((c) => c.selected)?.title
+        || booking.eventDetails?.eventType
+        || 'Custom booking';
+
+    const statusStyle = accepted ? 'bg-emerald-500/15 text-success'
+        : ['rejected', 'cancelled'].includes(booking.status) ? 'bg-rose-500/15 text-rose-500'
+            : 'bg-amber-500/15 text-amber-500';
+    const statusLabel = booking.status === 'confirmed' ? 'accepted' : booking.status;
+
+    const money = (n) => `$${Number(n || 0).toLocaleString()}`;
+    const dayLabel = (d) => new Date(d).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    const timeLabel = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const actionLabel = { offer: 'Opening offer', counter: 'Counter-offer', accepted: 'Accepted', rejected: 'Declined' };
+
+    const sendCounter = (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+        if (!(Number(counterPrice) > 0)) {
+            toast.error('Enter a price greater than zero.');
+            return;
+        }
+        handleAction('counter');
+    };
 
     return (
-        <div className="min-h-screen bg-ink text-fg pt-24 pb-20 px-6">
-            <div className={`${view === 'design' ? 'max-w-6xl' : 'max-w-4xl'} mx-auto space-y-6 flex flex-col h-[calc(100vh-140px)]`}>
+        <div className="min-h-screen bg-ink text-fg pt-24 pb-16 px-4 sm:px-6">
+            <div className={`${view === 'design' ? 'max-w-6xl' : 'max-w-4xl'} mx-auto space-y-5`}>
 
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border flex-shrink-0">
-                    <div>
-                        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-muted hover:text-fg transition-colors group mb-4">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                    <div className="min-w-0">
+                        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-muted hover:text-fg transition-colors group mb-3">
                             <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
                             <span className="text-xs font-bold uppercase tracking-widest">Back</span>
                         </button>
-                        <h2 className="text-3xl font-extrabold text-fg tracking-tight flex items-center gap-3">
-                            Negotiation Thread
-                            <span className={`px-3 py-1 rounded-full text-xs uppercase tracking-widest font-bold ${['accepted', 'confirmed'].includes(booking.status) ? 'bg-emerald/20 text-emerald' :
-                                booking.status === 'rejected' ? 'bg-red/20 text-red' :
-                                    'bg-coral/20 text-coral'
-                                }`}>
-                                {booking.status === 'confirmed' ? 'accepted' : booking.status}
-                            </span>
-                        </h2>
-                        <p className="text-muted mt-2">
-                            Event: <span className="text-fg font-medium">{booking.eventId?.title || (booking.serviceId?.title ? `${booking.serviceId.title} package` : booking.designConcepts?.find((c) => c.selected)?.title || booking.eventDetails?.eventType) || 'Custom booking'}</span>
-                        </p>
-                        {(() => {
-                            const iAmVendor = String(booking.vendorId?._id || booking.vendorId) === String(user?._id || user?.id);
-                            const other = iAmVendor ? booking.customerId : booking.vendorId;
-                            if (!other?._id) return null;
-                            return (
-                                <p className="text-muted text-sm mt-1">
-                                    With{' '}
-                                    <button type="button" onClick={() => navigate(iAmVendor ? `/organizer/${other._id}` : `/vendor/${other._id}`)}
-                                        className="text-brand font-bold hover:underline">{other.name}</button>
-                                    <span className="text-xs"> ({iAmVendor ? 'organizer' : 'vendor'} profile)</span>
-                                </p>
-                            );
-                        })()}
+                        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight truncate">{eventName}</h2>
+                        {other?._id && (
+                            <p className="text-muted text-sm mt-1">
+                                Negotiating with{' '}
+                                <button type="button" onClick={() => navigate(iAmVendor ? `/organizer/${other._id}` : `/vendor/${other._id}`)}
+                                    className="text-brand font-bold hover:underline">{other.name}</button>
+                                <span className="text-xs"> ({iAmVendor ? 'organizer' : 'vendor'})</span>
+                            </p>
+                        )}
                     </div>
-                    <div className="text-right">
-                        <p className="text-[10px] font-black uppercase text-muted tracking-widest">Current Offer</p>
-                        <AnimatedPrice price={booking.offerPrice || booking.totalAmount} className="text-4xl font-black text-emerald" />
-                        <p className="text-[10px] font-bold text-muted uppercase mt-1">Base: ${booking.eventId?.price || booking.serviceId?.price || booking.totalAmount || booking.offerPrice}</p>
+                    <div className="sm:text-right flex-shrink-0">
+                        <p className="text-[10px] font-black uppercase text-muted tracking-widest">Current offer</p>
+                        <AnimatedPrice price={currentPrice} className="text-3xl sm:text-4xl font-black text-emerald" />
+                        <p className="text-[10px] font-bold text-muted uppercase mt-1">Listed at ${booking.eventId?.price || booking.serviceId?.price || booking.totalAmount || booking.offerPrice}</p>
                     </div>
                 </div>
 
-                {isCompleted && (
-                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className={`p-4 rounded-xl flex items-center justify-center gap-3 font-bold text-sm tracking-widest uppercase flex-shrink-0 ${['accepted', 'confirmed'].includes(booking.status) ? 'bg-emerald/20 text-emerald' : 'bg-red/20 text-red'
-                        }`}>
-                        {['accepted', 'confirmed'].includes(booking.status) ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
-                        Negotiation {booking.status === 'confirmed' ? 'accepted' : booking.status}
-                    </motion.div>
-                )}
-
-                <div role="tablist" aria-label="Booking workspace" className="flex gap-1 bg-surface-2 p-1 rounded-full w-fit flex-shrink-0">
+                <div role="tablist" aria-label="Booking workspace" className="flex gap-1 bg-surface-2 p-1 rounded-full w-fit">
                     {[['offers', 'Price negotiation'], ['design', 'Design Studio']].map(([key, label]) => (
                         <button key={key} type="button" role="tab" aria-selected={view === key} onClick={() => setView(key)}
                             className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${view === key ? 'bg-brand text-white shadow-sm' : 'text-muted hover:text-fg'}`}>
@@ -271,130 +267,151 @@ const NegotiationPage = () => {
 
                 {view === 'design' && <DesignStudio bookingId={bookingId} currentUserId={user?._id || user?.id} />}
 
-                {view === 'offers' && (<>
-                {/* Chat Section */}
-                <div
-                    ref={chatContainerRef}
-                    className="flex-1 glass rounded-[32px] border-border p-6 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-white/10"
-                >
-                    {(!booking.negotiationHistory || booking.negotiationHistory.length === 0) ? (
-                        <div className="h-full flex flex-col items-center justify-center text-muted space-y-4">
-                            <Clock size={48} className="opacity-20" />
-                            <p className="text-sm font-bold tracking-widest uppercase">Waiting for negotiation history...</p>
+                {view === 'offers' && (
+                    <section aria-label="Price negotiation" className="bg-surface border border-border rounded-3xl shadow-xl overflow-hidden flex flex-col h-[min(72vh,680px)] min-h-[440px]">
+                        {/* Box header: who you are talking to */}
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-surface-2/60">
+                            <div className="w-10 h-10 rounded-full bg-brand/15 text-brand flex items-center justify-center font-black text-sm flex-shrink-0" aria-hidden="true">
+                                {otherName.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="font-bold text-sm truncate">{otherName}</p>
+                                <p className="text-[11px] text-muted">{iAmVendor ? 'Organizer' : 'Vendor'} · {history.length} {history.length === 1 ? 'message' : 'messages'}</p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-black ${statusStyle}`}>{statusLabel}</span>
                         </div>
-                    ) : (
-                        booking.negotiationHistory.map((item, index) => {
-                            const offeredById = (item.offeredBy?._id || item.offeredBy)?.toString();
-                            const customerIdStr = (booking.customerId?._id || booking.customerId)?.toString();
 
-                            const isCustomerMsg = offeredById === customerIdStr;
+                        {/* Messages */}
+                        <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-4 bg-bg/40">
+                            {history.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-muted gap-3 text-center">
+                                    <MessageSquare size={40} className="opacity-30" aria-hidden="true" />
+                                    <p className="text-sm font-semibold">No offers yet</p>
+                                    <p className="text-xs max-w-xs">Offers and counter-offers will appear here as messages.</p>
+                                </div>
+                            ) : history.map((item, index) => {
+                                const by = (item.offeredBy?._id || item.offeredBy)?.toString();
+                                const mine = by === myIdStr;
+                                const when = item.timestamp || Date.now();
+                                const prev = history[index - 1];
+                                const newDay = !prev || dayLabel(prev.timestamp || Date.now()) !== dayLabel(when);
+                                const senderName = mine ? 'You' : ((by === customerIdStr ? booking.customerId?.name : booking.vendorId?.name) || otherName);
+                                const text = item.message || item.note;
+                                const isFinal = item.action === 'accepted' || item.action === 'rejected';
 
-                            return (
-                                <motion.div
-                                    key={index}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.1 }}
-                                    className={`flex w-full ${isCustomerMsg ? 'justify-end' : 'justify-start'}`}
-                                >
-                                    <div className={`max-w-[80%] md:max-w-[60%] flex flex-col ${isCustomerMsg ? 'items-end' : 'items-start'}`}>
-                                        <div className={`text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2 ${isCustomerMsg ? 'text-brand' : 'text-muted'}`}>
-                                            {isCustomerMsg ? 'Customer' : 'Provider'}
-                                            <span className="text-muted font-normal">
-                                                {new Date(item.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                        <div className={`p-5 rounded-3xl space-y-3 shadow-xl ${isCustomerMsg
-                                            ? 'bg-indigo-600/20 border border-indigo-500/30 rounded-tr-sm'
-                                            : 'bg-fg/5 border border-border rounded-tl-sm'
-                                            }`}>
-                                            <div className="flex items-center gap-3 border-b border-border pb-3">
-                                                <div className="flex bg-surface-2 text-fg border border-border px-3 py-1.5 rounded-xl items-center gap-1.5">
-                                                    <DollarSign size={14} className={isCustomerMsg ? "text-brand" : "text-fg"} />
-                                                    <span className="text-lg font-black">{item.price}</span>
-                                                </div>
-                                                <span className={`text-[9px] px-2 py-1 rounded-md uppercase font-bold tracking-widest ${item.action === 'accepted' ? 'bg-emerald/20 text-emerald' :
-                                                    item.action === 'rejected' ? 'bg-red/20 text-red' :
-                                                        item.action === 'counter' ? 'bg-slate/10 text-slate' :
-                                                            'bg-gold/20 text-gold'
-                                                    }`}>
-                                                    {item.action || 'proposed'}
+                                return (
+                                    <React.Fragment key={item._id || index}>
+                                        {newDay && (
+                                            <div className="flex items-center gap-3 py-1" aria-hidden="true">
+                                                <div className="flex-1 h-px bg-border" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted">{dayLabel(when)}</span>
+                                                <div className="flex-1 h-px bg-border" />
+                                            </div>
+                                        )}
+                                        {isFinal ? (
+                                            <div className="flex justify-center">
+                                                <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold ${item.action === 'accepted' ? 'bg-emerald-500/15 text-success' : 'bg-rose-500/15 text-rose-500'}`}>
+                                                    {item.action === 'accepted' ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+                                                    {senderName} {item.action === 'accepted' ? 'accepted' : 'declined'} {money(item.price)} · {timeLabel(when)}
                                                 </span>
                                             </div>
-                                            {(item.message || item.note) && (
-                                                <p className="text-sm font-medium text-muted leading-relaxed">
-                                                    {item.message || item.note}
-                                                </p>
-                                            )}
-                                        </div>
+                                        ) : (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 8 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}
+                                            >
+                                                {!mine && (
+                                                    <div className="w-7 h-7 rounded-full bg-surface-2 border border-border text-muted flex items-center justify-center text-[11px] font-black flex-shrink-0" aria-hidden="true">
+                                                        {senderName.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <div className={`max-w-[85%] sm:max-w-[65%] rounded-2xl px-4 py-3 shadow-sm ${mine
+                                                    ? 'bg-brand text-white rounded-br-md'
+                                                    : 'bg-surface border border-border rounded-bl-md'}`}>
+                                                    <div className={`flex items-center justify-between gap-4 text-[10px] font-bold uppercase tracking-widest ${mine ? 'text-white/75' : 'text-muted'}`}>
+                                                        <span>{senderName}</span>
+                                                        <span>{actionLabel[item.action] || 'Offer'}</span>
+                                                    </div>
+                                                    <p className="text-2xl font-black mt-1">{money(item.price)}</p>
+                                                    {text && <p className={`text-sm mt-1 leading-relaxed whitespace-pre-wrap break-words ${mine ? 'text-white/90' : 'text-fg/80'}`}>{text}</p>}
+                                                    <p className={`text-[10px] mt-2 text-right ${mine ? 'text-white/60' : 'text-muted'}`}>{timeLabel(when)}</p>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
+                        </div>
+
+                        {/* Reply bar */}
+                        <div className="border-t border-border bg-surface px-4 sm:px-5 py-4">
+                            {canAction && isMyTurn && (
+                                <div className="space-y-3">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <p className="text-xs text-muted mr-auto">
+                                            {last ? <>{otherName} offered <span className="font-black text-fg">{money(currentPrice)}</span>. Accept it, decline, or reply with a counter-offer.</>
+                                                : <>Offer on the table: <span className="font-black text-fg">{money(currentPrice)}</span>.</>}
+                                        </p>
+                                        <button type="button" onClick={() => handleAction('reject')} disabled={isSubmitting}
+                                            className="px-4 py-2 rounded-xl flex items-center gap-1.5 font-bold text-xs border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 transition-all disabled:opacity-50">
+                                            <X size={14} /> Decline
+                                        </button>
+                                        <button type="button" onClick={() => handleAction('accept')} disabled={isSubmitting}
+                                            className="px-4 py-2 rounded-xl flex items-center gap-1.5 font-bold text-xs bg-emerald-500 text-white hover:bg-emerald-600 transition-all disabled:opacity-50 active:scale-95">
+                                            <Check size={14} /> Accept {money(currentPrice)}
+                                        </button>
                                     </div>
-                                </motion.div>
-                            )
-                        })
-                    )}
-                </div>
-
-                {/* Action Panel */}
-                {canAction && isMyTurn && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-shrink-0 glass rounded-3xl border-indigo-500/20 bg-indigo-500/[0.03] p-6 space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="md:col-span-1 space-y-2">
-                                <label className="text-[10px] font-black uppercase text-muted tracking-widest ml-1">Counter Price</label>
-                                <div className="relative">
-                                    <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" />
-                                    <input
-                                        type="number"
-                                        value={counterPrice}
-                                        onChange={(e) => setCounterPrice(e.target.value)}
-                                        className="w-full bg-surface-2 text-fg placeholder:text-muted border border-border rounded-2xl py-3 pl-12 pr-4 font-black outline-none focus:ring-2 ring-indigo-500/30 transition-all text-lg"
-                                    />
+                                    <form onSubmit={sendCounter} className="flex items-end gap-2">
+                                        <label className="relative w-28 sm:w-36 flex-shrink-0">
+                                            <span className="sr-only">Counter price</span>
+                                            <DollarSign size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand" aria-hidden="true" />
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={counterPrice}
+                                                onChange={(e) => setCounterPrice(e.target.value)}
+                                                className="w-full bg-bg text-fg border border-border rounded-2xl py-3 pl-8 pr-2 font-black outline-none focus:border-brand transition-all"
+                                            />
+                                        </label>
+                                        <label className="flex-1 min-w-0">
+                                            <span className="sr-only">Message</span>
+                                            <textarea
+                                                rows={1}
+                                                value={note}
+                                                maxLength={500}
+                                                onChange={(e) => setNote(e.target.value)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) sendCounter(e); }}
+                                                placeholder="Write a message with your counter-offer..."
+                                                className="block w-full resize-none bg-bg text-fg placeholder:text-muted border border-border rounded-2xl py-3 px-4 text-sm outline-none focus:border-brand transition-all max-h-32"
+                                            />
+                                        </label>
+                                        <button type="submit" disabled={isSubmitting} aria-label="Send counter-offer"
+                                            className="h-[46px] px-4 rounded-2xl bg-brand text-white flex items-center gap-2 font-bold text-xs hover:opacity-90 transition-all disabled:opacity-50 flex-shrink-0">
+                                            <Send size={15} aria-hidden="true" /> <span className="hidden sm:inline">Counter</span>
+                                        </button>
+                                    </form>
                                 </div>
-                            </div>
-                            <div className="md:col-span-2 space-y-2">
-                                <label className="text-[10px] font-black uppercase text-muted tracking-widest ml-1">Additional Note</label>
-                                <input
-                                    type="text"
-                                    value={note}
-                                    onChange={(e) => setNote(e.target.value)}
-                                    placeholder="Explain your counter offer or ask a question..."
-                                    className="w-full bg-surface-2 text-fg placeholder:text-muted border border-border rounded-2xl py-3 px-4 font-medium outline-none focus:ring-2 ring-indigo-500/30 transition-all text-sm h-[52px]"
-                                />
-                            </div>
-                        </div>
+                            )}
 
-                        <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
-                            <button
-                                onClick={() => handleAction('reject')}
-                                disabled={isSubmitting}
-                                className="px-6 py-3 rounded-xl flex items-center justify-center gap-2 font-black uppercase tracking-widest text-xs border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-50"
-                            >
-                                <X size={14} /> Reject
-                            </button>
-                            <button
-                                onClick={() => handleAction('counter')}
-                                disabled={isSubmitting}
-                                className="px-6 py-3 rounded-xl flex items-center justify-center gap-2 font-black uppercase tracking-widest text-xs bg-fg/5 border border-border hover:bg-surface/10 transition-all disabled:opacity-50"
-                            >
-                                <Send size={14} /> Counter Offer
-                            </button>
-                            <button
-                                onClick={() => handleAction('accept')}
-                                disabled={isSubmitting}
-                                className="px-6 py-3 rounded-xl flex items-center justify-center gap-2 font-black uppercase tracking-widest text-xs bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all disabled:opacity-50 active:scale-95"
-                            >
-                                <Check size={14} /> Accept Offer
-                            </button>
-                        </div>
-                    </motion.div>
-                )}
+                            {canAction && !isMyTurn && (
+                                <div className="flex flex-wrap items-center justify-center gap-2 py-2 text-sm text-muted text-center">
+                                    <Clock size={16} aria-hidden="true" />
+                                    Waiting for {otherName} to reply to your offer of <span className="font-black text-fg">{money(currentPrice)}</span>
+                                </div>
+                            )}
 
-                {canAction && !isMyTurn && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-shrink-0 text-center py-6 text-muted flex items-center justify-center gap-3 text-sm font-black uppercase tracking-widest">
-                        <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                        Waiting for other party to respond
-                    </motion.div>
+                            {isCompleted && (
+                                <div className={`flex items-center justify-center gap-2 py-2 text-sm font-bold ${accepted ? 'text-success' : 'text-rose-500'}`}>
+                                    {accepted ? <CheckCircle2 size={16} aria-hidden="true" /> : <XCircle size={16} aria-hidden="true" />}
+                                    {accepted
+                                        ? `Agreed at ${money(currentPrice)}. This negotiation is closed.`
+                                        : `This negotiation was ${statusLabel}.`}
+                                </div>
+                            )}
+                        </div>
+                    </section>
                 )}
-                </>)}
             </div>
         </div>
     );
