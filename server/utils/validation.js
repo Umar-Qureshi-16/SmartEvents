@@ -1,9 +1,18 @@
 const { z } = require('zod');
+const { passwordProblems, MAX_LENGTH } = require('./passwordPolicy');
+
+// Adds one issue per broken password rule (see utils/passwordPolicy.js).
+function checkPassword(ctx, value, path, context) {
+    if (value === undefined) return;
+    for (const message of passwordProblems(value, context)) {
+        ctx.addIssue({ code: 'custom', path: [path], message });
+    }
+}
 
 const signupSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters").max(50),
     email: z.string().email("Invalid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: z.string().max(MAX_LENGTH),
     // customer/provider are open. admin/superadmin additionally require
     // adminCode to match the server-side ADMIN_SIGNUP_CODE (checked in
     // authService.signup), so elevated roles are never self-service by default.
@@ -11,7 +20,7 @@ const signupSchema = z.object({
     adminCode: z.string().max(200).optional(),
     // Vendor category chosen at signup (FR-01); only used when role === 'provider'.
     category: z.enum(['venue', 'catering', 'decoration', 'photography', 'music', 'makeup']).optional()
-});
+}).superRefine((d, ctx) => checkPassword(ctx, d.password, 'password', { name: d.name, email: d.email }));
 
 const loginSchema = z.object({
     email: z.string().email("Invalid email address"),
@@ -129,7 +138,12 @@ const updateProfileSchema = z.object({
 
 const changePasswordSchema = z.object({
     currentPassword: z.string().min(1, "Your current password is required"),
-    newPassword: z.string().min(8, "New password must be at least 8 characters")
+    newPassword: z.string().max(MAX_LENGTH)
+}).superRefine((d, ctx) => {
+    checkPassword(ctx, d.newPassword, 'newPassword');
+    if (d.newPassword && d.newPassword === d.currentPassword) {
+        ctx.addIssue({ code: 'custom', path: ['newPassword'], message: 'New password must be different from the current one' });
+    }
 });
 
 const contactSchema = z.object({
@@ -147,11 +161,15 @@ const forgotPasswordSchema = z.object({
 // normalises to `password` for the controller.
 const resetPasswordSchema = z.object({
     token: z.string().min(1, "Token is required"),
-    password: z.string().min(8, "Password must be at least 8 characters").optional(),
-    newPassword: z.string().min(8, "Password must be at least 8 characters").optional()
-}).refine(d => d.password || d.newPassword, {
-    message: "Password must be at least 8 characters",
-    path: ["password"]
+    password: z.string().max(MAX_LENGTH).optional(),
+    newPassword: z.string().max(MAX_LENGTH).optional()
+}).superRefine((d, ctx) => {
+    const value = d.password || d.newPassword;
+    if (!value) {
+        ctx.addIssue({ code: 'custom', path: ['password'], message: 'A new password is required' });
+        return;
+    }
+    checkPassword(ctx, value, 'password');
 });
 
 const verifyEmailSchema = z.object({

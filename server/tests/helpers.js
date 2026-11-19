@@ -6,7 +6,7 @@ const Event = require('../models/Event');
 const app = createApp();
 const api = () => request(app);
 
-const PASSWORD = 'password123';
+const PASSWORD = 'Str0ng!Key9';
 
 /**
  * Registers a user and returns { user, token, id }.

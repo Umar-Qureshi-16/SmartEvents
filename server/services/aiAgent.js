@@ -466,7 +466,7 @@ const ACTIONS = {
             if (ELEVATED(role) && actor.role !== 'superadmin') throw new ForbiddenError('Only a super admin can create admin-level accounts.');
             const normalized = email.toLowerCase().trim();
             if (await User.findOne({ email: normalized })) throw new ConflictError('An account with this email already exists.');
-            const tempPassword = `${crypto.randomBytes(6).toString('base64url')}-${crypto.randomInt(100, 999)}`;
+            const tempPassword = `Se${crypto.randomBytes(6).toString('hex')}#${crypto.randomInt(100, 999)}`;
             const user = await User.create({ name, email: normalized, role, password: await bcrypt.hash(tempPassword, 10), isEmailVerified: true });
             if (role === 'provider') {
                 await VendorProfile.create({ userId: user._id, businessName: name, category: 'catering', location: 'Not specified yet' }).catch(() => {});

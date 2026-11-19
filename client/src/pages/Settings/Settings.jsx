@@ -7,6 +7,8 @@ import axios from '../../api/axios';
 import { setCredentials } from '../../store/slices/authSlice';
 import { useTheme } from '../../context/ThemeContext';
 import { Button, Card, Badge, Input } from '../../components/ui';
+import PasswordChecklist from '../../components/ui/PasswordChecklist';
+import { isStrongPassword } from '../../utils/passwordPolicy';
 
 /**
  * Account settings.
@@ -57,7 +59,8 @@ export default function Settings({ user }) {
         e.preventDefault();
         const errs = {};
         if (!pw.currentPassword) errs.currentPassword = 'Enter your current password.';
-        if (pw.newPassword.length < 8) errs.newPassword = 'New password must be at least 8 characters.';
+        if (!isStrongPassword(pw.newPassword, { name: user?.name, email: user?.email })) errs.newPassword = 'Choose a stronger password: it must meet every rule below.';
+        else if (pw.newPassword === pw.currentPassword) errs.newPassword = 'The new password must be different from the current one.';
         if (pw.newPassword !== pw.confirmPassword) errs.confirmPassword = 'The passwords do not match.';
         setPwErrors(errs);
         if (Object.keys(errs).length) return;
@@ -144,8 +147,8 @@ export default function Settings({ user }) {
                         value={pw.newPassword}
                         onChange={(e) => setPw(p => ({ ...p, newPassword: e.target.value }))}
                         error={pwErrors.newPassword}
-                        hint="At least 8 characters."
                     />
+                    <PasswordChecklist password={pw.newPassword} name={user?.name} email={user?.email} />
                     <Input
                         label="Confirm new password"
                         type="password"

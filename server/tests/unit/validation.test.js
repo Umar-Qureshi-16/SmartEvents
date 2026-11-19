@@ -27,28 +27,49 @@ describe('Request validation', () => {
 
     describe('signup', () => {
         it('accepts customer and provider', () => {
-            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'password123', role: 'customer' }).passed).toBe(true);
-            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'password123', role: 'provider' }).passed).toBe(true);
+            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'Str0ng!Key9', role: 'customer' }).passed).toBe(true);
+            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'Str0ng!Key9', role: 'provider' }).passed).toBe(true);
         });
 
         // Elevated roles pass the schema; authService.signup then requires the
         // server-side ADMIN_SIGNUP_CODE (covered in integration/security.test.js).
         it.each(['admin', 'superadmin'])('accepts the elevated role %s at schema level', (role) => {
-            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'password123', role }).passed).toBe(true);
+            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'Str0ng!Key9', role }).passed).toBe(true);
         });
 
         it('rejects unknown roles', () => {
-            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'password123', role: 'root' }).passed).toBe(false);
+            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'Str0ng!Key9', role: 'root' }).passed).toBe(false);
         });
 
         it('defaults the role to customer when omitted', () => {
-            const r = run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'password123' });
+            const r = run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'Str0ng!Key9' });
             expect(r.passed).toBe(true);
             expect(r.body.role).toBe('customer');
         });
 
         it('enforces a minimum password length', () => {
             expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'short' }).passed).toBe(false);
+        });
+
+        it.each([
+            ['no uppercase', 'str0ng!key9'],
+            ['no lowercase', 'STR0NG!KEY9'],
+            ['no number', 'Strong!Keys'],
+            ['no symbol', 'Str0ngKey99'],
+            ['a space', 'Str0ng! Key9'],
+            ['a common password', 'Password1!'],
+        ])('rejects a password with %s', (_, password) => {
+            expect(run(signupSchema, { name: 'Ok', email: 'a@b.com', password }).passed).toBe(false);
+        });
+
+        it('rejects a password built from the name or email', () => {
+            expect(run(signupSchema, { name: 'Umar Khan', email: 'x@b.com', password: 'Umar!2026x' }).passed).toBe(false);
+            expect(run(signupSchema, { name: 'Ok', email: 'muhammad@b.com', password: 'Muhammad#77' }).passed).toBe(false);
+        });
+
+        it('lists every rule the password breaks', () => {
+            const r = run(signupSchema, { name: 'Ok', email: 'a@b.com', password: 'abc' });
+            expect(r.errors.filter((e) => e.path === 'password').length).toBeGreaterThanOrEqual(4);
         });
     });
 
@@ -95,8 +116,8 @@ describe('Request validation', () => {
 
     describe('password reset', () => {
         it('accepts either password or newPassword, for client compatibility', () => {
-            expect(run(resetPasswordSchema, { token: 't', password: 'password123' }).passed).toBe(true);
-            expect(run(resetPasswordSchema, { token: 't', newPassword: 'password123' }).passed).toBe(true);
+            expect(run(resetPasswordSchema, { token: 't', password: 'Str0ng!Key9' }).passed).toBe(true);
+            expect(run(resetPasswordSchema, { token: 't', newPassword: 'Str0ng!Key9' }).passed).toBe(true);
         });
 
         it('rejects a payload with neither', () => {

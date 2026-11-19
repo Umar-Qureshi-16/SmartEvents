@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import PasswordField from '../../components/ui/PasswordField';
+import PasswordChecklist from '../../components/ui/PasswordChecklist';
+import { isStrongPassword } from '../../utils/passwordPolicy';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import axios from '../../api/axios';
@@ -69,6 +71,10 @@ function Signup({ onLoginSuccess }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!isStrongPassword(formData.password, formData)) {
+            toast.error('Choose a stronger password: it must meet every rule under the password field.');
+            return;
+        }
         setLoading(true);
 
         try {
@@ -294,12 +300,14 @@ function Signup({ onLoginSuccess }) {
                             name="password"
                             required
                             minLength={8}
+                            maxLength={128}
+                            autoComplete="new-password"
                             value={formData.password}
                             onChange={handleChange}
                             placeholder="••••••••"
                             className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-xs text-fg outline-none focus:border-success"
                         />
-                        <p className="text-[10px] text-muted">At least 8 characters.</p>
+                        <PasswordChecklist password={formData.password} name={formData.name} email={formData.email} className="pt-1" />
                     </div>
 
                     {role === 'provider' && (

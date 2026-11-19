@@ -132,10 +132,10 @@ describe('Authentication', () => {
 
             const user = await User.findOne({ email });
             const resetRes = await api().post('/api/v1/auth/reset-password')
-                .send({ token: user.resetPasswordToken, password: 'brandNewPassword1' });
+                .send({ token: user.resetPasswordToken, password: 'Brand!New7Key' });
             expect(resetRes.status).toBe(200);
 
-            const login = await api().post('/api/v1/auth/login').send({ email, password: 'brandNewPassword1' });
+            const login = await api().post('/api/v1/auth/login').send({ email, password: 'Brand!New7Key' });
             expect(login.status).toBe(200);
 
             const oldLogin = await api().post('/api/v1/auth/login').send({ email, password: PASSWORD });
@@ -149,7 +149,7 @@ describe('Authentication', () => {
             await User.updateOne({ email }, { resetPasswordExpires: new Date(Date.now() - 1000) });
 
             const res = await api().post('/api/v1/auth/reset-password')
-                .send({ token: user.resetPasswordToken, password: 'anotherPassword1' });
+                .send({ token: user.resetPasswordToken, password: 'Another!9Key' });
             expect(res.status).toBe(400);
         });
     });

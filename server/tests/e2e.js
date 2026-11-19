@@ -42,7 +42,7 @@ const POST = call('POST');
 const PUT = call('PUT');
 const DELETE = (p, t) => call('DELETE')(p, null, t);
 
-const PW = 'password123';
+const PW = 'Str0ng!Key9';
 const stamp = Date.now();
 
 (async () => {

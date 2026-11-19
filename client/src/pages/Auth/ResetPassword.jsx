@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import PasswordField from '../../components/ui/PasswordField';
+import PasswordChecklist from '../../components/ui/PasswordChecklist';
+import { isStrongPassword } from '../../utils/passwordPolicy';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Lock, ArrowRight, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
@@ -19,8 +21,11 @@ const ResetPassword = () => {
         setError('');
         setSuccess('');
 
+        if (!isStrongPassword(newPassword)) {
+            return setError('Choose a stronger password: it must meet every rule below.');
+        }
         if (newPassword !== confirmPassword) {
-            return setError('Token mismatch. Passwords must be identical.');
+            return setError('The two passwords do not match.');
         }
 
         setIsLoading(true);
@@ -38,7 +43,7 @@ const ResetPassword = () => {
                 setSuccess('Security credentials updated. Redirecting to Terminal...');
                 setTimeout(() => navigate('/login'), 2500);
             } else {
-                setError(data.message || 'Token expired or invalid.');
+                setError(data.errors?.length ? data.errors.map(x => x.message).join('. ') : (data.message || 'This reset link has expired or is invalid.'));
             }
         } catch (err) {
             setError('System link failure. Ensure backend orchestration is active.');
@@ -97,9 +102,12 @@ const ResetPassword = () => {
                                         value={newPassword}
                                         onChange={e => setNewPassword(e.target.value)}
                                         placeholder="••••••••"
+                                        autoComplete="new-password"
+                                        maxLength={128}
                                         className="w-full bg-fg/5 border border-border rounded-2xl px-5 py-4 text-sm text-fg placeholder:text-muted outline-none focus:border-indigo-500/50 transition-all"
                                         required
                                     />
+                                    <PasswordChecklist password={newPassword} className="px-1 pt-1" />
                                 </div>
 
                                 <div className="space-y-2">
