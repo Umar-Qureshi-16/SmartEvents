@@ -15,8 +15,7 @@ import StarRating from '../../components/reviews/StarRating';
 import { AttentionList, NextUp, Panel, QuickGrid } from '../../components/Dashboard/DashboardBits';
 import {
     Badge, Button, Card, EmptyState, ErrorState, Skeleton, SkeletonList,
-    formatCurrency, formatDate, BOOKING_STATUS,
-} from '../../components/ui';
+    formatCurrency, formatDateRange, BOOKING_STATUS } from '../../components/ui';
 
 const DAY = 86400000;
 const QUICK_ACTIONS = [
@@ -155,7 +154,7 @@ export default function CustomerDashboard({ user }) {
                     <NextUp
                         to={nextEvent && `/negotiate/${nextEvent._id}`}
                         label="Your next event" title={nextEvent && titleOf(nextEvent)}
-                        date={nextEvent && formatDate(nextEvent.eventDetails.date)} location={nextEvent?.eventDetails?.location}
+                        date={nextEvent && formatDateRange(nextEvent.eventDetails.date, nextEvent.eventDetails.endDate)} location={nextEvent?.eventDetails?.location}
                         withName={nextEvent?.vendorId?.name} image={nextEvent?.eventId?.image}
                         days={nextEvent && daysUntil(nextEvent.eventDetails.date)}
                         empty={(
@@ -195,7 +194,7 @@ export default function CustomerDashboard({ user }) {
                                                 {b.eventId?.image ? <img src={b.eventId.image} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" loading="lazy" /> : <span className="w-12 h-12 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0"><Calendar size={18} aria-hidden="true" /></span>}
                                                 <span className="min-w-0 flex-1">
                                                     <span className="block text-sm font-bold truncate">{titleOf(b)}</span>
-                                                    <span className="block text-[11px] text-muted truncate">{b.vendorId?.name || 'Vendor'} · {formatDate(b.eventDetails?.date)}</span>
+                                                    <span className="block text-[11px] text-muted truncate">{b.vendorId?.name || 'Vendor'} · {formatDateRange(b.eventDetails?.date, b.eventDetails?.endDate)}</span>
                                                 </span>
                                                 <span className="text-right shrink-0 space-y-1">
                                                     <span className="block text-sm font-black text-success">{formatCurrency(b.offerPrice)}</span>

@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { CalendarCheck, CheckCircle2, Circle, ChevronDown, ChevronUp, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { CalendarCheck, CalendarRange, CheckCircle2, Circle, ChevronDown, ChevronUp, ClipboardList, Plus, Sparkles, Trash2 } from 'lucide-react';
 import axios from '../../api/axios';
-import { Badge, Button, Card, EmptyState, Input, Skeleton, formatDate, useConfirm } from '../../components/ui';
+import { Badge, Button, Card, EmptyState, Input, Skeleton, formatDate, formatDateRange, dayCount, useConfirm } from '../../components/ui';
 import PackageList, { FIELD_LABELS } from '../../components/planner/PackageList';
 import BudgetPlanner from '../../components/planner/BudgetPlanner';
 
@@ -11,20 +11,22 @@ const EVENT_TYPES = ['Wedding', 'Mehndi', 'Walima', 'Birthday', 'Corporate', 'Co
 const DAY = 86400000;
 
 function NewPlanForm({ onCreated }) {
-    const [form, setForm] = useState({ title: '', eventType: 'Wedding', date: '', location: '', budget: '' });
+    const [form, setForm] = useState({ title: '', eventType: 'Wedding', date: '', days: '1', location: '', budget: '' });
     const [busy, setBusy] = useState(false);
     const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
     const submit = async (e) => {
         e.preventDefault();
         if (!form.title || !form.date) return toast.error('Give the event a name and a date.');
+        const days = Number(form.days) || 1;
+        if (days < 1 || days > 30) return toast.error('An event can run from 1 to 30 days.');
         setBusy(true);
         try {
-            const body = { ...form, budget: form.budget ? Number(form.budget) : undefined };
+            const body = { ...form, days, budget: form.budget ? Number(form.budget) : undefined };
             const res = await axios.post('/plans', body);
             toast.success('Your plan is ready.');
             onCreated(res.data.data);
-            setForm({ title: '', eventType: 'Wedding', date: '', location: '', budget: '' });
+            setForm({ title: '', eventType: 'Wedding', date: '', days: '1', location: '', budget: '' });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Could not create the plan.');
         } finally {
@@ -33,17 +35,51 @@ function NewPlanForm({ onCreated }) {
     };
 
     return (
-        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
-            <div className="md:col-span-2"><Input id="plan-title" label="Event name" value={form.title} onChange={set('title')} placeholder="Royal Palm wedding" /></div>
+        <form onSubmit={submit} className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 items-end">
+            <div className="col-span-2"><Input id="plan-title" label="Event name" value={form.title} onChange={set('title')} placeholder="Royal Palm wedding" /></div>
             <div>
                 <label htmlFor="plan-type" className="block text-xs font-bold text-fg mb-1.5">Type</label>
                 <select id="plan-type" value={form.eventType} onChange={set('eventType')} className="w-full bg-surface-2 border border-border rounded-xl px-3.5 py-2.5 text-sm text-fg">
                     {EVENT_TYPES.map((t) => <option key={t}>{t}</option>)}
                 </select>
             </div>
-            <Input id="plan-date" label="Date" type="date" value={form.date} onChange={set('date')} min={new Date().toISOString().slice(0, 10)} />
+            <Input id="plan-date" label="First day" type="date" value={form.date} onChange={set('date')} min={new Date().toISOString().slice(0, 10)} />
+            <Input id="plan-days" label="Number of days" type="number" min="1" max="30" value={form.days} onChange={set('days')} hint={Number(form.days) > 1 && form.date ? formatDateRange(form.date, new Date(new Date(form.date).getTime() + (Number(form.days) - 1) * DAY), { withDays: false }) : undefined} />
             <Input id="plan-city" label="City" value={form.location} onChange={set('location')} placeholder="Lahore" />
-            <Button type="submit" loading={busy} icon={Sparkles}>Plan it</Button>
+            <Button type="submit" loading={busy} icon={Sparkles} className="col-span-2 lg:col-span-1">Plan it</Button>
+        </form>
+    );
+}
+
+/** Changes an event's first day and how many days it runs. */
+function DatesEditor({ plan, onSaved, onCancel }) {
+    const [date, setDate] = useState(String(plan.date).slice(0, 10));
+    const [days, setDays] = useState(String(dayCount(plan.date, plan.endDate)));
+    const [busy, setBusy] = useState(false);
+    const save = async (e) => {
+        e.preventDefault();
+        const n = Number(days) || 1;
+        if (!date) return toast.error('Choose the first day.');
+        if (n < 1 || n > 30) return toast.error('An event can run from 1 to 30 days.');
+        setBusy(true);
+        try {
+            const res = await axios.put(`/plans/${plan._id}`, { date, days: n });
+            onSaved(res.data.data);
+            toast.success('Dates updated.');
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not change the dates.');
+        } finally {
+            setBusy(false);
+        }
+    };
+    return (
+        <form onSubmit={save} className="flex flex-wrap items-end gap-3 p-3 rounded-2xl bg-surface-2 border border-border">
+            <Input id="edit-date" label="First day" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <div className="w-32"><Input id="edit-days" label="Number of days" type="number" min="1" max="30" value={days} onChange={(e) => setDays(e.target.value)} /></div>
+            <div className="flex gap-2">
+                <Button type="submit" size="sm" loading={busy}>Save dates</Button>
+                <Button type="button" size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
+            </div>
         </form>
     );
 }
@@ -93,6 +129,7 @@ function TaskRow({ task, plan, onToggle, now }) {
 
 export default function EventPlanner() {
     const confirm = useConfirm();
+    const navigate = useNavigate();
     const [params, setParams] = useSearchParams();
     const [plans, setPlans] = useState(null);
     const activeId = params.get('plan');
@@ -109,7 +146,7 @@ export default function EventPlanner() {
     }, []);
     useEffect(() => { load(); }, [load]);
 
-    const plan = useMemo(() => plans?.find((p) => p._id === activeId) || plans?.find((p) => new Date(p.date) >= now - DAY) || plans?.[0], [plans, activeId, now]);
+    const plan = useMemo(() => plans?.find((p) => p._id === activeId) || plans?.find((p) => new Date(p.endDate || p.date) >= now - DAY) || plans?.[0], [plans, activeId, now]);
     const replace = (updated) => setPlans((list) => {
         const rest = (list || []).filter((p) => p._id !== updated._id);
         return [...rest, updated].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -136,6 +173,7 @@ export default function EventPlanner() {
     };
 
     const [adding, setAdding] = useState('');
+    const [editingDates, setEditingDates] = useState(false);
     const addTask = async (e) => {
         e.preventDefault();
         if (!adding.trim()) return;
@@ -185,10 +223,15 @@ export default function EventPlanner() {
                         <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                                 <h2 id="plan-heading" className="text-xl font-black text-fg">{plan.title}</h2>
-                                <p className="text-xs text-muted">{plan.eventType} · {formatDate(plan.date)}{plan.location ? ` · ${plan.location}` : ''}</p>
+                                <p className="text-xs text-muted">{plan.eventType} · {formatDateRange(plan.date, plan.endDate)}{plan.location ? ` · ${plan.location}` : ''}</p>
                             </div>
-                            <Button size="sm" variant="ghost" icon={Trash2} onClick={remove}>Delete plan</Button>
+                            <div className="flex flex-wrap gap-1">
+                                <Button size="sm" variant="ghost" icon={ClipboardList} onClick={() => navigate(`/bookings?event=${plan._id}`)}>Bookings</Button>
+                                <Button size="sm" variant="ghost" icon={CalendarRange} onClick={() => setEditingDates((v) => !v)} aria-expanded={editingDates}>Change dates</Button>
+                                <Button size="sm" variant="ghost" icon={Trash2} onClick={remove}>Delete plan</Button>
+                            </div>
                         </div>
+                        {editingDates && <DatesEditor key={plan._id} plan={plan} onSaved={(p) => { replace(p); setEditingDates(false); }} onCancel={() => setEditingDates(false)} />}
                         <div>
                             <div className="flex justify-between text-xs font-bold text-fg mb-1.5"><span>{doneCount} of {plan.tasks.length} done</span><span>{pct}%</span></div>
                             <div className="h-2.5 rounded-full bg-surface-2 overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Plan progress">

@@ -576,11 +576,11 @@ const ACTIONS = {
     create_plan: {
         roles: ['customer'], mutating: true,
         description: 'Create an end-to-end planning checklist for an event (venue booking, catering, decoration, invitations, logistics, final review), with due dates counted back from the event date. Give bookingId to plan around an existing booking, or a title, eventType and date.',
-        params: { title: { type: 'string' }, eventType: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD' }, location: { type: 'string' }, budget: { type: 'number' }, bookingId: { type: 'string' } },
+        params: { title: { type: 'string' }, eventType: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD, the first day' }, days: { type: 'number', description: 'how many days the event runs (e.g. 3 for a three-day conference); default 1' }, location: { type: 'string' }, budget: { type: 'number' }, bookingId: { type: 'string' } },
         required: [],
-        schema: z.object({ title: z.string().max(120).optional(), eventType: z.string().max(60).optional(), date: isoDate.optional(), location: z.string().max(120).optional(), budget: z.coerce.number().min(0).optional(), bookingId: oid.optional() })
+        schema: z.object({ title: z.string().max(120).optional(), eventType: z.string().max(60).optional(), date: isoDate.optional(), days: z.coerce.number().int().min(1).max(30).optional(), location: z.string().max(120).optional(), budget: z.coerce.number().min(0).optional(), bookingId: oid.optional() })
             .refine((a) => a.bookingId || (a.title && a.date), 'Give a booking, or a title and a date.'),
-        summary: (a) => (a.bookingId ? `Create a planning checklist for booking ${a.bookingId}` : `Create a planning checklist for "${a.title}" (${a.eventType || 'event'}) on ${a.date}${a.location ? ` in ${a.location}` : ''}`),
+        summary: (a) => (a.bookingId ? `Create a planning checklist for booking ${a.bookingId}` : `Create a planning checklist for "${a.title}" (${a.eventType || 'event'}) on ${a.date}${a.days > 1 ? ` for ${a.days} days` : ''}${a.location ? ` in ${a.location}` : ''}`),
         run: async (a, actor) => {
             const p = await require('./planService').createPlan(actor.id, a);
             return { message: `Plan "${p.title}" is ready with ${p.tasks.length} tasks: ${p.tasks.map((t) => `${t.title} (${t.daysBefore === 1 ? '1 day' : `${t.daysBefore} days`} before${t.status === 'done' ? ', done' : ''})`).join('; ')}. It is on your dashboard.`, planId: String(p._id) };
@@ -662,11 +662,11 @@ const ACTIONS = {
         description: 'Book several vendor packages at once for one event: creates the event plan and sends an offer to each vendor at the package price. Use after budget_plan; needs the event date.',
         params: {
             serviceIds: { type: 'array', items: { type: 'string' }, description: 'packageIds from budget_plan or find_packages' },
-            title: { type: 'string' }, eventType: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD' }, city: { type: 'string' },
+            title: { type: 'string' }, eventType: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD, the first day' }, days: { type: 'number', description: 'how many days the event runs (e.g. 3 for a three-day conference); default 1' }, city: { type: 'string' },
         },
         required: ['serviceIds', 'date'],
-        schema: z.object({ serviceIds: list(oid).refine((v) => Array.isArray(v) && v.length > 0, 'choose at least one package'), title: z.string().max(120).optional(), eventType: z.string().max(60).optional(), date: isoDate, city: z.string().max(80).optional() }),
-        summary: (a) => `Create the plan "${a.title || a.eventType || 'event'}" on ${a.date}${a.city ? ` in ${a.city}` : ''} and send offers for ${a.serviceIds.length} package${a.serviceIds.length === 1 ? '' : 's'}`,
+        schema: z.object({ serviceIds: list(oid).refine((v) => Array.isArray(v) && v.length > 0, 'choose at least one package'), title: z.string().max(120).optional(), eventType: z.string().max(60).optional(), date: isoDate, days: z.coerce.number().int().min(1).max(30).optional(), city: z.string().max(80).optional() }),
+        summary: (a) => `Create the plan "${a.title || a.eventType || 'event'}" on ${a.date}${a.days > 1 ? ` for ${a.days} days` : ''}${a.city ? ` in ${a.city}` : ''} and send offers for ${a.serviceIds.length} package${a.serviceIds.length === 1 ? '' : 's'}`,
         run: async (a, actor) => {
             const r = await require('./budgetPlanner').bookBundle(actor.id, a);
             return { message: `Plan created and ${r.sent.length} offer${r.sent.length === 1 ? '' : 's'} sent${r.failed.length ? `; ${r.failed.length} could not be sent (${r.failed.map((f) => f.reason).join('; ')})` : ''}. Track replies under In negotiation on your dashboard.`, planId: r.planId };

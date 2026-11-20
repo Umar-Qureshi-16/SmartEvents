@@ -16,6 +16,8 @@ router.put('/:id/accept', verifyToken, bookingController.acceptBooking);
 router.put('/:id/reject', verifyToken, bookingController.rejectBooking);
 router.put('/:id/cancel', verifyToken, bookingController.cancelBooking);
 router.put('/:id/complete', verifyToken, authorize('customer'), bookingController.completeBooking);
+// Files a booking under one of the organizer's events ({ planId } or { planId: null }).
+router.put('/:id/plan', verifyToken, authorize('customer'), bookingController.setBookingPlan);
 
 // Design Studio (customer and vendor on the booking only; checked in the service).
 router.get('/:id/design', verifyToken, bookingController.getDesign);

@@ -28,6 +28,7 @@ router.post('/book-package', wrap(async (req, res) => {
 router.get('/:id', wrap(async (req, res) => res.json({ success: true, data: await plans.getPlan(req.user.id, req.params.id) })));
 router.post('/:id/tasks', wrap(async (req, res) => res.status(201).json({ success: true, data: await plans.addTask(req.user.id, req.params.id, req.body || {}) })));
 router.patch('/:id/tasks/:taskId', wrap(async (req, res) => res.json({ success: true, data: await plans.setTaskStatus(req.user.id, req.params.id, req.params.taskId, req.body?.status) })));
+router.put('/:id', wrap(async (req, res) => res.json({ success: true, data: await plans.updatePlan(req.user.id, req.params.id, req.body || {}) })));
 router.delete('/:id', wrap(async (req, res) => { await plans.deletePlan(req.user.id, req.params.id); res.json({ success: true }); }));
 
 module.exports = router;

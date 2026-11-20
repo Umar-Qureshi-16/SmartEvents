@@ -13,6 +13,13 @@ exports.getMyBookings = asyncHandler(async (req, res, next) => {
     res.json({ success: true, data: bookings });
 });
 
+exports.setBookingPlan = asyncHandler(async (req, res) => {
+    const planId = req.body?.planId || null;
+    if (planId && !mongoose.Types.ObjectId.isValid(planId)) return res.status(400).json({ success: false, message: 'Invalid event ID.' });
+    const booking = await bookingService.setBookingPlan(req.params.id, req.user.id, planId);
+    res.json({ success: true, data: booking });
+});
+
 exports.getOrganizerBookings = asyncHandler(async (req, res, next) => {
     const bookings = await bookingService.getOrganizerBookings(req.user.id);
     res.json({ success: true, data: bookings });

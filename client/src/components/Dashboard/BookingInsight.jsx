@@ -6,7 +6,7 @@ import {
     ArrowRight, Calendar, CheckCircle2, Clock, DollarSign, MessageSquare, Palette, Ticket, X,
 } from 'lucide-react';
 import axios from '../../api/axios';
-import { Badge, formatCurrency, formatDate, BOOKING_STATUS } from '../ui';
+import { Badge, formatCurrency, formatDateRange, BOOKING_STATUS } from '../ui';
 
 const DAY = 86400000;
 const titleOf = (b) => b.eventId?.title || b.serviceId?.title || b.designConcepts?.find((c) => c.selected)?.title || b.eventDetails?.eventType || 'Custom booking';
@@ -32,7 +32,7 @@ function Row({ b, children, right, role }) {
                     : <span className="w-12 h-12 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0"><Calendar size={18} aria-hidden="true" /></span>}
                 <Link to={`/negotiate/${b._id}`} className="min-w-0 flex-1 group">
                     <span className="block text-sm font-bold text-fg truncate group-hover:text-brand">{titleOf(b)}</span>
-                    <span className="block text-[11px] text-muted truncate">{otherOf(b, role)?.name || (role === 'provider' ? 'Organizer' : 'Vendor')} · {formatDate(b.eventDetails?.date)}</span>
+                    <span className="block text-[11px] text-muted truncate">{otherOf(b, role)?.name || (role === 'provider' ? 'Organizer' : 'Vendor')} · {formatDateRange(b.eventDetails?.date, b.eventDetails?.endDate)}</span>
                 </Link>
                 {right}
             </div>

@@ -5,9 +5,14 @@ const bookingSchema = new mongoose.Schema({
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' }, // Optional, can be a custom lead
     eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event' }, // Direct event booking
+    // The organizer's own event (plan) this service is booked for, so all the
+    // services of one event are shown together.
+    planId: { type: mongoose.Schema.Types.ObjectId, ref: 'EventPlan', index: true },
     eventDetails: {
         eventType: { type: String, required: true },
         date: { type: Date, required: true },
+        // Last day of a multi-day event.
+        endDate: { type: Date },
         location: { type: String, required: true },
         budget: { type: Number },
         message: { type: String }

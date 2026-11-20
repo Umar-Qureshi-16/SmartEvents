@@ -8,15 +8,15 @@ import {
 import axios from '../../api/axios';
 import {
     Button, Card, Badge, Input, Textarea, Modal, SkeletonList, EmptyState, ErrorState,
-    formatCurrency, formatDate
-} from '../../components/ui';
+    formatCurrency, formatDateRange, dayCount } from '../../components/ui';
 
 const CATEGORIES = ['Wedding', 'Corporate', 'Concert', 'Birthday', 'Conference', 'Exhibition'];
 
 const EMPTY = {
     title: '', category: 'Wedding', price: '', location: '',
-    description: '', capacity: '100', date: '',
+    description: '', capacity: '100', date: '', days: '1',
 };
+const DAY = 86400000;
 
 /**
  * Event listings owned by the signed-in provider.
@@ -66,6 +66,7 @@ export default function ManageEvents() {
             description: event.description || '',
             capacity: String(event.capacity ?? 100),
             date: event.date ? new Date(event.date).toISOString().slice(0, 10) : '',
+            days: String(dayCount(event.date, event.endDate)),
         });
         setErrors({});
         setEditing(event);
@@ -81,6 +82,7 @@ export default function ManageEvents() {
         if (!form.date) e.date = 'An event date is required.';
         else if (new Date(form.date) < new Date(new Date().toDateString())) e.date = 'The date cannot be in the past.';
         if (Number(form.capacity) < 1) e.capacity = 'Capacity must be at least 1.';
+        if (!(Number(form.days) >= 1 && Number(form.days) <= 30)) e.days = 'An event runs from 1 to 30 days.';
         setErrors(e);
         return Object.keys(e).length === 0;
     };
@@ -97,6 +99,8 @@ export default function ManageEvents() {
                 description: form.description.trim(),
                 capacity: Number(form.capacity),
                 date: new Date(form.date).toISOString(),
+                // Several days: the last day; one day: no last day.
+                endDate: Number(form.days) > 1 ? new Date(new Date(form.date).getTime() + (Number(form.days) - 1) * DAY).toISOString() : null,
             };
 
             if (editing === 'new') {
@@ -172,7 +176,7 @@ export default function ManageEvents() {
                                 <div className="flex flex-wrap gap-3 text-xs text-muted font-medium">
                                     <span className="flex items-center gap-1.5">
                                         <Calendar size={13} className="text-brand" aria-hidden="true" />
-                                        {formatDate(event.date)}
+                                        {formatDateRange(event.date, event.endDate)}
                                     </span>
                                     <span className="flex items-center gap-1.5">
                                         <MapPin size={13} className="text-brand" aria-hidden="true" />
@@ -249,10 +253,13 @@ export default function ManageEvents() {
                                hint="Customers can offer below this — that is the point." />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Input label="Event date" type="date" value={form.date}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <Input label="First day" type="date" value={form.date}
                                onChange={set('date')} error={errors.date}
                                min={new Date().toISOString().slice(0, 10)} />
+                        <Input label="Number of days" type="number" min="1" max="30" value={form.days}
+                               onChange={set('days')} error={errors.days}
+                               hint={Number(form.days) > 1 && form.date ? formatDateRange(form.date, new Date(new Date(form.date).getTime() + (Number(form.days) - 1) * DAY)) : 'e.g. 3 for a three-day conference'} />
                         <Input label="Capacity" type="number" min="1" value={form.capacity}
                                onChange={set('capacity')} error={errors.capacity} />
                     </div>

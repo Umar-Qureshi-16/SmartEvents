@@ -23,6 +23,8 @@ const eventPlanSchema = new mongoose.Schema({
     title: { type: String, required: true, maxlength: 120 },
     eventType: { type: String, default: 'Event', maxlength: 60 },
     date: { type: Date, required: true },
+    // Last day when the event runs over several days; absent for one-day events.
+    endDate: { type: Date },
     location: { type: String, default: '', maxlength: 120 },
     budget: { type: Number, min: 0 },
     sourceBooking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },

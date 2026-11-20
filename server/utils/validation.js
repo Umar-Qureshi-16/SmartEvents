@@ -39,9 +39,12 @@ const eventSchema = z.object({
     // through to Mongoose, which then threw a ValidationError the caller saw
     // as an opaque 500 instead of a field-level 400.
     date: z.coerce.date({ message: 'A valid event date is required' }),
+    // Optional last day for multi-day events (empty = one day).
+    endDate: z.preprocess((v) => (v === '' ? null : v), z.coerce.date({ message: 'The last day is not a valid date' }).nullable().optional()),
     capacity: z.preprocess((val) => Number(val), z.number().min(1).default(100)),
     status: z.enum(['upcoming', 'ongoing', 'completed', 'cancelled']).default('upcoming').optional()
-});
+}).refine((d) => !d.endDate || d.endDate >= d.date, { message: 'The last day cannot be before the first day', path: ['endDate'] })
+  .refine((d) => !d.endDate || (d.endDate - d.date) / 86400000 < 30, { message: 'An event can run for at most 30 days', path: ['endDate'] });
 
 // A booking may target an event listing OR a vendor directly. The service has
 // always supported both, but this schema used to require eventId, making the
@@ -50,6 +53,8 @@ const bookingCreateSchema = z.object({
     eventId: z.string().length(24, "Invalid Event ID").optional(),
     vendorId: z.string().length(24, "Invalid Vendor ID").optional(),
     serviceId: z.string().length(24, "Invalid Service ID").optional(),
+    // The organizer's event this booking belongs to (optional).
+    planId: z.string().length(24, "Invalid event ID").optional(),
     offerPrice: z.preprocess((val) => Number(val), z.number().positive("Offer price must be greater than zero")),
     message: z.string().max(500).optional(),
     note: z.string().max(500).optional(),

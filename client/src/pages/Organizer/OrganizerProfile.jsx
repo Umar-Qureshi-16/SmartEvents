@@ -8,7 +8,7 @@ import {
 import axios from '../../api/axios';
 import ProfileHeader, { StatButton } from '../../components/organizer/ProfileHeader';
 import StarRating from '../../components/reviews/StarRating';
-import { formatCurrency, formatDate } from '../../components/ui';
+import { formatCurrency, formatDate, formatDateRange } from '../../components/ui';
 
 const TABS = [['upcoming', 'Upcoming'], ['plans', 'Plans'], ['following', 'Following'], ['reviews', 'My reviews'], ['spending', 'Spending']];
 const FIELD = { venue: 'Venue', catering: 'Catering', decoration: 'Decoration', photography: 'Photography', music: 'Music', makeup: 'Makeup' };
@@ -209,7 +209,7 @@ export default function OrganizerProfile() {
                             {data.plans.map((p) => (
                                 <li key={p._id}>
                                     <Link to={`/planner?plan=${p._id}`} className="block bg-surface border border-border rounded-2xl p-4 hover:border-brand/50 hover:shadow-card transition-all space-y-2">
-                                        <span className="flex justify-between gap-2"><span className="text-sm font-bold text-fg">{p.title}</span><span className="text-[11px] text-muted">{formatDate(p.date)}</span></span>
+                                        <span className="flex justify-between gap-2"><span className="text-sm font-bold text-fg">{p.title}</span><span className="text-[11px] text-muted">{formatDateRange(p.date, p.endDate)}</span></span>
                                         <span className="block h-2 rounded-full bg-surface-2 overflow-hidden"><span className="block h-full bg-success rounded-full" style={{ width: `${p.total ? (p.done / p.total) * 100 : 0}%` }} /></span>
                                         <span className="block text-[11px] text-muted">{p.done} of {p.total} tasks done</span>
                                     </Link>

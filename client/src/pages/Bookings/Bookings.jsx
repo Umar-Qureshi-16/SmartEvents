@@ -1,29 +1,175 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
-    Calendar, DollarSign, MapPin, CheckCircle2, ArrowRight,
-    MessageSquare, FileText, AlertTriangle, XCircle, Star
+    Calendar, DollarSign, MapPin, CheckCircle2, ArrowRight, MessageSquare, FileText,
+    AlertTriangle, XCircle, Star, MoreHorizontal, FolderInput, CalendarCheck, Layers
 } from 'lucide-react';
 
 import axios from '../../api/axios';
 import StatCard from '../../components/common/StatCard';
 import {
     Button, Card, Badge, Textarea, Modal, useConfirm, SkeletonList, EmptyState, ErrorState,
-    formatCurrency, formatDate, BOOKING_STATUS
+    formatCurrency, formatDate, formatDateRange, BOOKING_STATUS
 } from '../../components/ui';
 
 const FILTERS = ['all', 'pending', 'negotiating', 'confirmed', 'completed', 'disputed', 'cancelled'];
+const OPEN = ['pending', 'negotiating'];
+const AGREED = ['confirmed', 'completed'];
+const UNFILED = 'unfiled';
+
+const serviceName = (b) => b.serviceId?.title
+    ? `${b.serviceId.title}`
+    : b.eventId?.title || b.designConcepts?.find((c) => c.selected)?.title || b.eventDetails?.eventType || 'Service';
+const planOf = (b) => (b.planId && typeof b.planId === 'object' ? b.planId : null);
+
+/** Small "⋯" menu for the less common actions of a booking row. */
+function RowMenu({ label, items }) {
+    const [open, setOpen] = useState(false);
+    // Opens upwards near the bottom of the screen (clear of the Smartie button).
+    const [up, setUp] = useState(false);
+    const ref = useRef(null);
+    const toggle = () => {
+        const r = ref.current?.getBoundingClientRect();
+        setUp(Boolean(r && window.innerHeight - r.bottom < 220));
+        setOpen((o) => !o);
+    };
+    useEffect(() => {
+        if (!open) return undefined;
+        const close = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+        const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+        document.addEventListener('mousedown', close);
+        document.addEventListener('keydown', esc);
+        return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', esc); };
+    }, [open]);
+    const shown = items.filter(Boolean);
+    if (!shown.length) return null;
+    return (
+        <div className="relative" ref={ref}>
+            <button type="button" onClick={toggle} aria-haspopup="menu" aria-expanded={open} aria-label={label}
+                className="p-2 rounded-xl border border-border text-muted hover:text-fg hover:bg-fg/5">
+                <MoreHorizontal size={16} aria-hidden="true" />
+            </button>
+            {open && (
+                <div role="menu" className={`absolute right-0 ${up ? 'bottom-full mb-1' : 'top-full mt-1'} z-30 w-52 bg-surface border border-border rounded-2xl shadow-xl p-1.5`}>
+                    {shown.map(({ label: l, icon: Icon, onClick, danger }) => (
+                        <button key={l} type="button" role="menuitem" onClick={() => { setOpen(false); onClick(); }}
+                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-left hover:bg-fg/5 ${danger ? 'text-danger' : 'text-fg'}`}>
+                            <Icon size={14} aria-hidden="true" />{l}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+/** One service booked for an event: who, status, price and what to do next. */
+function BookingRow({ booking, onOpen, onComplete, completing, menuItems }) {
+    const status = BOOKING_STATUS[booking.status] || { label: booking.status, tone: 'neutral' };
+    const canNegotiate = OPEN.includes(booking.status);
+    const escrow = booking.escrow?.status && booking.escrow.status !== 'none'
+        ? { held: 'Escrow held', released: 'Paid to vendor', refunded: 'Refunded' }[booking.escrow.status] : null;
+    return (
+        <li
+            role="link" tabIndex={0}
+            aria-label={`Open ${serviceName(booking)} with ${booking.vendorId?.name || 'the vendor'}`}
+            onClick={(e) => { if (!e.target.closest('button, a, [role="menu"]')) onOpen(); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) onOpen(); }}
+            className="grid grid-cols-[1fr_auto] md:grid-cols-[minmax(0,1fr)_10rem_7rem_15rem] items-center gap-x-4 gap-y-2 px-4 sm:px-6 py-4 hover:bg-fg/[0.03] last:rounded-b-3xl cursor-pointer transition-colors"
+        >
+            <div className="min-w-0">
+                <p className="text-sm font-bold text-fg truncate">{serviceName(booking)}</p>
+                <p className="text-xs text-muted truncate">
+                    {booking.vendorId?._id
+                        ? <Link to={`/vendor/${booking.vendorId._id}`} className="font-bold text-brand hover:underline">{booking.vendorId.name}</Link>
+                        : 'Vendor'}
+                    {booking.serviceId?.category ? ` · ${booking.serviceId.category}` : ''}
+                </p>
+            </div>
+            <div className="md:order-none order-3 col-span-2 md:col-span-1 flex flex-wrap items-center gap-1.5">
+                <Badge tone={status.tone}>{status.label}</Badge>
+                {escrow && <span className="text-[10px] font-bold text-muted">{escrow}</span>}
+            </div>
+            <div className="text-right md:text-left">
+                <p className="text-base font-black text-success leading-tight">{formatCurrency(booking.offerPrice)}</p>
+                <p className="text-[10px] text-muted">{canNegotiate ? 'current offer' : 'agreed'}</p>
+            </div>
+            <div className="order-4 col-span-2 md:col-span-1 flex items-center justify-end gap-2">
+                {booking.status === 'confirmed' && (
+                    <Button size="sm" variant="secondary" icon={CheckCircle2} loading={completing} onClick={onComplete}>Complete</Button>
+                )}
+                <Button size="sm" onClick={onOpen}>{canNegotiate ? 'Negotiate' : 'View'} <ArrowRight size={12} aria-hidden="true" /></Button>
+                <RowMenu label={`More actions for ${serviceName(booking)}`} items={menuItems} />
+            </div>
+        </li>
+    );
+}
+
+/** An event with all the services booked for it. */
+function EventGroup({ group, children, onOpenPlan }) {
+    const { plan, bookings } = group;
+    const agreed = bookings.filter((b) => AGREED.includes(b.status));
+    const open = bookings.filter((b) => OPEN.includes(b.status));
+    const agreedValue = agreed.reduce((t, b) => t + (b.offerPrice || 0), 0);
+    const pct = bookings.length ? Math.round((agreed.length / bookings.length) * 100) : 0;
+    const first = bookings[0]?.eventDetails || {};
+    const start = plan?.date || first.date;
+    const end = plan ? plan.endDate : first.endDate;
+    const title = plan?.title || 'Not linked to an event';
+    return (
+        <Card className="overflow-visible">
+            <div className="p-5 sm:p-6 flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-border">
+                <div className="min-w-0 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-lg sm:text-xl font-black text-fg truncate">{title}</h2>
+                        {plan?.eventType && <Badge tone="brand">{plan.eventType}</Badge>}
+                    </div>
+                    {plan ? (
+                        <p className="text-xs text-muted flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span className="inline-flex items-center gap-1"><Calendar size={13} className="text-brand" aria-hidden="true" />{formatDateRange(start, end)}</span>
+                            {plan.location && <span className="inline-flex items-center gap-1"><MapPin size={13} className="text-brand" aria-hidden="true" />{plan.location}</span>}
+                        </p>
+                    ) : (
+                        <p className="text-xs text-muted">Bookings you made without choosing an event. Use <span className="font-bold">⋯ → Move to an event</span> to file them.</p>
+                    )}
+                </div>
+                <div className="flex flex-wrap md:flex-nowrap items-center gap-4 shrink-0">
+                    <div className="text-left md:text-right">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted">{bookings.length} {bookings.length === 1 ? 'service' : 'services'} · {agreed.length} agreed{open.length ? ` · ${open.length} open` : ''}</p>
+                        <p className="text-xl font-black text-fg">{formatCurrency(agreedValue)}{plan?.budget ? <span className="text-xs font-bold text-muted"> of {formatCurrency(plan.budget)}</span> : null}</p>
+                    </div>
+                    {plan && <Button size="sm" variant="outline" icon={CalendarCheck} onClick={onOpenPlan}>Plan</Button>}
+                </div>
+            </div>
+            {plan && (
+                <div className="px-5 sm:px-6 pt-3">
+                    <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${agreed.length} of ${bookings.length} services agreed`}>
+                        <div className="h-full bg-success rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                </div>
+            )}
+            <ul className="divide-y divide-border">{children}</ul>
+        </Card>
+    );
+}
 
 export default function Bookings({ user }) {
     const navigate = useNavigate();
     const confirm = useConfirm();
-    // The filter lives in the address (?status=confirmed), so dashboard and
-    // profile numbers can open the matching list directly.
+    // Filters live in the address (?status=confirmed, ?event=<plan id>), so the
+    // dashboard, profile and planner can open the matching list directly.
     const [params, setParams] = useSearchParams();
     const filterStatus = FILTERS.includes(params.get('status')) ? params.get('status') : 'all';
-    const setFilterStatus = (s) => setParams(s === 'all' ? {} : { status: s }, { replace: true });
+    const eventFilter = params.get('event') || '';
+    const setParam = (key, value) => {
+        const next = new URLSearchParams(params);
+        if (!value || value === 'all') next.delete(key); else next.set(key, value);
+        setParams(next, { replace: true });
+    };
+    const setFilterStatus = (s) => setParam('status', s);
     const [bookings, setBookings] = useState([]);
+    const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -32,13 +178,19 @@ export default function Bookings({ user }) {
     const [submitting, setSubmitting] = useState(false);
     const [cancelTarget, setCancelTarget] = useState(null);
     const [completing, setCompleting] = useState(null);
+    const [moveTarget, setMoveTarget] = useState(null);
+    const [movePlan, setMovePlan] = useState('');
 
     const fetchBookings = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await axios.get('/bookings/my');
+            const [res, planRes] = await Promise.all([
+                axios.get('/bookings/my'),
+                axios.get('/plans').catch(() => ({ data: { data: [] } })),
+            ]);
             setBookings(res.data.data || []);
+            setPlans(planRes.data.data || []);
         } catch (err) {
             setError(err.response?.data?.message || 'Could not load your bookings.');
         } finally {
@@ -82,8 +234,6 @@ export default function Bookings({ user }) {
         }
     };
 
-    // PUT /bookings/:id/cancel existed but nothing on the client called it,
-    // so a customer could never withdraw an offer they had made.
     const cancelBooking = async () => {
         setSubmitting(true);
         try {
@@ -93,6 +243,22 @@ export default function Bookings({ user }) {
             await fetchBookings();
         } catch (err) {
             toast.error(err.response?.data?.message || 'Could not cancel the booking.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const openMove = (booking) => { setMoveTarget(booking); setMovePlan(planOf(booking)?._id || ''); };
+    const moveBooking = async () => {
+        setSubmitting(true);
+        try {
+            const res = await axios.put(`/bookings/${moveTarget._id}/plan`, { planId: movePlan || null });
+            const updated = res.data.data;
+            setBookings((list) => list.map((b) => (b._id === moveTarget._id ? { ...b, planId: updated.planId || undefined } : b)));
+            toast.success(movePlan ? `Moved to "${plans.find((p) => p._id === movePlan)?.title || 'the event'}".` : 'Removed from the event.');
+            setMoveTarget(null);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not move the booking.');
         } finally {
             setSubmitting(false);
         }
@@ -111,174 +277,168 @@ export default function Bookings({ user }) {
     const filtered = useMemo(
         // "In negotiation" covers both a fresh offer and a counter.
         () => (filterStatus === 'all' ? bookings
-            : filterStatus === 'negotiating' ? bookings.filter(b => ['pending', 'negotiating'].includes(b.status))
+            : filterStatus === 'negotiating' ? bookings.filter(b => OPEN.includes(b.status))
             : bookings.filter(b => b.status === filterStatus)),
         [bookings, filterStatus]
     );
 
+    // One group per event (soonest first); bookings with no event go last.
+    const groups = useMemo(() => {
+        const map = new Map();
+        for (const b of filtered) {
+            const plan = planOf(b);
+            const key = plan?._id || UNFILED;
+            if (!map.has(key)) map.set(key, { key, plan, bookings: [] });
+            map.get(key).bookings.push(b);
+        }
+        const list = [...map.values()].filter((g) => !eventFilter || g.key === eventFilter);
+        return list.sort((a, b) => {
+            if (a.key === UNFILED) return 1;
+            if (b.key === UNFILED) return -1;
+            return new Date(a.plan.date) - new Date(b.plan.date);
+        });
+    }, [filtered, eventFilter]);
+
+    const eventChips = useMemo(() => {
+        const seen = new Map();
+        for (const b of bookings) { const p = planOf(b); if (p && !seen.has(p._id)) seen.set(p._id, p); }
+        return [...seen.values()].sort((a, b) => new Date(a.date) - new Date(b.date));
+    }, [bookings]);
+
     const totals = useMemo(() => ({
         all: bookings.length,
+        events: eventChips.length,
         negotiating: bookings.filter(b => b.status === 'negotiating').length,
-        confirmed: bookings.filter(b => ['confirmed', 'completed'].includes(b.status)).length,
-        value: bookings
-            .filter(b => ['confirmed', 'completed'].includes(b.status))
-            .reduce((acc, b) => acc + (b.offerPrice || 0), 0),
-    }), [bookings]);
+        confirmed: bookings.filter(b => AGREED.includes(b.status)).length,
+        value: bookings.filter(b => AGREED.includes(b.status)).reduce((acc, b) => acc + (b.offerPrice || 0), 0),
+    }), [bookings, eventChips]);
+
+    const menuFor = (booking) => {
+        const agreed = AGREED.includes(booking.status);
+        return [
+            { label: planOf(booking) ? 'Move to another event' : 'Move to an event', icon: FolderInput, onClick: () => openMove(booking) },
+            agreed && { label: 'Invoice', icon: FileText, onClick: () => handleDownloadInvoice(booking) },
+            agreed && { label: 'Rate & review', icon: Star, onClick: () => navigate(`/vendor/${booking.vendorId?._id || booking.vendorId}#reviews`) },
+            agreed && { label: 'Raise a dispute', icon: AlertTriangle, onClick: () => setDisputeTarget(booking), danger: true },
+            OPEN.includes(booking.status) && { label: 'Withdraw offer', icon: XCircle, onClick: () => setCancelTarget(booking), danger: true },
+        ];
+    };
 
     return (
-        <div className="min-h-screen bg-bg text-fg space-y-8 p-6 max-w-[1440px] mx-auto">
+        <div className="min-h-screen bg-bg text-fg space-y-6 p-4 sm:p-6 pb-28 sm:pb-28 max-w-[1200px] mx-auto">
             <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border">
                 <div className="space-y-1">
                     <Badge tone="brand">My bookings</Badge>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight">Bookings &amp; negotiations</h1>
-                    <p className="text-sm text-muted">
-                        Track your offers, counter-offers, and confirmed bookings with providers.
-                    </p>
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight">Bookings by event</h1>
+                    <p className="text-sm text-muted">Every service you booked, listed under the event it is for, with offers, agreed prices and next steps.</p>
                 </div>
-                <Button variant="secondary" onClick={() => navigate('/events')}>Browse events</Button>
+                <div className="flex gap-2">
+                    <Button variant="secondary" icon={CalendarCheck} onClick={() => navigate('/planner')}>Plan an event</Button>
+                    <Button variant="ghost" onClick={() => navigate('/events')}>Browse events</Button>
+                </div>
             </header>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard label="TOTAL BOOKINGS" value={totals.all} icon={Calendar} onClick={() => setFilterStatus('all')} />
+                <StatCard label="EVENTS" value={totals.events} icon={Layers} onClick={() => setParam('event', '')} />
                 <StatCard label="IN NEGOTIATION" value={totals.negotiating} icon={MessageSquare} onClick={() => setFilterStatus('negotiating')} />
                 <StatCard label="CONFIRMED" value={totals.confirmed} icon={CheckCircle2} onClick={() => setFilterStatus('confirmed')} />
                 <StatCard label="AGREED VALUE" value={formatCurrency(totals.value)} icon={DollarSign} onClick={() => navigate('/me?tab=spending')} />
             </div>
 
-            <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto">
-                {FILTERS.map(status => (
-                    <button
-                        key={status}
-                        onClick={() => setFilterStatus(status)}
-                        aria-pressed={filterStatus === status}
-                        className={`px-4 py-2 rounded-full text-xs font-bold uppercase transition-all whitespace-nowrap border ${
-                            filterStatus === status
-                                ? 'bg-brand text-white border-brand'
-                                : 'bg-surface border-border text-muted hover:text-fg'
-                        }`}
-                    >
-                        {status === 'all' ? 'All' : BOOKING_STATUS[status]?.label || status}
-                    </button>
-                ))}
+            <div className="space-y-3">
+                {eventChips.length > 1 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1" role="group" aria-label="Show one event">
+                        <button onClick={() => setParam('event', '')} aria-pressed={!eventFilter}
+                            className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border ${!eventFilter ? 'bg-fg text-bg border-fg' : 'bg-surface border-border text-muted hover:text-fg'}`}>
+                            All events
+                        </button>
+                        {eventChips.map((p) => (
+                            <button key={p._id} onClick={() => setParam('event', p._id)} aria-pressed={eventFilter === p._id}
+                                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border ${eventFilter === p._id ? 'bg-fg text-bg border-fg' : 'bg-surface border-border text-muted hover:text-fg'}`}>
+                                {p.title} · {formatDate(p.date, { year: undefined })}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1" role="group" aria-label="Filter by status">
+                    {FILTERS.map(status => (
+                        <button
+                            key={status}
+                            onClick={() => setFilterStatus(status)}
+                            aria-pressed={filterStatus === status}
+                            className={`px-4 py-2 rounded-full text-xs font-bold uppercase transition-all whitespace-nowrap border ${
+                                filterStatus === status
+                                    ? 'bg-brand text-white border-brand'
+                                    : 'bg-surface border-border text-muted hover:text-fg'
+                            }`}
+                        >
+                            {status === 'all' ? 'All' : BOOKING_STATUS[status]?.label || status}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {loading ? (
-                <SkeletonList count={4} height="h-48" />
+                <SkeletonList count={3} height="h-56" cols="" />
             ) : error ? (
                 <ErrorState message={error} onRetry={fetchBookings} />
-            ) : filtered.length === 0 ? (
+            ) : groups.length === 0 ? (
                 <EmptyState
                     icon={Calendar}
-                    title={filterStatus === 'all' ? 'No bookings yet' : `No ${BOOKING_STATUS[filterStatus]?.label.toLowerCase()} bookings`}
+                    title={bookings.length === 0 ? 'No bookings yet' : 'Nothing matches these filters'}
                     description={
-                        filterStatus === 'all'
-                            ? 'When you make an offer on an event or a provider, it will appear here.'
-                            : 'Try a different filter to see your other bookings.'
+                        bookings.length === 0
+                            ? 'Plan an event, then book its venue, catering, decor and more. Each booking appears here under its event.'
+                            : 'Try another status or event to see your other bookings.'
                     }
-                    action={filterStatus === 'all' ? { label: 'Explore events', to: '/events' } : undefined}
+                    action={bookings.length === 0 ? { label: 'Plan an event', to: '/planner' } : undefined}
                 />
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filtered.map(booking => {
-                        const status = BOOKING_STATUS[booking.status] || { label: booking.status, tone: 'neutral' };
-                        const canDispute = ['confirmed', 'completed'].includes(booking.status);
-                        const canNegotiate = ['pending', 'negotiating'].includes(booking.status);
-
-                        return (
-                            <Card key={booking._id}
-                                  role="link" tabIndex={0}
-                                  aria-label={`Open ${booking.eventId?.title || booking.serviceId?.title || 'booking'}`}
-                                  onClick={(e) => { if (!e.target.closest('button, a')) navigate(`/negotiate/${booking._id}`); }}
-                                  onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) navigate(`/negotiate/${booking._id}`); }}
-                                  className="p-6 flex flex-col justify-between gap-4 hover:border-brand/40 hover:shadow-card cursor-pointer transition-all">
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <Badge tone="brand">{booking.eventDetails?.eventType || 'Custom request'}</Badge>
-                                        <Badge tone={status.tone}>{status.label}</Badge>
-                                    </div>
-
-                                    {booking.escrow?.status && booking.escrow.status !== 'none' && (
-                                        <Badge tone={booking.escrow.status === 'held' ? 'warning' : booking.escrow.status === 'released' ? 'success' : 'neutral'}>
-                                            {{ held: 'Escrow: funds held (simulated)', released: 'Escrow: released to provider', refunded: 'Escrow: refunded to you' }[booking.escrow.status]}
-                                        </Badge>
-                                    )}
-
-                                    <h2 className="text-lg font-bold truncate">
-                                        {booking.eventId?.title || (booking.serviceId?.title && `${booking.serviceId.title} package`) || booking.designConcepts?.find((c) => c.selected)?.title || `Booking with ${booking.vendorId?.name || 'provider'}`}
-                                    </h2>
-                                    {booking.vendorId?._id && (
-                                        <p className="text-xs text-muted -mt-2">
-                                            with <a href={`/vendor/${booking.vendorId._id}`} onClick={(e) => { e.preventDefault(); navigate(`/vendor/${booking.vendorId._id}`); }} className="font-bold text-brand hover:underline">{booking.vendorId.name}</a>
-                                        </p>
-                                    )}
-
-                                    <div className="space-y-1.5 text-xs text-muted font-medium">
-                                        <div className="flex items-center gap-1.5">
-                                            <Calendar size={13} className="text-brand" aria-hidden="true" />
-                                            <span>{formatDate(booking.eventDetails?.date)}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <MapPin size={13} className="text-brand" aria-hidden="true" />
-                                            <span>{booking.eventDetails?.location || '—'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="pt-3 border-t border-border flex flex-wrap items-end justify-between gap-3">
-                                    <div>
-                                        <span className="text-[10px] font-mono text-muted block uppercase font-bold">
-                                            {canNegotiate ? 'Current offer' : 'Agreed price'}
-                                        </span>
-                                        <span className="text-xl font-black text-success">
-                                            {formatCurrency(booking.offerPrice)}
-                                        </span>
-                                        {booking.lastPrice > 0 && booking.lastPrice !== booking.offerPrice && (
-                                            <span className="text-[10px] text-muted ml-2 line-through">
-                                                {formatCurrency(booking.lastPrice)}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center justify-end gap-2">
-                                        {booking.status === 'confirmed' && (
-                                            <Button size="sm" icon={CheckCircle2} loading={completing === booking._id}
-                                                    onClick={() => completeBooking(booking)}>
-                                                Complete &amp; release
-                                            </Button>
-                                        )}
-                                        {canDispute && (
-                                            <>
-                                                <Button size="sm" variant="ghost" icon={FileText}
-                                                        onClick={() => handleDownloadInvoice(booking)}>
-                                                    Invoice
-                                                </Button>
-                                                <Button size="sm" variant="secondary" icon={Star}
-                                                        onClick={() => navigate(`/vendor/${booking.vendorId?._id || booking.vendorId}#reviews`)}>
-                                                    Rate &amp; review
-                                                </Button>
-                                                <Button size="sm" variant="outline" icon={AlertTriangle}
-                                                        onClick={() => setDisputeTarget(booking)}>
-                                                    Dispute
-                                                </Button>
-                                            </>
-                                        )}
-                                        {canNegotiate && (
-                                            <Button size="sm" variant="ghost" icon={XCircle}
-                                                    onClick={() => setCancelTarget(booking)}
-                                                    className="!text-danger hover:!bg-danger/10">
-                                                Withdraw
-                                            </Button>
-                                        )}
-                                        <Button size="sm" onClick={() => navigate(`/negotiate/${booking._id}`)}>
-                                            {canNegotiate ? 'Negotiate' : 'View'} <ArrowRight size={12} />
-                                        </Button>
-                                    </div>
-                                </div>
-                            </Card>
-                        );
-                    })}
+                <div className="space-y-6">
+                    {groups.map((g) => (
+                        <EventGroup key={g.key} group={g} onOpenPlan={() => navigate(`/planner?plan=${g.plan._id}`)}>
+                            {g.bookings.map((b) => (
+                                <BookingRow
+                                    key={b._id}
+                                    booking={b}
+                                    onOpen={() => navigate(`/negotiate/${b._id}`)}
+                                    onComplete={() => completeBooking(b)}
+                                    completing={completing === b._id}
+                                    menuItems={menuFor(b)}
+                                />
+                            ))}
+                        </EventGroup>
+                    ))}
                 </div>
             )}
+
+            <Modal
+                open={Boolean(moveTarget)}
+                onClose={() => setMoveTarget(null)}
+                title="Which event is this booking for?"
+                description={moveTarget ? `${serviceName(moveTarget)} · ${moveTarget.vendorId?.name || 'vendor'}` : ''}
+                size="sm"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setMoveTarget(null)}>Cancel</Button>
+                        <Button loading={submitting} onClick={moveBooking}>Save</Button>
+                    </>
+                }
+            >
+                {plans.length === 0 ? (
+                    <p className="text-sm text-muted">You have no events yet. <Link to="/planner" className="font-bold text-brand">Plan an event</Link> first, then file this booking under it.</p>
+                ) : (
+                    <div className="space-y-2">
+                        <label htmlFor="move-plan" className="text-xs font-bold text-fg">Event</label>
+                        <select id="move-plan" value={movePlan} onChange={(e) => setMovePlan(e.target.value)}
+                            className="w-full bg-surface-2 border border-border rounded-xl px-3.5 py-2.5 text-sm text-fg">
+                            <option value="">Not linked to an event</option>
+                            {plans.map((p) => <option key={p._id} value={p._id}>{p.title} · {formatDateRange(p.date, p.endDate)}</option>)}
+                        </select>
+                        <p className="text-[11px] text-muted">Only where it is listed changes; the booking, its price and its dates stay the same.</p>
+                    </div>
+                )}
+            </Modal>
 
             <Modal
                 open={Boolean(cancelTarget)}
@@ -293,9 +453,7 @@ export default function Bookings({ user }) {
                 }
             >
                 <p className="text-sm text-muted">
-                    Your offer on <strong className="text-fg">
-                        {cancelTarget?.eventId?.title || cancelTarget?.eventDetails?.eventType || 'this booking'}
-                    </strong> will be cancelled and the provider notified. You can always make a new offer later.
+                    Your offer on <strong className="text-fg">{cancelTarget ? serviceName(cancelTarget) : 'this booking'}</strong> will be cancelled and the provider notified. You can always make a new offer later.
                 </p>
             </Modal>
 
@@ -303,11 +461,7 @@ export default function Bookings({ user }) {
                 open={Boolean(disputeTarget)}
                 onClose={() => { setDisputeTarget(null); setDisputeReason(''); }}
                 title="Raise a dispute"
-                description={
-                    disputeTarget
-                        ? `${disputeTarget.eventId?.title || 'This booking'} · ${formatCurrency(disputeTarget.offerPrice)}`
-                        : ''
-                }
+                description={disputeTarget ? `${serviceName(disputeTarget)} · ${formatCurrency(disputeTarget.offerPrice)}` : ''}
                 footer={
                     <>
                         <Button variant="ghost" onClick={() => { setDisputeTarget(null); setDisputeReason(''); }}>
@@ -392,7 +546,7 @@ function invoiceHtml(booking, user) {
       <td>
         <div style="font-weight:800;font-size:14px">${esc(booking.eventId?.title || booking.eventDetails?.eventType || 'Event service')}</div>
         <div style="font-size:11px;color:#6B7280;margin-top:4px">
-          ${formatDate(booking.eventDetails?.date)} &middot; ${esc(booking.eventDetails?.location || '')}
+          ${formatDateRange(booking.eventDetails?.date, booking.eventDetails?.endDate)} &middot; ${esc(booking.eventDetails?.location || '')}
         </div>
       </td>
       <td style="text-align:right;font-size:16px;font-weight:800">${price}</td>

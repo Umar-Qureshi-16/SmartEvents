@@ -9,8 +9,7 @@ import {
 import axios from '../../api/axios';
 import {
     Button, Card, Badge, Input, Textarea, Modal, SkeletonList, EmptyState, ErrorState,
-    formatCurrency, formatDate
-} from '../../components/ui';
+    formatCurrency, formatDateRange } from '../../components/ui';
 
 // Must match the Event schema enum — the previous list used invented labels
 // ("Corporate Conferences", "Music Festivals") that no record could ever match.
@@ -289,7 +288,7 @@ export default function ExploreEvents({ user }) {
                                         <div className="flex flex-wrap gap-3 text-xs font-medium text-muted">
                                             <span className="flex items-center gap-1.5">
                                                 <Calendar size={13} className="text-brand" aria-hidden="true" />
-                                                {formatDate(event.date)}
+                                                {formatDateRange(event.date, event.endDate)}
                                             </span>
                                             <span className="flex items-center gap-1.5">
                                                 <MapPin size={13} className="text-brand" aria-hidden="true" />

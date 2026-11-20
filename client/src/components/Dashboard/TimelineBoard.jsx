@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { CalendarCheck, CheckCircle2, Circle } from 'lucide-react';
 import axios from '../../api/axios';
-import { Button, formatDate } from '../ui';
+import { Button, formatDate, formatDateRange } from '../ui';
 
 /**
  * Dashboard summary of the organizer's nearest event plan: progress and the
@@ -49,7 +49,7 @@ const TimelineBoard = ({ nextBooking }) => {
                 </div>
                 <div className="min-w-0">
                     <h3 className="text-base font-bold text-fg">Planning timeline</h3>
-                    <p className="text-muted text-xs truncate">{plan ? `For ${plan.title} · ${formatDate(plan.date)}` : 'Every step to your event'}</p>
+                    <p className="text-muted text-xs truncate">{plan ? `For ${plan.title} · ${formatDateRange(plan.date, plan.endDate)}` : 'Every step to your event'}</p>
                 </div>
             </div>
 

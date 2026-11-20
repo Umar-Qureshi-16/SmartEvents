@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import ReviewCard from '../../components/reviews/ReviewCard';
 import ReviewForm from '../../components/reviews/ReviewForm';
 import EventReadiness from '../../components/Dashboard/EventReadiness';
+import { formatDateRange, dayCount } from '../../components/ui';
 import TicketSales from '../../components/Dashboard/TicketSales';
 
 const EventDetail = () => {
@@ -23,6 +24,9 @@ const EventDetail = () => {
     const [buyingTicket, setBuyingTicket] = useState(false);
     const [reviews, setReviews] = useState([]);
     const [hasConfirmedBooking, setHasConfirmedBooking] = useState(false);
+    // The organizer's own events, so this offer can be filed under one of them.
+    const [myPlans, setMyPlans] = useState([]);
+    const [planId, setPlanId] = useState('');
 
     useEffect(() => {
         fetchEvent();
@@ -34,6 +38,11 @@ const EventDetail = () => {
             checkBookingStatus();
         }
     }, [user, id]);
+
+    useEffect(() => {
+        if (!isModalOpen || user?.role !== 'customer') return;
+        axios.get('/plans').then((r) => setMyPlans(r.data.data || [])).catch(() => setMyPlans([]));
+    }, [isModalOpen, user]);
 
     const fetchReviews = async () => {
         try {
@@ -87,7 +96,8 @@ const EventDetail = () => {
             const res = await axios.post('/bookings', {
                 eventId: id,
                 offerPrice: Number(offerPrice),
-                message: message || "Interested in this event."
+                message: message || "Interested in this event.",
+                ...(planId ? { planId } : {}),
             });
             if (res.data.success) {
                 toast.success("Offer submitted! Starting negotiation...");
@@ -200,7 +210,9 @@ const EventDetail = () => {
                             <div className="flex items-center gap-6 text-muted">
                                 <div className="flex items-center gap-2 text-sm font-bold">
                                     <Calendar className="text-indigo-500" size={16} />
-                                    {new Date(event.date).toLocaleDateString(undefined, { dateStyle: 'full' })}
+                                    {dayCount(event.date, event.endDate) > 1
+                                        ? formatDateRange(event.date, event.endDate)
+                                        : new Date(event.date).toLocaleDateString(undefined, { dateStyle: 'full' })}
                                 </div>
                                 <div className="flex items-center gap-2 text-sm font-bold">
                                     <Clock className="text-indigo-500" size={16} />
@@ -357,6 +369,18 @@ const EventDetail = () => {
                                         />
                                     </div>
                                 </div>
+
+                                {myPlans.length > 0 && (
+                                    <div className="space-y-2">
+                                        <label htmlFor="offer-plan" className="text-[10px] font-black uppercase text-muted tracking-widest ml-1">For which of your events? (optional)</label>
+                                        <select id="offer-plan" value={planId} onChange={(e) => setPlanId(e.target.value)}
+                                            className="w-full bg-surface-2 border border-border rounded-2xl px-4 py-3 text-sm font-medium text-fg outline-none focus:ring-2 ring-indigo-500/50">
+                                            <option value="">Not linked to an event</option>
+                                            {myPlans.map((p) => <option key={p._id} value={p._id}>{p.title} · {formatDateRange(p.date, p.endDate)}</option>)}
+                                        </select>
+                                        <p className="text-[11px] text-muted ml-1">It is listed with that event&apos;s other bookings.</p>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-muted tracking-widest ml-1">Message to organizer (optional)</label>

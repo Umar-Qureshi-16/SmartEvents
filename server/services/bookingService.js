@@ -5,11 +5,20 @@ const notificationService = require('./notificationService');
 const socketManager = require('./socketManager');
 const User = require('../models/User');
 const { sendEmail } = require('./mailService');
-const { NotFoundError, ForbiddenError, ConflictError } = require('../utils/AppError');
+const { NotFoundError, ForbiddenError, ConflictError, BadRequestError } = require('../utils/AppError');
+const EventPlan = require('../models/EventPlan');
+const { DAY } = require('../utils/eventDates');
 
 class BookingService {
     async createBooking(bookingData, customerId) {
-        let { eventId, vendorId, serviceId, eventDetails, offerPrice, message, note } = bookingData;
+        let { eventId, vendorId, serviceId, eventDetails, offerPrice, message, note, planId } = bookingData;
+
+        // The organizer's own event this service is for; it must be theirs.
+        let plan = null;
+        if (planId) {
+            plan = await EventPlan.findOne({ _id: planId, owner: customerId }).select('_id date endDate location eventType').lean();
+            if (!plan) throw new NotFoundError('Event not found in your plans.');
+        }
 
         // If eventId is provided, pull event details and vendorId dynamically
         if (eventId) {
@@ -20,6 +29,7 @@ class BookingService {
                 eventDetails = {
                     eventType: event.category || 'Event',
                     date: event.date || new Date(),
+                    endDate: event.endDate || undefined,
                     location: event.location || 'Online',
                     message: message || note || 'Initial offer'
                 };
@@ -42,14 +52,17 @@ class BookingService {
             };
         }
 
-        // Check if date is blocked in availability calendar
+        // Check the availability calendar for every day the event covers.
         if (eventDetails && eventDetails.date) {
             const profile = await VendorProfile.findOne({ userId: vendorId });
             if (profile && profile.blockedDates && profile.blockedDates.length > 0) {
-                const checkDate = new Date(eventDetails.date).toDateString();
-                const isBlocked = profile.blockedDates.some(bd => new Date(bd).toDateString() === checkDate);
+                const start = new Date(eventDetails.date);
+                const end = eventDetails.endDate ? new Date(eventDetails.endDate) : start;
+                const days = new Set();
+                for (let t = start.getTime(); t <= end.getTime() + 1000 && days.size < 31; t += DAY) days.add(new Date(t).toDateString());
+                const isBlocked = profile.blockedDates.some(bd => days.has(new Date(bd).toDateString()));
                 if (isBlocked) {
-                    throw new ConflictError('The provider has marked this date as unavailable.');
+                    throw new ConflictError(days.size > 1 ? 'The provider is unavailable on one of these days.' : 'The provider has marked this date as unavailable.');
                 }
             }
         }
@@ -59,6 +72,7 @@ class BookingService {
             vendorId,
             serviceId,
             eventId,
+            planId: plan?._id,
             eventDetails,
             offerPrice,
             negotiationHistory: [{
@@ -114,7 +128,41 @@ class BookingService {
     }
 
     async getMyBookings(customerId) {
-        return await Booking.find({ customerId }).populate('eventId').populate('vendorId', 'name email role trustScore').populate('serviceId', 'title price').sort({ createdAt: -1 });
+        // Bookings made before the event link existed are matched to their
+        // event through the plan's checklist (or the booking the plan was made from).
+        const loose = await Booking.find({ customerId, planId: { $exists: false } }).select('_id').lean();
+        if (loose.length) {
+            const ids = new Set(loose.map((b) => String(b._id)));
+            const plans = await EventPlan.find({ owner: customerId }).select('sourceBooking tasks.bookingId').lean();
+            const ops = [];
+            for (const p of plans) {
+                const linked = [p.sourceBooking, ...(p.tasks || []).map((t) => t.bookingId)].filter(Boolean).map(String);
+                for (const id of linked) {
+                    if (ids.delete(id)) ops.push({ updateOne: { filter: { _id: id, planId: { $exists: false } }, update: { $set: { planId: p._id } } } });
+                }
+            }
+            if (ops.length) await Booking.bulkWrite(ops);
+        }
+        return await Booking.find({ customerId })
+            .populate('eventId').populate('vendorId', 'name email role trustScore').populate('serviceId', 'title price category')
+            .populate('planId', 'title eventType date endDate location budget')
+            .sort({ createdAt: -1 });
+    }
+
+    /** Puts one of the organizer's bookings under one of their events (or none). */
+    async setBookingPlan(bookingId, customerId, planId) {
+        const booking = await Booking.findById(bookingId);
+        if (!booking) throw new NotFoundError('Booking not found.');
+        if (String(booking.customerId) !== String(customerId)) throw new ForbiddenError('Only the organizer can file this booking.');
+        if (planId) {
+            const plan = await EventPlan.exists({ _id: planId, owner: customerId });
+            if (!plan) throw new NotFoundError('Event not found in your plans.');
+            booking.planId = planId;
+        } else {
+            booking.planId = undefined;
+        }
+        await booking.save();
+        return Booking.findById(bookingId).populate('planId', 'title eventType date endDate location budget').lean();
     }
 
     async getOrganizerBookings(vendorId) {

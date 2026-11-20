@@ -10,6 +10,7 @@ const Service = require('../models/Service');
 const VendorProfile = require('../models/VendorProfile');
 const User = require('../models/User');
 const { complete } = require('./groqClient');
+const { eventDates } = require('../utils/eventDates');
 const { BadRequestError, NotFoundError } = require('../utils/AppError');
 
 const DAY = 86400000;
@@ -94,6 +95,7 @@ async function syncWithBookings(plan) {
 
 async function createPlan(ownerId, input) {
     let { title, eventType, date, location, budget, bookingId, quick } = input;
+    let { endDate } = input;
     if (bookingId) {
         if (!mongoose.Types.ObjectId.isValid(bookingId)) throw new BadRequestError('Invalid booking id.');
         const existing = await EventPlan.findOne({ owner: ownerId, sourceBooking: bookingId });
@@ -103,9 +105,11 @@ async function createPlan(ownerId, input) {
         title = title || booking.eventId?.title || booking.eventDetails?.eventType;
         eventType = eventType || booking.eventDetails?.eventType;
         date = date || booking.eventDetails?.date;
+        endDate = endDate || booking.eventDetails?.endDate;
         location = location || booking.eventDetails?.location;
     }
     if (!title || !date || Number.isNaN(Date.parse(date))) throw new BadRequestError('A plan needs a title and an event date.');
+    ({ date, endDate } = eventDates({ date, endDate, days: input.days }));
     eventType = eventType || 'Event';
 
     let raw = [];
@@ -117,8 +121,9 @@ async function createPlan(ownerId, input) {
     if (tasks.length < 3) tasks = normalise(templateTasks(eventType), date);
 
     const plan = await EventPlan.create({
-        owner: ownerId, title, eventType, date, location: location || '', budget, sourceBooking: bookingId || undefined, tasks,
+        owner: ownerId, title, eventType, date, endDate, location: location || '', budget, sourceBooking: bookingId || undefined, tasks,
     });
+    if (bookingId) await Booking.updateOne({ _id: bookingId, customerId: ownerId }, { $set: { planId: plan._id } });
     return getPlan(ownerId, plan._id);
 }
 
@@ -170,9 +175,42 @@ async function addTask(ownerId, planId, { title, description, category, daysBefo
     return plan.toObject();
 }
 
+/** Edits an event's name, dates (one or several days), place or budget. */
+async function updatePlan(ownerId, planId, input = {}) {
+    if (!mongoose.Types.ObjectId.isValid(planId)) throw new BadRequestError('Invalid plan id.');
+    const plan = await EventPlan.findOne({ _id: planId, owner: ownerId });
+    if (!plan) throw new NotFoundError('Plan not found.');
+    if (input.title !== undefined) {
+        const t = String(input.title).trim().slice(0, 120);
+        if (!t) throw new BadRequestError('Give the event a name.');
+        plan.title = t;
+    }
+    if (input.location !== undefined) plan.location = String(input.location).trim().slice(0, 120);
+    if (input.budget !== undefined && input.budget !== '' && input.budget !== null) {
+        const b = Number(input.budget);
+        if (!(b >= 0)) throw new BadRequestError('Budget must be a positive number.');
+        plan.budget = b;
+    }
+    if (input.date !== undefined || input.endDate !== undefined || input.days !== undefined) {
+        const next = eventDates({
+            date: input.date ?? plan.date,
+            endDate: input.days !== undefined ? undefined : (input.endDate === undefined ? plan.endDate : input.endDate),
+            days: input.days,
+        });
+        const moved = next.date.getTime() !== plan.date.getTime();
+        plan.date = next.date;
+        plan.endDate = next.endDate;
+        // Checklist due dates count back from the first day.
+        if (moved) plan.tasks.forEach((t) => { t.dueDate = new Date(next.date.getTime() - (t.daysBefore || 0) * DAY); });
+    }
+    await plan.save();
+    return plan.toObject();
+}
+
 async function deletePlan(ownerId, planId) {
     const res = await EventPlan.deleteOne({ _id: planId, owner: ownerId });
     if (!res.deletedCount) throw new NotFoundError('Plan not found.');
+    await Booking.updateMany({ customerId: ownerId, planId }, { $unset: { planId: 1 } });
 }
 
 /**
@@ -221,12 +259,13 @@ async function bookPackage(ownerId, { serviceId, planId, offerPrice, message }) 
     const eventDetails = {
         eventType: plan?.eventType || service.eventType || 'Event',
         date: plan?.date || new Date(Date.now() + 30 * DAY),
+        endDate: plan?.endDate || undefined,
         location: plan?.location || profile.location || 'To be agreed',
         message: message || `Package: ${service.title}${plan ? ` for ${plan.title}` : ''}`,
     };
     return require('./bookingService').createBooking({
-        vendorId: String(profile.userId), serviceId: String(service._id), offerPrice: offerPrice || service.price, eventDetails, message: eventDetails.message,
+        vendorId: String(profile.userId), serviceId: String(service._id), planId: plan ? String(plan._id) : undefined, offerPrice: offerPrice || service.price, eventDetails, message: eventDetails.message,
     }, ownerId);
 }
 
-module.exports = { createPlan, listPlans, getPlan, setTaskStatus, addTask, deletePlan, packages, bookPackage, categoryFor, CATEGORIES };
+module.exports = { createPlan, listPlans, getPlan, updatePlan, setTaskStatus, addTask, deletePlan, packages, bookPackage, categoryFor, CATEGORIES };

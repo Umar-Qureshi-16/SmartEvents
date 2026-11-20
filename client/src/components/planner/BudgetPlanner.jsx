@@ -17,7 +17,7 @@ const field = 'w-full bg-surface-2 border border-border rounded-xl px-3 py-2 tex
  */
 export default function BudgetPlanner({ compact = false }) {
     const navigate = useNavigate();
-    const [form, setForm] = useState({ budget: '', eventType: 'Nikah', city: '', date: '', title: '' });
+    const [form, setForm] = useState({ budget: '', eventType: 'Nikah', city: '', date: '', days: '1', title: '' });
     const [result, setResult] = useState(null);
     const [choice, setChoice] = useState({}); // field -> package id ('' = skip)
     const [busy, setBusy] = useState(null);
@@ -49,7 +49,7 @@ export default function BudgetPlanner({ compact = false }) {
         try {
             const res = await axios.post('/plans/budget/book', {
                 serviceIds: chosen.map((p) => p._id), title: form.title || `${form.eventType}${form.city ? ` in ${form.city}` : ''}`,
-                eventType: form.eventType, date: form.date, city: form.city || undefined,
+                eventType: form.eventType, date: form.date, days: Math.min(30, Math.max(1, Number(form.days) || 1)), city: form.city || undefined,
             });
             const { sent, failed, planId } = res.data.data;
             toast.success(`${sent.length} offer${sent.length === 1 ? '' : 's'} sent${failed.length ? `, ${failed.length} failed` : ''}. Your plan is ready.`);
@@ -71,7 +71,7 @@ export default function BudgetPlanner({ compact = false }) {
                 </div>
             </div>
 
-            <form onSubmit={plan} className={`grid gap-2.5 ${compact ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-6'} items-end`}>
+            <form onSubmit={plan} className={`grid gap-2.5 ${compact ? 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-6' : 'grid-cols-2 lg:grid-cols-4 xl:grid-cols-7'} items-end`}>
                 <div>
                     <label htmlFor="bp-budget" className="text-[11px] font-bold text-fg block mb-1">Total budget</label>
                     <input id="bp-budget" type="number" min="1" value={form.budget} onChange={set('budget')} placeholder="1500" className={field} />
@@ -85,8 +85,12 @@ export default function BudgetPlanner({ compact = false }) {
                     <input id="bp-city" value={form.city} onChange={set('city')} placeholder="Lahore" className={field} />
                 </div>
                 <div>
-                    <label htmlFor="bp-date" className="text-[11px] font-bold text-fg block mb-1">Date</label>
+                    <label htmlFor="bp-date" className="text-[11px] font-bold text-fg block mb-1">First day</label>
                     <input id="bp-date" type="date" min={new Date().toISOString().slice(0, 10)} value={form.date} onChange={set('date')} className={field} />
+                </div>
+                <div>
+                    <label htmlFor="bp-days" className="text-[11px] font-bold text-fg block mb-1">Days</label>
+                    <input id="bp-days" type="number" min="1" max="30" value={form.days} onChange={set('days')} className={field} />
                 </div>
                 {!compact && (
                     <div>
@@ -94,7 +98,7 @@ export default function BudgetPlanner({ compact = false }) {
                         <input id="bp-title" value={form.title} onChange={set('title')} placeholder="Our nikah" className={field} />
                     </div>
                 )}
-                <button type="submit" disabled={busy === 'plan'} className="col-span-2 md:col-span-1 inline-flex items-center justify-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-sm font-bold rounded-xl px-4 py-2 disabled:opacity-50">
+                <button type="submit" disabled={busy === 'plan'} className="col-span-2 lg:col-span-1 inline-flex items-center justify-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-sm font-bold rounded-xl px-4 py-2 disabled:opacity-50">
                     <Sparkles size={15} aria-hidden="true" />{busy === 'plan' ? 'Planning…' : 'Plan my budget'}
                 </button>
             </form>

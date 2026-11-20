@@ -222,6 +222,30 @@ export const formatDate = (value, opts = {}) => {
 
 export const formatDateTime = (value) => formatDate(value, { hour: '2-digit', minute: '2-digit' });
 
+/** Calendar days an event covers: 1 for a one-day event. */
+export const dayCount = (start, end) => {
+    if (!start || !end) return 1;
+    const a = new Date(start); const b = new Date(end);
+    if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 1;
+    a.setHours(0, 0, 0, 0); b.setHours(0, 0, 0, 0);
+    return Math.max(1, Math.round((b - a) / 86400000) + 1);
+};
+
+/**
+ * One date, or a range for events over several days:
+ * "23 Jan 2027", "23–25 Jan 2027 · 3 days", "30 Jan – 2 Feb 2027 · 4 days".
+ */
+export const formatDateRange = (start, end, { withDays = true } = {}) => {
+    const days = dayCount(start, end);
+    if (days <= 1) return formatDate(start);
+    const a = new Date(start); const b = new Date(end);
+    const sameMonth = a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+    const sameYear = a.getFullYear() === b.getFullYear();
+    const first = sameMonth ? String(a.getDate()) : formatDate(a, sameYear ? { year: undefined } : {});
+    const range = `${first}${sameMonth ? '–' : ' – '}${formatDate(b)}`;
+    return withDays ? `${range} · ${days} days` : range;
+};
+
 export const formatRelative = (value) => {
     if (!value) return '—';
     const diff = Date.now() - new Date(value).getTime();

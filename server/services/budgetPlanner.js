@@ -89,11 +89,11 @@ async function planBudget({ budget, eventType = 'Wedding', city, fields }) {
  * Creates (or reuses) the event plan and sends an opening offer for each
  * chosen package, dated for the event. Returns what was sent and what failed.
  */
-async function bookBundle(ownerId, { serviceIds, title, eventType = 'Wedding', date, city }) {
+async function bookBundle(ownerId, { serviceIds, title, eventType = 'Wedding', date, endDate, days, city }) {
     if (!Array.isArray(serviceIds) || !serviceIds.length) throw new BadRequestError('Choose at least one package.');
     if (!date || Number.isNaN(Date.parse(date))) throw new BadRequestError('Give the event date.');
     const planService = require('./planService');
-    const plan = await planService.createPlan(ownerId, { title: title || `${eventType} on ${String(date).slice(0, 10)}`, eventType, date, location: city, quick: true });
+    const plan = await planService.createPlan(ownerId, { title: title || `${eventType} on ${String(date).slice(0, 10)}`, eventType, date, endDate, days, location: city, quick: true });
     const sent = [];
     const failed = [];
     for (const serviceId of [...new Set(serviceIds.map(String))]) {

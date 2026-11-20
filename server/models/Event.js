@@ -6,6 +6,8 @@ const eventSchema = new mongoose.Schema({
     description: { type: String, required: true },
     category: { type: String, required: true }, // e.g., Wedding, Corporate, Concert, Birthday, Conference, Exhibition
     date: { type: Date, required: true },
+    // Last day for events that run over several days (a three-day conference).
+    endDate: { type: Date },
     status: { type: String, enum: ['upcoming', 'ongoing', 'completed', 'cancelled'], default: 'upcoming' },
     capacity: { type: Number, default: 100 },
     location: { type: String },

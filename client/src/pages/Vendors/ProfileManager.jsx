@@ -8,7 +8,7 @@ import {
 import axios from '../../api/axios';
 import VendorReviews from '../../components/reviews/VendorReviews';
 import { FollowersList, DeliveredList, TrustBreakdown } from '../../components/vendor/ProfileDetails';
-import { formatCurrency, formatDate } from '../../components/ui';
+import { formatCurrency, formatDateRange } from '../../components/ui';
 
 const CATEGORIES = [
     ['venue', 'Venue & hall'], ['catering', 'Catering'], ['decoration', 'Decoration & design'],
@@ -279,7 +279,7 @@ export default function ProfileManager() {
                                         {ev.image ? <img src={ev.image} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0" loading="lazy" /> : <span className="w-16 h-16 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0"><ImageIcon size={20} aria-hidden="true" /></span>}
                                         <div className="min-w-0 flex-1">
                                             <p className="text-sm font-bold text-fg truncate">{ev.title}</p>
-                                            <p className="text-[11px] text-muted">{formatDate(ev.date)} · {ev.location || 'No location'}</p>
+                                            <p className="text-[11px] text-muted">{formatDateRange(ev.date, ev.endDate)} · {ev.location || 'No location'}</p>
                                         </div>
                                         <span className="text-sm font-black text-success shrink-0">{formatCurrency(ev.price)}</span>
                                     </li>

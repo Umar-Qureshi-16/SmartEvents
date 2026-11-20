@@ -12,8 +12,7 @@ import BookingInsight from '../../components/Dashboard/BookingInsight';
 import { AttentionList, NextUp, Panel, QuickGrid } from '../../components/Dashboard/DashboardBits';
 import StarRating from '../../components/reviews/StarRating';
 import {
-    Badge, Button, EmptyState, ErrorState, Skeleton, SkeletonList, formatCurrency, formatDate, BOOKING_STATUS,
-} from '../../components/ui';
+    Badge, Button, EmptyState, ErrorState, Skeleton, SkeletonList, formatCurrency, formatDateRange, BOOKING_STATUS } from '../../components/ui';
 
 const DAY = 86400000;
 const TOOLKIT = [
@@ -165,7 +164,7 @@ export default function ProviderDashboard({ user }) {
                     <NextUp
                         to={nextJob && `/negotiate/${nextJob._id}`}
                         label="Your next job" title={nextJob && titleOf(nextJob)}
-                        date={nextJob && formatDate(nextJob.eventDetails.date)} location={nextJob?.eventDetails?.location}
+                        date={nextJob && formatDateRange(nextJob.eventDetails.date, nextJob.eventDetails.endDate)} location={nextJob?.eventDetails?.location}
                         withName={nextJob?.customerId?.name} image={nextJob?.eventId?.image}
                         days={nextJob && daysUntil(nextJob.eventDetails.date)}
                         empty={(
@@ -205,7 +204,7 @@ export default function ProviderDashboard({ user }) {
                                                 {b.eventId?.image ? <img src={b.eventId.image} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" loading="lazy" /> : <span className="w-12 h-12 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0"><CalendarDays size={18} aria-hidden="true" /></span>}
                                                 <span className="min-w-0 flex-1">
                                                     <span className="block text-sm font-bold truncate">{titleOf(b)}</span>
-                                                    <span className="block text-[11px] text-muted truncate">{b.customerId?.name || 'Organizer'} · {formatDate(b.eventDetails?.date)}</span>
+                                                    <span className="block text-[11px] text-muted truncate">{b.customerId?.name || 'Organizer'} · {formatDateRange(b.eventDetails?.date, b.eventDetails?.endDate)}</span>
                                                 </span>
                                                 <span className="text-right shrink-0 space-y-1">
                                                     <span className="block text-sm font-black text-success">{formatCurrency(b.offerPrice)}</span>

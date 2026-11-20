@@ -89,7 +89,7 @@ class EventService {
 
         // Whitelist editable fields. Assigning the raw body let an owner rewrite
         // createdBy (transferring or stealing events) and any other schema path.
-        const editable = ['title', 'price', 'description', 'category', 'date', 'status', 'capacity', 'location', 'image'];
+        const editable = ['title', 'price', 'description', 'category', 'date', 'endDate', 'status', 'capacity', 'location', 'image'];
         for (const key of editable) {
             if (updateData[key] !== undefined) event[key] = updateData[key];
         }
