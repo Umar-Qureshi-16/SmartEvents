@@ -1,24 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ImageOff } from 'lucide-react';
 import API_BASE_URL from '../../apiConfig';
-import DesignVisual from './DesignVisual';
 
 // Stored paths start with /api/v1; point them at the configured API.
 export const resolveImage = (src) => (src && src.startsWith('/api/v1/') ? API_BASE_URL + src.slice('/api/v1'.length) : src);
 const RETRIES = 40;      // about four minutes in all (the free image tier is slow)
 const RETRY_MS = 6000;
+const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 /**
- * A design's picture in one of two views:
- * - "3d": the full HD photo-real render. The server makes it the first time it
- *   is asked for, which can take a while, so the 2D animated view plays
- *   underneath and the render is asked for again until it is ready.
- * - "2d": the animated drawing of the design.
+ * A design's full HD picture. The server makes it the first time it is asked
+ * for, which can take a while, so a soft shimmer in the design's own colours
+ * shows meanwhile and the picture is asked for again until it is ready.
  *
  * Give `src` (a stored photo link) or `path` (the API path that makes one).
- * `onState` reports 'loading' | 'ready' | 'failed' | 'none' for the 3D render.
+ * `onState` reports 'loading' | 'ready' | 'failed' | 'none'.
  */
-export default function DesignPicture({ design, src, path, alt, className = '', view = '3d', fit = 'cover', motion = true, onState, svgRef }) {
+export default function DesignPicture({ design, src, path, alt, className = '', fit = 'cover', motion = true, onState }) {
     const base = resolveImage(src || (path ? `${API_BASE_URL}${path}` : ''));
     // Load state belongs to one picture; a new picture starts loading again.
     const [load, setLoad] = useState({ base: null, state: null, attempt: 0 });
@@ -36,14 +34,17 @@ export default function DesignPicture({ design, src, path, alt, className = '', 
     useEffect(() => { onState?.(shown); }, [shown, onState]);
 
     const url = base && attempt ? `${base}${base.includes('?') ? '&' : '?'}try=${attempt}` : base;
-    const waiting = shown === 'loading';
-    const show3d = view === '3d';
+    const palette = (design?.palette || []).filter((c) => HEX.test(c));
+    const wash = palette.length >= 2 ? `linear-gradient(135deg, ${palette.map((c) => `${c}55`).join(', ')})` : undefined;
 
     return (
         <div className={`relative overflow-hidden bg-[#0b0b12] ${className}`}>
-            {/* The animated 2D view stays underneath, so nothing flashes while the render fades in. */}
-            <DesignVisual design={design} svgRef={svgRef} label={false} className="absolute inset-0 w-full h-full" />
-            {show3d && base && (state === 'loading' || state === 'ready') ? (
+            {state !== 'ready' && (
+                <div className="absolute inset-0" style={{ background: wash }} aria-hidden="true">
+                    <div className="absolute inset-0 se-shimmer" />
+                </div>
+            )}
+            {base && (state === 'loading' || state === 'ready') ? (
                 <img
                     key={url}
                     src={url}
@@ -53,14 +54,18 @@ export default function DesignPicture({ design, src, path, alt, className = '', 
                     className={`absolute inset-0 w-full h-full ${fit === 'contain' ? 'object-contain' : 'object-cover'} transition-opacity duration-700 ${state === 'ready' ? 'opacity-100' : 'opacity-0'} ${motion && state === 'ready' ? 'se-kenburns' : ''}`}
                 />
             ) : null}
-            {show3d && waiting && (
-                <span className="absolute top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 rounded-full bg-black/65 backdrop-blur text-white text-[11px] font-bold px-3 py-1 whitespace-nowrap">
-                    <Loader2 size={12} className="animate-spin" aria-hidden="true" /> Rendering full HD picture…
+            {shown === 'loading' && (
+                <span className="absolute inset-0 grid place-items-center pointer-events-none">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-black/60 backdrop-blur text-white text-xs font-bold px-4 py-2">
+                        <Loader2 size={14} className="animate-spin" aria-hidden="true" /> Rendering full HD picture…
+                    </span>
                 </span>
             )}
-            {show3d && shown === 'failed' && (
-                <span className="absolute top-3 left-1/2 -translate-x-1/2 rounded-full bg-black/65 text-white text-[11px] font-bold px-3 py-1 whitespace-nowrap">
-                    Picture service busy, showing the 2D view
+            {(shown === 'failed' || shown === 'none') && (
+                <span className="absolute inset-0 grid place-items-center pointer-events-none">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-black/60 text-white text-xs font-bold px-4 py-2">
+                        <ImageOff size={14} aria-hidden="true" /> Picture service busy. Try again shortly.
+                    </span>
                 </span>
             )}
         </div>

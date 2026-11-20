@@ -122,7 +122,7 @@ export default function VendorDesignStudio() {
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-3">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-black flex items-center gap-2"><Palette className="text-brand" aria-hidden="true" />Design studio</h1>
-                    <p className="text-sm text-muted">Smartie designs with you step by step: each design comes with 4 full HD pictures in 3D and an animated 2D view. Set your price, publish it on your profile, and organizers can book it directly.</p>
+                    <p className="text-sm text-muted">Smartie designs with you step by step: each design comes with 4 full HD pictures and links to real examples on Google. Set your price, publish it on your profile, and organizers can book it directly.</p>
                 </div>
                 {me && <Link to={`/vendor/${me._id || me.id}`} className="inline-flex items-center gap-1.5 border border-border text-fg hover:bg-fg/5 text-sm font-bold rounded-xl px-4 py-2.5 shrink-0"><ExternalLink size={15} aria-hidden="true" />See it on my profile ({published})</Link>}
             </header>

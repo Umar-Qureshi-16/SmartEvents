@@ -195,3 +195,13 @@
 @media (prefers-reduced-motion: reduce) {
   .se-kenburns { animation: none !important; }
 }
+
+/* Placeholder while a design picture is being made. */
+@keyframes se-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+.se-shimmer { background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.10) 50%, transparent 80%); animation: se-shimmer 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .se-shimmer { animation: none !important; }
+}
