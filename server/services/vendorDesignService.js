@@ -51,10 +51,19 @@ function clean(raw, budget) {
     return { title: String(raw.title || 'Signature design').slice(0, 120), summary: String(raw.summary || '').slice(0, 800), palette, elements, totalCost: total };
 }
 
-function template({ theme, style, eventType, budget }) {
+function template({ theme, style, eventType, budget, colors }) {
     const b = Number(budget) || 1000;
-    const items = [
-        ['Stage and backdrop', 0.35, `${style || 'Elegant'} stage with a ${theme || 'floral'} backdrop`],
+    const party = /birthday|party|kids|baby/i.test(eventType || '');
+    const t = theme || (party ? 'party' : 'floral');
+    // A party is styled differently from a wedding stage.
+    const items = party ? [
+        ['Theme backdrop', 0.3, `${t} backdrop with the birthday name board`],
+        ['Balloon arch', 0.2, `Balloon arch in the ${t} colours at the entrance`],
+        ['Cake and dessert table', 0.2, `${t} styled cake table with toppers and dessert stands`],
+        ['Table centrepieces', 0.15, `${t} centrepieces for the guest tables`],
+        ['Photo corner', 0.15, `${t} photo booth with props`],
+    ] : [
+        ['Stage and backdrop', 0.35, `${style || 'Elegant'} stage with a ${t} backdrop`],
         ['Flowers and centrepieces', 0.25, 'Fresh arrangements for tables and entrance'],
         ['Lighting', 0.2, 'Warm fairy lights and uplighting'],
         ['Entrance and walkway', 0.12, 'Arch, aisle runner and lanterns'],
@@ -63,7 +72,7 @@ function template({ theme, style, eventType, budget }) {
     return {
         title: `${theme || 'Classic'} ${eventType || 'event'} design`,
         summary: `A ${style || 'timeless'} ${eventType || 'event'} look built around ${theme || 'soft florals'}.`,
-        palette: PALETTES[Math.floor(Math.random() * PALETTES.length)],
+        palette: colors && colors.length ? colors : PALETTES[Math.floor(Math.random() * PALETTES.length)],
         elements: items.map(([item, share, description]) => ({ item, description, cost: Math.floor(b * share) })),
         totalCost: items.reduce((t, [, share]) => t + Math.floor(b * share), 0),
     };

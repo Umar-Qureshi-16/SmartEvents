@@ -62,24 +62,26 @@ const partsOf = (d = {}) => Math.min(MAX_PARTS, 1 + (d.elements || []).filter((e
  * like a generic stage; the organizer's own idea (`idea`) is included too.
  */
 function buildPrompt(d = {}, part = 0) {
-    const colours = [...new Set((d.palette || []).map(colourName).filter(Boolean))].slice(0, 4);
+    // Image models follow short prompts that lead with the theme far better
+    // than long ones (a long prompt turned a Spider-Man party into a pink one).
+    const colours = [...new Set((d.palette || []).map(colourName).filter(Boolean))].slice(0, 3);
     const event = String(d.eventType || 'event').toLowerCase();
     const themed = d.theme ? `${d.theme} themed ${event}` : event;
-    const idea = String(d.idea || '').slice(0, 220);
+    const short = (t, n) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, n);
+    const idea = short(d.idea, 140);
     const el = part > 0 ? (d.elements || []).filter((e) => e?.item)[part - 1] : null;
     const subject = el
-        ? `the ${el.item} decoration set up inside a ${themed} party venue${el.description ? ` (${el.description})` : ''}, shown as a real styled event decor piece with props, fabric, balloons or flowers around it`
-        : `the complete ${themed} decoration setup${d.summary ? `: ${String(d.summary).slice(0, 220)}` : ''}, ${d.theme ? `styled like ${scene(d.eventType)}` : scene(d.eventType)}`;
-    const items = el ? [] : (d.elements || []).map((e) => e.item).filter(Boolean).slice(0, 6);
+        ? `${themed} ${el.item.toLowerCase()} decoration${el.description ? `, ${short(el.description, 90)}` : ''}`
+        : `${themed} decoration${d.theme ? '' : `, ${scene(d.eventType)}`}`;
+    const items = el ? [] : (d.elements || []).map((e) => e.item.toLowerCase()).filter(Boolean).slice(0, 4);
     return [
-        `Professional photograph of ${subject}`,
-        d.theme ? `strongly following the "${d.theme}" theme with its signature colours, motifs and props` : null,
-        d.style ? `${d.style} style` : null,
-        colours.length ? `colour scheme ${colours.join(', ')}` : null,
-        items.length ? `featuring ${items.join(', ')}` : null,
-        idea ? `client's idea: ${idea}` : null,
-        `${el ? 'detailed' : 'wide angle'}, warm ambient lighting, highly detailed, realistic event decor photography, empty venue, no people, no text, no watermark`,
-    ].filter(Boolean).join(', ').slice(0, 1200);
+        subject,
+        colours.length ? `${colours.join(' and ')} colours` : null,
+        d.style ? `${short(d.style, 30)} style` : null,
+        items.length ? items.join(', ') : null,
+        idea || null,
+        `${el ? 'close-up' : 'wide view'}, professional event photo, no people, no text`,
+    ].filter(Boolean).join(', ').slice(0, 480);
 }
 
 async function fromOpenRouter(prompt) {
