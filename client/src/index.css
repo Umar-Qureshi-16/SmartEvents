@@ -185,3 +185,13 @@
 @media (prefers-reduced-motion: reduce) {
   [class*="insight-in"] { animation: none !important; }
 }
+
+/* Design pictures: a slow camera drift over the full HD render. */
+@keyframes se-kenburns {
+  from { transform: scale(1) translate(0, 0); }
+  to { transform: scale(1.07) translate(-1%, -1%); }
+}
+.se-kenburns { animation: se-kenburns 16s ease-in-out infinite alternate; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) {
+  .se-kenburns { animation: none !important; }
+}

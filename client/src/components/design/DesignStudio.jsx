@@ -237,7 +237,7 @@ export default function DesignStudio({ bookingId, currentUserId }) {
                                     design={{ ...c, theme: design.brief?.theme, style: design.brief?.style }}
                                     path={(n) => `/designs/concepts/${bookingId}/${c._id}/image${n ? `?part=${n}` : ''}`}
                                     className="-mx-1"
-                                    imageClassName="aspect-[16/10] rounded-2xl"
+                                    imageClassName="aspect-video rounded-2xl"
                                 />
                                 <div className="flex items-start justify-between gap-3">
                                     <div>

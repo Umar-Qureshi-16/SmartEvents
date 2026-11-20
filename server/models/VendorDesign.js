@@ -13,6 +13,8 @@ const vendorDesignSchema = new mongoose.Schema({
     style: { type: String, maxlength: 120 },
     // The vendor's or client's own idea the design was made from.
     idea: { type: String, maxlength: 600 },
+    // Roughly how many guests the decor is sized for.
+    guests: { type: Number, min: 0, max: 5000 },
     summary: { type: String, maxlength: 800 },
     palette: [{ type: String, match: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i }],
     elements: [{

@@ -30,9 +30,13 @@ router.post('/:id/book', verifyToken, authorize('customer'), wrap(async (req) =>
 
 // Vendors manage their own library.
 router.get('/mine', verifyToken, authorize('provider'), wrap((req) => designs.mine(req.user.id)));
+// Four theme ideas (with AI-picked colours) to start a design from.
+router.post('/themes', verifyToken, authorize('provider'), wrap((req) => designs.suggestThemes(req.user.id, req.body || {})));
 // Several options for one theme (count 1-3, default 3), so the vendor can choose.
 router.post('/generate', verifyToken, authorize('provider'), wrap((req) => designs.generateOptions(req.user.id, req.body || {}, req.body?.count ?? 3), 201));
 router.post('/:id/render', verifyToken, authorize('provider'), wrap((req) => designs.rerender(req.user.id, req.params.id)));
+// Puts one of the design's pictures in the vendor's profile gallery.
+router.post('/:id/gallery', verifyToken, authorize('provider'), wrap((req) => designs.addToGallery(req.user.id, req.params.id, req.body?.part)));
 router.put('/:id', verifyToken, authorize('provider'), wrap((req) => designs.update(req.user.id, req.params.id, req.body || {})));
 router.delete('/:id', verifyToken, authorize('provider'), wrap(async (req) => { await designs.remove(req.user.id, req.params.id); return null; }));
 

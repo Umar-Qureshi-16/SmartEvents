@@ -9,7 +9,7 @@ const VendorProfile = require('../models/VendorProfile');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
 const { complete } = require('./groqClient');
-const { renderDecor, once, partsOf } = require('./decorImage');
+const { renderDecor, once, partsOf, toHd, HD } = require('./decorImage');
 const DesignRender = require('../models/DesignRender');
 const { BadRequestError, ForbiddenError, NotFoundError } = require('../utils/AppError');
 
@@ -93,6 +93,7 @@ const DIRECTIONS = ['Classic', 'Modern', 'Grand'];
  */
 async function generateOptions(vendorId, raw = {}, count = 3) {
     const input = { ...raw, colors: toHex(raw.colors) };
+    const guests = Math.min(Math.max(Math.round(Number(input.guests) || 0), 0), 5000);
     const budget = Math.max(0, Number(input.budget) || 0);
     if (!budget) throw new BadRequestError('Give the price this design should come to.');
     const n = Math.min(Math.max(Number(count) || 1, 1), 3);
@@ -102,10 +103,11 @@ async function generateOptions(vendorId, raw = {}, count = 3) {
     let source = 'ai';
     try {
         const prompt = `You are a ${profile.category} vendor in Pakistan designing sellable decor packages for a ${input.eventType || 'wedding'}.
-Theme: ${input.theme || 'open'}. Style: ${input.style || 'open'}. Colours wanted: ${(input.colors || []).join(', ') || 'your choice'}.
+Theme: ${input.theme || 'open'}. Style: ${input.style || 'open'}. ${input.colors?.length ? `Colours wanted: ${input.colors.join(', ')}.` : 'Pick a palette of 4 colours that suits this theme best (the theme\'s signature colours first).'}
+${guests ? `Guests: about ${guests}, so size the seating, tables and centrepieces for that many people.` : ''}
 ${idea ? `The client's own idea, follow it closely: ${idea}` : 'No extra idea from the client.'}
 Create ${n} clearly DIFFERENT design options for this theme (different layouts, props and moods, e.g. a classic take, a modern take and a grand take).
-Each option must cost at most ${budget} and list 4 to 6 concrete decor items (such as backdrop, entrance, cake or dessert table, table centrepieces, photo booth, ceiling or lighting), each with a cost.
+Each option must cost at most ${budget} (the whole decor) and list 4 to 6 concrete decor items, the three most eye-catching first, (such as backdrop, entrance, cake or dessert table, table centrepieces, photo booth, ceiling or lighting), each with a cost.
 Reply with JSON only: {"designs":[{"title":"string","summary":"two sentences describing what it looks like","palette":["#hex",...4],"elements":[{"item":"string","description":"what it looks like","cost":number}]}]}`;
         const res = await complete({ messages: [{ role: 'user', content: prompt }], temperature: 0.85, max_tokens: 1800, response_format: { type: 'json_object' } });
         const parsed = JSON.parse(res.choices[0]?.message?.content || '{}');
@@ -127,14 +129,65 @@ Reply with JSON only: {"designs":[{"title":"string","summary":"two sentences des
         if (!design.palette.length) design.palette = PALETTES[0];
         const doc = await VendorDesign.create({
             vendor: vendorId, eventType: input.eventType || 'Wedding', theme: input.theme, style: input.style, idea: idea || undefined,
+            guests: guests || undefined,
             image: isUrl(input.image) ? input.image : undefined, published: false, source, ...design,
         });
         created.push(doc.toObject());
     }
     // Pictures take a while (the free image tier is slow), so they are made in
     // the background, one design after another; the picture endpoint waits.
-    (async () => { for (const d of created) if (!d.image) await renderImage(d).catch(() => {}); })();
+    // The whole setup comes first for every design, then the pictures of its
+    // main pieces, so each design ends up with all of its pictures ready.
+    (async () => {
+        for (const d of created) if (!d.image) await renderImage(d).catch(() => {});
+        for (const d of created) {
+            for (let n = 1; n < partsOf(d); n++) await partImage(`design:${d._id}:${n}`, d, n).catch(() => {});
+        }
+    })();
     return created;
+}
+
+const THEME_FALLBACK = {
+    party: [
+        { name: 'Superhero City', mood: 'Comic skyline backdrop, balloon arch and hero cut-outs.', style: 'Bold', palette: ['#111111', '#f2c94c', '#c0392b', '#2e5aac'] },
+        { name: 'Pastel Unicorn', mood: 'Soft rainbow balloons, clouds and a sparkly cake table.', style: 'Whimsical', palette: ['#f4a6c0', '#c9b6e4', '#bfe3c9', '#ffffff'] },
+        { name: 'Jungle Safari', mood: 'Tropical leaves, animal cut-outs and earthy balloon garlands.', style: 'Playful', palette: ['#2e8b57', '#d4a017', '#6f4e37', '#f5e6c8'] },
+        { name: 'Under the Sea', mood: 'Ocean blues, bubbles and a mermaid treasure cake table.', style: 'Dreamy', palette: ['#0f6e6e', '#2e5aac', '#bfe3c9', '#f8c8a0'] },
+    ],
+    formal: [
+        { name: 'Mughal Royal', mood: 'Carved jaali arch, velvet drapes, brass lanterns and roses.', style: 'Royal', palette: ['#7a1f2b', '#d4af37', '#fffff0', '#0f7b4b'] },
+        { name: 'Marigold Mela', mood: 'Marigold strings, colourful drapes, swings and diyas.', style: 'Vibrant', palette: ['#e67e22', '#f2c94c', '#c0392b', '#2e8b57'] },
+        { name: 'White Garden', mood: 'White florals, greenery walls, crystal lights and candles.', style: 'Elegant', palette: ['#ffffff', '#9caf88', '#d4af37', '#f5e6c8'] },
+        { name: 'Midnight Glam', mood: 'Navy velvet, gold frames, chandeliers and mirror floors.', style: 'Glam', palette: ['#1f2a44', '#d4af37', '#f7e7ce', '#111111'] },
+    ],
+};
+
+/**
+ * Four theme ideas for an event, each with a mood line, a style and a palette
+ * the AI picks for that theme, so the vendor starts from a theme and never
+ * has to choose colours by hand. `idea` is the vendor's own words, if any.
+ */
+async function suggestThemes(vendorId, { eventType = 'Wedding', idea = '' } = {}) {
+    await vendorCategory(vendorId);
+    const party = /birthday|party|kid|baby|shower/i.test(eventType);
+    const own = String(idea || '').trim().slice(0, 300);
+    try {
+        const prompt = `Suggest 4 clearly different decor themes for a ${eventType} in Pakistan${own ? `, built around this idea: ${own}` : ''}.
+For each theme give a short name (2-3 words), one sentence on what the setup looks like, a style word, and a palette of 4 hex colours. The palette must be the theme's real signature colours that a professional decorator would use (for example Batman: black, golden yellow, charcoal grey; Mughal royal: maroon, antique gold, ivory, emerald), harmonious together, with no random or clashing colours.
+Reply with JSON only: {"themes":[{"name":"string","mood":"string","style":"string","palette":["#hex","#hex","#hex","#hex"]}]}`;
+        const res = await complete({ messages: [{ role: 'user', content: prompt }], temperature: 0.9, max_tokens: 700, response_format: { type: 'json_object' } });
+        const list = JSON.parse(res.choices[0]?.message?.content || '{}').themes;
+        const themes = (Array.isArray(list) ? list : []).map((t) => ({
+            name: String(t?.name || '').slice(0, 60),
+            mood: String(t?.mood || '').slice(0, 200),
+            style: String(t?.style || '').slice(0, 30),
+            palette: toHex(t?.palette).slice(0, 5),
+        })).filter((t) => t.name && t.palette.length >= 2).slice(0, 4);
+        if (themes.length >= 2) return { themes, source: 'ai' };
+    } catch (err) {
+        console.warn('[designs] theme ideas unavailable:', err.message);
+    }
+    return { themes: THEME_FALLBACK[party ? 'party' : 'formal'], source: 'template' };
 }
 
 /** One design (used by the chat assistant). */
@@ -192,12 +245,32 @@ function renderImage(design, opts = {}) {
 
 async function rerender(vendorId, id) {
     const d = await owned(vendorId, id);
-    // A custom photo link is replaced by a fresh AI picture on request.
+    // A custom photo link is replaced by a fresh AI picture on request; the
+    // pictures of its parts are made again too, in the same quality.
+    await DesignRender.deleteMany({ key: { $regex: `^design:${d._id}:[0-9]+$` } });
     const ok = await renderImage(d.toObject(), { seed: Math.floor(Math.random() * 1e6) });
     return { rendered: ok, design: (await VendorDesign.findById(id).lean()) };
 }
 
 const bytes = (d) => (d?.buffer ? Buffer.from(d.buffer) : d);
+
+let sharp = null;
+try { sharp = require('sharp'); } catch { /* optional */ }
+/**
+ * Pictures made before full HD were 1024 px wide. The first time one is shown
+ * it is brought to 1920 x 1080 and stored again, so old designs look as sharp
+ * as new ones. `save` stores the upgraded picture.
+ */
+async function hd(img, save) {
+    if (!sharp || !img?.data) return img;
+    try {
+        const { width } = await sharp(img.data).metadata();
+        if (width >= HD.width) return img;
+        const better = await toHd(img);
+        if (better !== img) await save(better);
+        return better;
+    } catch { return img; }
+}
 // A request waits this long for a picture still being made; the page asks
 // again a few seconds later and picks it up once it is stored.
 const WAIT_MS = 20000;
@@ -206,7 +279,10 @@ const within = (p) => Promise.race([p, new Promise((r) => setTimeout(() => r(nul
 /** Makes (once) and stores one extra picture of a design, keyed in DesignRender. */
 async function partImage(key, design, part) {
     const stored = await DesignRender.findOne({ key }).lean();
-    if (stored) return { data: bytes(stored.data), mime: stored.mime };
+    if (stored) {
+        return hd({ data: bytes(stored.data), mime: stored.mime },
+            (b) => DesignRender.updateOne({ key }, { $set: { data: b.data, mime: b.mime } }));
+    }
     return within(once(key, async () => {
         const img = await renderDecor(design, { part });
         if (!img) return null;
@@ -229,7 +305,9 @@ async function imageOf(id, part = 0) {
         if (!(await within(renderImage(d)))) return null;
         d = await VendorDesign.findById(id).select('+render.data +render.mime').lean();
     }
-    return d?.render?.data ? { data: bytes(d.render.data), mime: d.render.mime } : null;
+    if (!d?.render?.data) return null;
+    return hd({ data: bytes(d.render.data), mime: d.render.mime },
+        (b) => VendorDesign.updateOne({ _id: d._id }, { $set: { 'render.data': b.data, 'render.mime': b.mime } }));
 }
 
 /** A picture of one of a booking's design concepts (part as above), made on first view. */
@@ -238,7 +316,7 @@ async function conceptImage(bookingId, conceptId, part = 0) {
     const n = Math.floor(Number(part) || 0);
     const key = n > 0 ? `concept:${conceptId}:${n}` : `concept:${conceptId}`;
     const stored = await DesignRender.findOne({ key }).lean();
-    if (stored) return { data: bytes(stored.data), mime: stored.mime };
+    if (stored) return hd({ data: bytes(stored.data), mime: stored.mime }, (b) => DesignRender.updateOne({ key }, { $set: { data: b.data, mime: b.mime } }));
     const booking = await Booking.findOne({ _id: bookingId, 'designConcepts._id': conceptId })
         .select('designConcepts designBrief eventDetails eventId').populate('eventId', 'category').lean();
     const concept = booking?.designConcepts?.find((c) => String(c._id) === String(conceptId));
@@ -252,6 +330,25 @@ async function conceptImage(bookingId, conceptId, part = 0) {
     };
     if (n >= partsOf(design)) return null;
     return partImage(key, design, n);
+}
+
+/**
+ * Adds a design's picture to the vendor's profile gallery (once), so it shows
+ * with the vendor's own photos. part 0 is the whole setup, 1..4 its decor items.
+ */
+async function addToGallery(vendorId, id, part = 0) {
+    const d = await owned(vendorId, id);
+    const n = Math.max(0, Math.floor(Number(part) || 0));
+    if (n >= partsOf(d)) throw new BadRequestError('This design has no such picture.');
+    if (!(await imageOf(String(d._id), n))) throw new BadRequestError('The picture is still being made. Try again in a minute.');
+    const url = `/api/v1/designs/${d._id}/image${n ? `?part=${n}` : ''}`;
+    const profile = await VendorProfile.findOneAndUpdate(
+        { userId: vendorId },
+        { $addToSet: { portfolioImages: url } },
+        { new: true }
+    ).select('portfolioImages').lean();
+    if (!profile) throw new NotFoundError('Set up your vendor profile first.');
+    return { url, gallery: profile.portfolioImages };
 }
 
 const mine = (vendorId) => VendorDesign.find({ vendor: vendorId }).sort({ createdAt: -1 }).lean();
@@ -298,4 +395,4 @@ async function book(customerId, id, { date, location, offerPrice, message } = {}
     return booking;
 }
 
-module.exports = { generate, generateOptions, update, remove, mine, browse, book, toHex, renderImage, rerender, imageOf, conceptImage };
+module.exports = { generate, generateOptions, update, remove, mine, browse, book, toHex, renderImage, rerender, imageOf, conceptImage, addToGallery, suggestThemes };

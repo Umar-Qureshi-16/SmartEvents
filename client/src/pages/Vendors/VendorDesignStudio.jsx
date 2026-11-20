@@ -6,14 +6,22 @@ import { Eye, EyeOff, Palette, Sparkles, Trash2, ExternalLink, Image as ImageIco
 import axios from '../../api/axios';
 import { formatCurrency, useConfirm } from '../../components/ui';
 import DesignGallery from '../../components/design/DesignGallery';
+import DesignWizard from '../../components/design/DesignWizard';
 
-const TYPES = ['Wedding', 'Nikah', 'Mehndi', 'Walima', 'Birthday', 'Corporate', 'Conference'];
 const field = 'w-full bg-surface-2 border border-border rounded-xl px-3 py-2 text-sm text-fg placeholder:text-muted';
 const isUrl = (u) => /^https?:\/\/\S+$/i.test(u);
 
 function DesignCard({ d, onChange, onDelete }) {
     const [edit, setEdit] = useState({ title: d.title, totalCost: d.totalCost, image: d.image || '' });
     const [busy, setBusy] = useState(false);
+    const addToGallery = async (part) => {
+        try {
+            await axios.post(`/designs/${d._id}/gallery`, { part });
+            toast.success('Added to the gallery on your profile.');
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not add it to your gallery.');
+        }
+    };
     const dirty = edit.title !== d.title || Number(edit.totalCost) !== d.totalCost || (edit.image || '') !== (d.image || '');
 
     const save = async (extra = {}) => {
@@ -33,7 +41,7 @@ function DesignCard({ d, onChange, onDelete }) {
     return (
         <li className="bg-surface border border-border rounded-3xl overflow-hidden flex flex-col">
             <div className="relative p-2 pb-0">
-                <DesignGallery design={d} src={d.image} path={(n) => `/designs/${d._id}/image${n ? `?part=${n}` : ''}`} imageClassName="aspect-[16/10] rounded-2xl" />
+                <DesignGallery design={d} src={d.image} path={(n) => `/designs/${d._id}/image${n ? `?part=${n}` : ''}`} imageClassName="aspect-video rounded-2xl" onAddToGallery={addToGallery} />
                 <span className={`absolute top-4 left-4 text-[10px] font-black uppercase rounded-full px-2 py-0.5 ${d.published ? 'bg-success text-white' : 'bg-black/60 text-white'}`}>{d.published ? 'Published' : 'Draft'}</span>
                 {d.source === 'ai' && <span className="absolute top-4 right-4 text-[10px] font-black uppercase rounded-full px-2 py-0.5 bg-black/60 text-white">AI</span>}
             </div>
@@ -91,31 +99,11 @@ export default function VendorDesignStudio() {
     const confirm = useConfirm();
     const me = useSelector((s) => s.auth.user);
     const [designs, setDesigns] = useState(null);
-    const [form, setForm] = useState({ theme: '', style: '', eventType: 'Wedding', budget: '', colors: '', idea: '' });
-    const [busy, setBusy] = useState(false);
-    const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
     const load = useCallback(() => {
         axios.get('/designs/mine').then((r) => setDesigns(r.data.data)).catch(() => { setDesigns([]); toast.error('Could not load your designs.'); });
     }, []);
     useEffect(() => { load(); }, [load]);
-
-    const generate = async (e) => {
-        e.preventDefault();
-        if (!(Number(form.budget) > 0)) { toast.error('Give the price the design should come to.'); return; }
-        const colors = form.colors.split(/[\s,]+/).filter(Boolean);
-        setBusy(true);
-        try {
-            const res = await axios.post('/designs/generate', { ...form, budget: Number(form.budget), colors, count: 3 });
-            const made = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
-            setDesigns((list) => [...made, ...(list || [])]);
-            toast.success(`${made.length} design options drafted. Pictures appear one by one; publish the ones you like.`);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Could not draft the design.');
-        } finally {
-            setBusy(false);
-        }
-    };
 
     const del = async (d) => {
         if (!(await confirm({ title: 'Delete this design?', message: `"${d.title}" will be removed from your studio and profile. This cannot be undone.`, confirmLabel: 'Delete', tone: 'danger' }))) return;
@@ -134,46 +122,15 @@ export default function VendorDesignStudio() {
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-3">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-black flex items-center gap-2"><Palette className="text-brand" aria-hidden="true" />Design studio</h1>
-                    <p className="text-sm text-muted">Create designs with AI, set your price and publish them on your profile. Organizers can book a design directly. You can also ask the chat: “Create a royal Mughal mehndi design for 800”.</p>
+                    <p className="text-sm text-muted">Smartie designs with you step by step: each design comes with 4 full HD pictures in 3D and an animated 2D view. Set your price, publish it on your profile, and organizers can book it directly.</p>
                 </div>
                 {me && <Link to={`/vendor/${me._id || me.id}`} className="inline-flex items-center gap-1.5 border border-border text-fg hover:bg-fg/5 text-sm font-bold rounded-xl px-4 py-2.5 shrink-0"><ExternalLink size={15} aria-hidden="true" />See it on my profile ({published})</Link>}
             </header>
 
-            <form onSubmit={generate} className="bg-surface border border-border rounded-3xl p-5 grid grid-cols-2 md:grid-cols-7 gap-3 items-end">
-                <div className="col-span-2">
-                    <label htmlFor="ds-theme" className="text-[11px] font-bold text-fg block mb-1">Theme</label>
-                    <input id="ds-theme" value={form.theme} onChange={set('theme')} placeholder="Mughal garden" className={field} />
-                </div>
-                <div>
-                    <label htmlFor="ds-style" className="text-[11px] font-bold text-fg block mb-1">Style</label>
-                    <input id="ds-style" value={form.style} onChange={set('style')} placeholder="Royal" className={field} />
-                </div>
-                <div>
-                    <label htmlFor="ds-type" className="text-[11px] font-bold text-fg block mb-1">Event</label>
-                    <select id="ds-type" value={form.eventType} onChange={set('eventType')} className={field}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select>
-                </div>
-                <div>
-                    <label htmlFor="ds-budget" className="text-[11px] font-bold text-fg block mb-1">Price</label>
-                    <input id="ds-budget" type="number" min="1" value={form.budget} onChange={set('budget')} placeholder="800" className={field} />
-                </div>
-                <div>
-                    <label htmlFor="ds-colors" className="text-[11px] font-bold text-fg block mb-1">Colours</label>
-                    <input id="ds-colors" value={form.colors} onChange={set('colors')} placeholder="maroon, gold" className={field} />
-                </div>
-                <button type="submit" disabled={busy} className="col-span-2 md:col-span-1 inline-flex items-center justify-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-sm font-bold rounded-xl px-4 py-2 disabled:opacity-50">
-                    <Sparkles size={15} aria-hidden="true" />{busy ? 'Designing…' : 'Create 3 options'}
-                </button>
-                <div className="col-span-2 md:col-span-7">
-                    <label htmlFor="ds-idea" className="text-[11px] font-bold text-fg block mb-1">Your own design idea <span className="font-normal text-muted">(optional)</span></label>
-                    <textarea id="ds-idea" rows={2} maxLength={600} value={form.idea} onChange={set('idea')}
-                        placeholder="e.g. Spider-Man birthday: city skyline backdrop, web ceiling, red and blue balloon arch, cake table with a Spider-Man topper"
-                        className={`${field} resize-y`} />
-                    <p className="text-[10px] text-muted mt-1">Smartie makes three different options for your theme and idea, each with pictures of the full setup and its main pieces.</p>
-                </div>
-            </form>
+            <DesignWizard onCreated={(made) => setDesigns((list) => [...made, ...(list || [])])} />
 
             {designs === null ? <div className="h-48 rounded-3xl bg-surface-2 animate-pulse" /> : designs.length === 0 ? (
-                <p className="text-sm text-muted text-center py-10">No designs yet. Describe a look above and Smartie drafts the first one.</p>
+                <p className="text-sm text-muted text-center py-10">No designs yet. Answer Smartie's questions above to create your first one.</p>
             ) : (
                 <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {designs.map((d) => <DesignCard key={d._id} d={d} onDelete={del} onChange={(n) => setDesigns((list) => list.map((x) => (x._id === n._id ? n : x)))} />)}

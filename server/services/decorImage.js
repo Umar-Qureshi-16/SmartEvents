@@ -52,7 +52,7 @@ function scene(eventType = '') {
 }
 
 // How many pictures a design gets: the whole setup, then one per decor item.
-const MAX_PARTS = 5;
+const MAX_PARTS = 4;
 const partsOf = (d = {}) => Math.min(MAX_PARTS, 1 + (d.elements || []).filter((e) => e?.item).length);
 
 /**
@@ -80,8 +80,10 @@ function buildPrompt(d = {}, part = 0) {
         d.style ? `${short(d.style, 30)} style` : null,
         items.length ? items.join(', ') : null,
         idea || null,
-        `${el ? 'close-up' : 'wide view'}, professional event photo, no people, no text`,
-    ].filter(Boolean).join(', ').slice(0, 480);
+        el ? 'close-up detail shot' : 'full wide shot of the whole setup, centred and symmetrical',
+        'photorealistic 3D render of a real event decoration, professional event decor photography',
+        'soft cinematic lighting, sharp focus, highly detailed, rich textures, no people, no text, no watermark',
+    ].filter(Boolean).join(', ').slice(0, 640);
 }
 
 async function fromOpenRouter(prompt) {
@@ -101,6 +103,38 @@ async function fromOpenRouter(prompt) {
         return null;
     }
     return { data: Buffer.from(m[2], 'base64'), mime: m[1] };
+}
+
+// Pictures are delivered in full HD (1920 x 1080).
+const HD = { width: 1920, height: 1080 };
+let sharp = null;
+try { sharp = require('sharp'); } catch { /* optional: pictures are then stored as received */ }
+
+/**
+ * Brings a picture to full HD: crops it to 16:9, scales it to 1920 x 1080 with
+ * a high-quality filter, sharpens it lightly and saves it as a high-quality JPEG.
+ */
+async function toHd(img) {
+    if (!sharp || !img?.data) return img;
+    try {
+        let pipeline = sharp(img.data);
+        // The free picture tier stamps its logo in the bottom-right corner;
+        // a picture from it is cropped just above that strip first.
+        if (img.logo) {
+            const { width, height } = await sharp(img.data).metadata();
+            pipeline = sharp(await pipeline.extract({ left: 0, top: 0, width, height: Math.round(height * 0.93) }).toBuffer());
+        }
+        const data = await pipeline
+            .resize(HD.width, HD.height, { fit: 'cover', position: 'attention', kernel: 'lanczos3' })
+            .sharpen({ sigma: 0.8 })
+            .modulate({ saturation: 1.06 })
+            .jpeg({ quality: 90, mozjpeg: true, chromaSubsampling: '4:4:4' })
+            .toBuffer();
+        return { data, mime: 'image/jpeg' };
+    } catch (err) {
+        console.warn('[decor-image] HD finishing skipped:', err.message);
+        return img;
+    }
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -124,7 +158,7 @@ async function fromPollinationsOnce(prompt, seed) {
     if (wait > 0) await sleep(wait);
     lastRequestAt = Date.now();
     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`
-        + `?width=1024&height=640&nologo=true&model=flux&seed=${seed}`;
+        + `?width=${HD.width}&height=${HD.height}&nologo=true&model=flux&seed=${seed}`;
     const res = await fetch(url, {
         headers: POLLEN_KEY ? { Authorization: `Bearer ${POLLEN_KEY}` } : {},
         signal: AbortSignal.timeout(60000),
@@ -136,12 +170,12 @@ async function fromPollinationsOnce(prompt, seed) {
         return { status: res.status, retryAfter: after, message: body?.error?.message };
     }
     const data = Buffer.from(await res.arrayBuffer());
-    return data.length > 1000 ? { data, mime } : { status: 'empty' };
+    return data.length > 1000 ? { data, mime, logo: true } : { status: 'empty' };
 }
 
 function fromPollinations(prompt, seed) {
     return queued(async () => {
-        for (let attempt = 1; attempt <= 3; attempt++) {
+        for (let attempt = 1; attempt <= 5; attempt++) {
             const r = await fromPollinationsOnce(prompt, seed);
             if (r.data) return r;
             console.warn(`[decor-image] Pollinations unavailable (${r.status}${r.message ? `: ${r.message}` : ''}), attempt ${attempt}`);
@@ -159,7 +193,7 @@ async function renderDecor(design, { seed, part = 0 } = {}) {
     const prompt = buildPrompt(design, part);
     const s = Number.isInteger(seed) ? seed : Math.floor(Math.random() * 1e6);
     try {
-        return (await fromOpenRouter(prompt)) || (await fromPollinations(prompt, s));
+        return toHd((await fromOpenRouter(prompt)) || (await fromPollinations(prompt, s)));
     } catch (err) {
         console.warn('[decor-image] render failed:', err.message);
         return null;
@@ -175,4 +209,4 @@ function once(key, fn) {
     return inFlight.get(key);
 }
 
-module.exports = { renderDecor, buildPrompt, colourName, once, partsOf, MAX_PARTS };
+module.exports = { renderDecor, buildPrompt, colourName, once, partsOf, toHd, HD, MAX_PARTS };

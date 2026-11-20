@@ -105,6 +105,23 @@ describe('Vendor: design library with AI', () => {
         expect((await api().post('/api/v1/designs/generate').set(auth(org.token)).send({ budget: 300 })).status).toBe(403);
     });
 
+    test('a vendor adds a design picture to their profile gallery; nobody else can', async () => {
+        const { v } = await vendor('decoration', []);
+        const other = await vendor('decoration', []);
+        const [d] = (await api().post('/api/v1/designs/generate').set(auth(v.token)).send({ budget: 300, theme: 'Batman', eventType: 'Birthday' })).body.data;
+        expect((await api().post(`/api/v1/designs/${d._id}/gallery`).set(auth(other.v.token)).send({ part: 0 })).status).toBe(403);
+        // No picture exists yet (tests make none), so it asks the vendor to wait.
+        const early = await api().post(`/api/v1/designs/${d._id}/gallery`).set(auth(v.token)).send({ part: 0 });
+        expect(early.status).toBe(400);
+        await require('../../models/VendorDesign').updateOne({ _id: d._id }, { $set: { 'render.data': Buffer.alloc(2000, 1), 'render.mime': 'image/jpeg' } });
+        const res = await api().post(`/api/v1/designs/${d._id}/gallery`).set(auth(v.token)).send({ part: 0 });
+        expect(res.status).toBe(200);
+        expect(res.body.data.url).toBe(`/api/v1/designs/${d._id}/image`);
+        await api().post(`/api/v1/designs/${d._id}/gallery`).set(auth(v.token)).send({ part: 0 });
+        const profile = await VendorProfile.findOne({ userId: v.id }).lean();
+        expect(profile.portfolioImages.filter((u) => u === res.body.data.url)).toHaveLength(1);
+    });
+
     test('a vendor publishes an event with a photo through Smartie', async () => {
         const { v } = await vendor('venue', []);
         const r = await execute(v.token, 'create_event', {
