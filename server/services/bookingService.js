@@ -302,6 +302,68 @@ class BookingService {
         return booking;
     }
 
+    /**
+     * Changes your own latest offer (price and note) while the other side has
+     * not answered it yet. The previous price is kept on the entry.
+     */
+    async reviseOffer(bookingId, price, message, userId) {
+        const booking = await Booking.findById(bookingId);
+        if (!booking) throw new NotFoundError('Booking not found.');
+        this.assertParty(booking, userId);
+        if (!['pending', 'negotiating'].includes(booking.status)) {
+            throw new ConflictError(`Cannot change an offer on a ${booking.status} booking.`);
+        }
+        const last = booking.negotiationHistory[booking.negotiationHistory.length - 1];
+        if (!last || String(last.offeredBy) !== String(userId)) {
+            throw new ConflictError('You can only change your own latest offer, before the other side answers it.');
+        }
+        if (last.previousPrice === undefined) last.previousPrice = last.price;
+        last.price = price;
+        if (message !== undefined) last.message = message;
+        last.editedAt = new Date();
+        booking.offerPrice = price;
+        try {
+            await booking.save();
+        } catch (err) {
+            if (err.name === 'VersionError') {
+                throw new ConflictError('The other side just answered this offer. Refresh to see their reply.');
+            }
+            throw err;
+        }
+        socketManager.emitToRoom(bookingId.toString(), 'offer-revised', { bookingId, price, actorId: userId });
+        const targetId = String(userId) === String(booking.customerId) ? booking.vendorId : booking.customerId;
+        await notificationService.createNotification({
+            recipient: targetId,
+            title: 'Offer changed',
+            message: `The offer on your booking was changed to $${price}.`,
+            type: 'booking',
+            relatedId: booking._id
+        }).catch(() => {});
+        return booking;
+    }
+
+    /** A chat message between the two parties; allowed at any stage. */
+    async addChatMessage(bookingId, text, userId) {
+        const clean = String(text || '').trim();
+        if (!clean) throw new BadRequestError('Write a message first.');
+        if (clean.length > 1000) throw new BadRequestError('Messages are limited to 1000 characters.');
+        const booking = await Booking.findById(bookingId).select('customerId vendorId');
+        if (!booking) throw new NotFoundError('Booking not found.');
+        this.assertParty(booking, userId);
+        const message = { _id: new (require('mongoose').Types.ObjectId)(), author: userId, text: clean, createdAt: new Date() };
+        await Booking.updateOne({ _id: bookingId }, { $push: { chatMessages: { $each: [message], $slice: -500 } } });
+        socketManager.emitToRoom(bookingId.toString(), 'negotiation-message', { bookingId, actorId: userId, message });
+        const targetId = String(userId) === String(booking.customerId) ? booking.vendorId : booking.customerId;
+        await notificationService.createNotification({
+            recipient: targetId,
+            title: 'New message',
+            message: clean.slice(0, 120),
+            type: 'booking',
+            relatedId: booking._id
+        }).catch(() => {});
+        return message;
+    }
+
     async updateStatus(bookingId, status, userId) {
         const booking = await Booking.findById(bookingId);
         if (!booking) throw new NotFoundError('Booking not found.');

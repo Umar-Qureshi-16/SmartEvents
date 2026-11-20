@@ -43,7 +43,18 @@ const bookingSchema = new mongoose.Schema({
             default: 'counter'
         },
         offeredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        timestamp: { type: Date, default: Date.now }
+        timestamp: { type: Date, default: Date.now },
+        // Set when the author changed this offer before the other side answered.
+        previousPrice: Number,
+        editedAt: Date
+    }],
+
+    // Free chat between the two parties next to the offers. Kept apart from
+    // negotiationHistory so a message never changes whose turn it is to offer.
+    chatMessages: [{
+        author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        text: { type: String, maxlength: 1000, required: true },
+        createdAt: { type: Date, default: Date.now }
     }],
 
     // Design Studio: what the event should look like, shared by both parties.

@@ -75,6 +75,17 @@ exports.negotiate = asyncHandler(async (req, res, next) => {
     res.json({ success: true, data: booking, message: 'Counter-offer submitted.' });
 });
 
+exports.reviseOffer = asyncHandler(async (req, res, next) => {
+    const { price, message } = req.body;
+    const booking = await bookingService.reviseOffer(req.params.id, price, message, req.user.id);
+    res.json({ success: true, data: booking, message: 'Offer changed.' });
+});
+
+exports.addChatMessage = asyncHandler(async (req, res, next) => {
+    const message = await bookingService.addChatMessage(req.params.id, req.body?.text, req.user.id);
+    res.status(201).json({ success: true, data: message });
+});
+
 exports.acceptBooking = asyncHandler(async (req, res, next) => {
     const booking = await bookingService.updateStatus(req.params.id, 'confirmed', req.user.id);
     res.json({ success: true, data: booking, message: 'Booking confirmed.' });

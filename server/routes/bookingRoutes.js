@@ -11,6 +11,10 @@ router.get('/organizer/dashboard', verifyToken, authorize('provider', 'admin', '
 router.get('/organizer', verifyToken, authorize('provider', 'admin', 'superadmin'), bookingController.getOrganizerBookings);
 router.get('/:id', verifyToken, bookingController.getBookingById);
 router.post('/:id/negotiate', verifyToken, validate(negotiateSchema), bookingController.negotiate);
+// Change your own latest offer before the other side answers it.
+router.put('/:id/offer', verifyToken, validate(negotiateSchema), bookingController.reviseOffer);
+// Chat next to the offers, at any stage of the booking.
+router.post('/:id/messages', verifyToken, bookingController.addChatMessage);
 router.post('/:id/dispute', verifyToken, validate(disputeSchema), bookingController.raiseDispute);
 router.put('/:id/accept', verifyToken, bookingController.acceptBooking);
 router.put('/:id/reject', verifyToken, bookingController.rejectBooking);
