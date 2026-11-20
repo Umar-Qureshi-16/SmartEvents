@@ -95,7 +95,11 @@ describe('Vendor: design library with AI', () => {
     test('only the owner can edit a design; organizers cannot create them', async () => {
         const { v } = await vendor('decoration', []);
         const other = await vendor('decoration', []);
-        const d = (await api().post('/api/v1/designs/generate').set(auth(v.token)).send({ budget: 300 })).body.data;
+        const options = (await api().post('/api/v1/designs/generate').set(auth(v.token)).send({ budget: 300, theme: 'Spider-Man', eventType: 'Birthday', idea: 'Web ceiling and a city skyline' })).body.data;
+        expect(options).toHaveLength(3);
+        expect(new Set(options.map((o) => o.title)).size).toBe(3);
+        expect(options.every((o) => o.totalCost <= 300 && o.idea === 'Web ceiling and a city skyline' && !o.published)).toBe(true);
+        const d = options[0];
         expect((await api().put(`/api/v1/designs/${d._id}`).set(auth(other.v.token)).send({ published: true })).status).toBe(403);
         const org = await makeUser('customer');
         expect((await api().post('/api/v1/designs/generate').set(auth(org.token)).send({ budget: 300 })).status).toBe(403);

@@ -19,8 +19,8 @@ const sendImage = (find) => async (req, res, next) => {
         res.set('Cache-Control', 'public, max-age=86400').type(img.mime).send(img.data);
     } catch (err) { next(err); }
 };
-router.get('/:id/image', sendImage((req) => designs.imageOf(req.params.id)));
-router.get('/concepts/:bookingId/:conceptId/image', sendImage((req) => designs.conceptImage(req.params.bookingId, req.params.conceptId)));
+router.get('/:id/image', sendImage((req) => designs.imageOf(req.params.id, req.query.part)));
+router.get('/concepts/:bookingId/:conceptId/image', sendImage((req) => designs.conceptImage(req.params.bookingId, req.params.conceptId, req.query.part)));
 
 // Organizers book a design.
 router.post('/:id/book', verifyToken, authorize('customer'), wrap(async (req) => {
@@ -30,7 +30,8 @@ router.post('/:id/book', verifyToken, authorize('customer'), wrap(async (req) =>
 
 // Vendors manage their own library.
 router.get('/mine', verifyToken, authorize('provider'), wrap((req) => designs.mine(req.user.id)));
-router.post('/generate', verifyToken, authorize('provider'), wrap((req) => designs.generate(req.user.id, req.body || {}), 201));
+// Several options for one theme (count 1-3, default 3), so the vendor can choose.
+router.post('/generate', verifyToken, authorize('provider'), wrap((req) => designs.generateOptions(req.user.id, req.body || {}, req.body?.count ?? 3), 201));
 router.post('/:id/render', verifyToken, authorize('provider'), wrap((req) => designs.rerender(req.user.id, req.params.id)));
 router.put('/:id', verifyToken, authorize('provider'), wrap((req) => designs.update(req.user.id, req.params.id, req.body || {})));
 router.delete('/:id', verifyToken, authorize('provider'), wrap(async (req) => { await designs.remove(req.user.id, req.params.id); return null; }));

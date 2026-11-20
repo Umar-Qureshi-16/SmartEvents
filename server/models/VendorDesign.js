@@ -11,6 +11,8 @@ const vendorDesignSchema = new mongoose.Schema({
     eventType: { type: String, default: 'Wedding', maxlength: 60 },
     theme: { type: String, maxlength: 120 },
     style: { type: String, maxlength: 120 },
+    // The vendor's or client's own idea the design was made from.
+    idea: { type: String, maxlength: 600 },
     summary: { type: String, maxlength: 800 },
     palette: [{ type: String, match: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i }],
     elements: [{

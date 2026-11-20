@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import { Eye, EyeOff, Palette, Sparkles, Trash2, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import axios from '../../api/axios';
 import { formatCurrency, useConfirm } from '../../components/ui';
-import DesignPicture from '../../components/design/DesignPicture';
+import DesignGallery from '../../components/design/DesignGallery';
 
 const TYPES = ['Wedding', 'Nikah', 'Mehndi', 'Walima', 'Birthday', 'Corporate', 'Conference'];
 const field = 'w-full bg-surface-2 border border-border rounded-xl px-3 py-2 text-sm text-fg placeholder:text-muted';
@@ -32,15 +32,16 @@ function DesignCard({ d, onChange, onDelete }) {
 
     return (
         <li className="bg-surface border border-border rounded-3xl overflow-hidden flex flex-col">
-            <div className="aspect-[16/10] relative bg-surface-2">
-                <DesignPicture design={d} src={d.image} path={`/designs/${d._id}/image`} className="w-full h-full" />
-                <span className={`absolute top-3 left-3 text-[10px] font-black uppercase rounded-full px-2 py-0.5 ${d.published ? 'bg-success text-white' : 'bg-black/60 text-white'}`}>{d.published ? 'Published' : 'Draft'}</span>
-                {d.source === 'ai' && <span className="absolute top-3 right-3 text-[10px] font-black uppercase rounded-full px-2 py-0.5 bg-black/60 text-white">AI</span>}
+            <div className="relative p-2 pb-0">
+                <DesignGallery design={d} src={d.image} path={(n) => `/designs/${d._id}/image${n ? `?part=${n}` : ''}`} imageClassName="aspect-[16/10] rounded-2xl" />
+                <span className={`absolute top-4 left-4 text-[10px] font-black uppercase rounded-full px-2 py-0.5 ${d.published ? 'bg-success text-white' : 'bg-black/60 text-white'}`}>{d.published ? 'Published' : 'Draft'}</span>
+                {d.source === 'ai' && <span className="absolute top-4 right-4 text-[10px] font-black uppercase rounded-full px-2 py-0.5 bg-black/60 text-white">AI</span>}
             </div>
             <div className="p-4 space-y-3 flex-1 flex flex-col">
                 <label htmlFor={`t-${d._id}`} className="sr-only">Title</label>
                 <input id={`t-${d._id}`} value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} className={`${field} font-bold`} />
                 {d.summary && <p className="text-xs text-muted leading-relaxed">{d.summary}</p>}
+                {d.idea && <p className="text-[11px] text-muted"><span className="font-bold text-fg">Idea:</span> {d.idea}</p>}
                 <div className="flex gap-1" aria-label="Colour palette">{(d.palette || []).map((c) => <span key={c} title={c} className="w-6 h-6 rounded-full border border-border" style={{ background: c }} />)}</div>
                 <ul className="text-xs space-y-1">
                     {d.elements.map((e) => (
@@ -90,7 +91,7 @@ export default function VendorDesignStudio() {
     const confirm = useConfirm();
     const me = useSelector((s) => s.auth.user);
     const [designs, setDesigns] = useState(null);
-    const [form, setForm] = useState({ theme: '', style: '', eventType: 'Wedding', budget: '', colors: '', notes: '' });
+    const [form, setForm] = useState({ theme: '', style: '', eventType: 'Wedding', budget: '', colors: '', idea: '' });
     const [busy, setBusy] = useState(false);
     const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -105,9 +106,10 @@ export default function VendorDesignStudio() {
         const colors = form.colors.split(/[\s,]+/).filter(Boolean);
         setBusy(true);
         try {
-            const res = await axios.post('/designs/generate', { ...form, budget: Number(form.budget), colors });
-            setDesigns((list) => [res.data.data, ...(list || [])]);
-            toast.success('Design drafted. Its picture appears in a few seconds; review it, then publish.');
+            const res = await axios.post('/designs/generate', { ...form, budget: Number(form.budget), colors, count: 3 });
+            const made = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+            setDesigns((list) => [...made, ...(list || [])]);
+            toast.success(`${made.length} design options drafted. Pictures appear one by one; publish the ones you like.`);
         } catch (err) {
             toast.error(err.response?.data?.message || 'Could not draft the design.');
         } finally {
@@ -159,11 +161,14 @@ export default function VendorDesignStudio() {
                     <input id="ds-colors" value={form.colors} onChange={set('colors')} placeholder="maroon, gold" className={field} />
                 </div>
                 <button type="submit" disabled={busy} className="col-span-2 md:col-span-1 inline-flex items-center justify-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-sm font-bold rounded-xl px-4 py-2 disabled:opacity-50">
-                    <Sparkles size={15} aria-hidden="true" />{busy ? 'Designing…' : 'Create with AI'}
+                    <Sparkles size={15} aria-hidden="true" />{busy ? 'Designing…' : 'Create 3 options'}
                 </button>
                 <div className="col-span-2 md:col-span-7">
-                    <label htmlFor="ds-notes" className="sr-only">Notes</label>
-                    <input id="ds-notes" value={form.notes} onChange={set('notes')} placeholder="Anything else (guest count, must-have items, venue type)…" className={field} />
+                    <label htmlFor="ds-idea" className="text-[11px] font-bold text-fg block mb-1">Your own design idea <span className="font-normal text-muted">(optional)</span></label>
+                    <textarea id="ds-idea" rows={2} maxLength={600} value={form.idea} onChange={set('idea')}
+                        placeholder="e.g. Spider-Man birthday: city skyline backdrop, web ceiling, red and blue balloon arch, cake table with a Spider-Man topper"
+                        className={`${field} resize-y`} />
+                    <p className="text-[10px] text-muted mt-1">Smartie makes three different options for your theme and idea, each with pictures of the full setup and its main pieces.</p>
                 </div>
             </form>
 

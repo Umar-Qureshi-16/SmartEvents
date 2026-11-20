@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { Palette, Sparkles, Save, Plus, Trash2, Check, Send, Loader2, Image as ImageIcon, Users, Wallet } from 'lucide-react';
 import axios from '../../api/axios';
-import DesignPicture from './DesignPicture';
+import DesignGallery from './DesignGallery';
 import { useWebSockets } from '../../context/WebSocketContext';
 
 const STYLES = ['Traditional', 'Modern', 'Minimal', 'Royal', 'Rustic', 'Floral', 'Boho', 'Glam'];
@@ -190,8 +190,9 @@ export default function DesignStudio({ bookingId, currentUserId }) {
                     </div>
 
                     <div className="space-y-1">
-                        <label htmlFor="ds-notes" className="text-xs font-bold text-fg">What you have in mind</label>
-                        <textarea id="ds-notes" rows={3} className={`${field} resize-y`} value={brief.notes} onChange={(e) => edit({ notes: e.target.value })} placeholder="e.g. Floral swing for the bride, marigold entrance, warm fairy lights" />
+                        <label htmlFor="ds-notes" className="text-xs font-bold text-fg">Your own design idea</label>
+                        <textarea id="ds-notes" rows={3} className={`${field} resize-y`} value={brief.notes} onChange={(e) => edit({ notes: e.target.value })} placeholder="e.g. Spider-Man theme: city skyline backdrop, web ceiling, red and blue balloon arch" />
+                        <p className="text-[10px] text-muted">Smartie follows this idea in the three options and their pictures.</p>
                     </div>
 
                     <div className="space-y-2">
@@ -232,10 +233,11 @@ export default function DesignStudio({ bookingId, currentUserId }) {
                         const pct = budget ? Math.min(100, Math.round((c.totalCost / budget) * 100)) : 0;
                         return (
                             <article key={c._id} className={`bg-surface border rounded-3xl p-5 space-y-3 ${c.selected ? 'border-success ring-2 ring-success/30' : 'border-border'}`}>
-                                <DesignPicture
+                                <DesignGallery
                                     design={{ ...c, theme: design.brief?.theme, style: design.brief?.style }}
-                                    path={`/designs/concepts/${bookingId}/${c._id}/image`}
-                                    className="aspect-[16/10] rounded-2xl -mx-1"
+                                    path={(n) => `/designs/concepts/${bookingId}/${c._id}/image${n ? `?part=${n}` : ''}`}
+                                    className="-mx-1"
+                                    imageClassName="aspect-[16/10] rounded-2xl"
                                 />
                                 <div className="flex items-start justify-between gap-3">
                                     <div>

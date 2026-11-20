@@ -51,18 +51,35 @@ function scene(eventType = '') {
     return SCENES[key] || SCENES.wedding;
 }
 
-/** The text prompt for one design. */
-function buildPrompt(d = {}) {
+// How many pictures a design gets: the whole setup, then one per decor item.
+const MAX_PARTS = 5;
+const partsOf = (d = {}) => Math.min(MAX_PARTS, 1 + (d.elements || []).filter((e) => e?.item).length);
+
+/**
+ * The text prompt for one picture of a design. Part 0 is the whole setup;
+ * part n is the design's n-th decor item (entrance, cake table, backdrop...).
+ * The theme leads, so a "Spider-Man" birthday looks like Spider-Man and not
+ * like a generic stage; the organizer's own idea (`idea`) is included too.
+ */
+function buildPrompt(d = {}, part = 0) {
     const colours = [...new Set((d.palette || []).map(colourName).filter(Boolean))].slice(0, 4);
-    const items = (d.elements || []).map((e) => e.item).filter(Boolean).slice(0, 6);
+    const event = String(d.eventType || 'event').toLowerCase();
+    const themed = d.theme ? `${d.theme} themed ${event}` : event;
+    const idea = String(d.idea || '').slice(0, 220);
+    const el = part > 0 ? (d.elements || []).filter((e) => e?.item)[part - 1] : null;
+    const subject = el
+        ? `the ${el.item} decoration set up inside a ${themed} party venue${el.description ? ` (${el.description})` : ''}, shown as a real styled event decor piece with props, fabric, balloons or flowers around it`
+        : `the complete ${themed} decoration setup${d.summary ? `: ${String(d.summary).slice(0, 220)}` : ''}, ${d.theme ? `styled like ${scene(d.eventType)}` : scene(d.eventType)}`;
+    const items = el ? [] : (d.elements || []).map((e) => e.item).filter(Boolean).slice(0, 6);
     return [
-        `Professional photograph of ${scene(d.eventType)}`,
-        d.theme ? `themed "${d.theme}"` : null,
-        d.style ? `in a ${d.style} style` : null,
+        `Professional photograph of ${subject}`,
+        d.theme ? `strongly following the "${d.theme}" theme with its signature colours, motifs and props` : null,
+        d.style ? `${d.style} style` : null,
         colours.length ? `colour scheme ${colours.join(', ')}` : null,
         items.length ? `featuring ${items.join(', ')}` : null,
-        'wide angle, warm ambient lighting, highly detailed, realistic event decor photography, empty venue, no people, no text, no watermark',
-    ].filter(Boolean).join(', ').slice(0, 900);
+        idea ? `client's idea: ${idea}` : null,
+        `${el ? 'detailed' : 'wide angle'}, warm ambient lighting, highly detailed, realistic event decor photography, empty venue, no people, no text, no watermark`,
+    ].filter(Boolean).join(', ').slice(0, 1200);
 }
 
 async function fromOpenRouter(prompt) {
@@ -135,9 +152,9 @@ function fromPollinations(prompt, seed) {
 }
 
 /** A picture for the design, or null when no image service answered. */
-async function renderDecor(design, { seed } = {}) {
+async function renderDecor(design, { seed, part = 0 } = {}) {
     if (env.isTest) return null;
-    const prompt = buildPrompt(design);
+    const prompt = buildPrompt(design, part);
     const s = Number.isInteger(seed) ? seed : Math.floor(Math.random() * 1e6);
     try {
         return (await fromOpenRouter(prompt)) || (await fromPollinations(prompt, s));
@@ -156,4 +173,4 @@ function once(key, fn) {
     return inFlight.get(key);
 }
 
-module.exports = { renderDecor, buildPrompt, colourName, once };
+module.exports = { renderDecor, buildPrompt, colourName, once, partsOf, MAX_PARTS };

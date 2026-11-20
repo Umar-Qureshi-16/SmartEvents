@@ -11,7 +11,7 @@ import VendorReviews from '../../components/reviews/VendorReviews';
 import StarRating from '../../components/reviews/StarRating';
 import { formatCurrency } from '../../components/ui';
 import { DetailModal } from '../../components/vendor/ProfileDetails';
-import DesignPicture from '../../components/design/DesignPicture';
+import DesignGallery from '../../components/design/DesignGallery';
 
 const FIELD = {
     venue: 'Venue & hall', catering: 'Catering', decoration: 'Decoration & design',
@@ -60,7 +60,7 @@ function PackageCard({ pkg, onBook }) {
 function DesignCard({ d, onBook }) {
     return (
         <article className="bg-surface border border-border rounded-3xl overflow-hidden flex flex-col hover:border-brand/50 hover:shadow-card transition-all">
-            <DesignPicture design={d} src={d.image} path={`/designs/${d._id}/image`} className="aspect-[16/10]" />
+            <DesignGallery design={d} src={d.image} path={(n) => `/designs/${d._id}/image${n ? `?part=${n}` : ''}`} className="p-2 pb-0" imageClassName="aspect-[16/10] rounded-2xl" />
             <div className="p-5 flex flex-col gap-3 flex-1">
                 <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-brand">{d.eventType}{d.theme ? ` · ${d.theme}` : ''}</p>

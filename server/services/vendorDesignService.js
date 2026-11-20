@@ -9,7 +9,7 @@ const VendorProfile = require('../models/VendorProfile');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
 const { complete } = require('./groqClient');
-const { renderDecor, once } = require('./decorImage');
+const { renderDecor, once, partsOf } = require('./decorImage');
 const DesignRender = require('../models/DesignRender');
 const { BadRequestError, ForbiddenError, NotFoundError } = require('../utils/AppError');
 
@@ -75,35 +75,62 @@ async function vendorCategory(vendorId) {
     return p;
 }
 
-/** Drafts a design with the AI (template if the AI is unavailable); saved unpublished. */
-async function generate(vendorId, raw = {}) {
+const DIRECTIONS = ['Classic', 'Modern', 'Grand'];
+
+/**
+ * Drafts `count` different takes on the vendor's theme (or their own idea)
+ * with the AI, falling back to templates; all saved unpublished so the vendor
+ * keeps the ones they like. Each gets a picture in the background.
+ */
+async function generateOptions(vendorId, raw = {}, count = 3) {
     const input = { ...raw, colors: toHex(raw.colors) };
     const budget = Math.max(0, Number(input.budget) || 0);
     if (!budget) throw new BadRequestError('Give the price this design should come to.');
+    const n = Math.min(Math.max(Number(count) || 1, 1), 3);
+    const idea = String(input.idea || input.notes || '').trim().slice(0, 600);
     const profile = await vendorCategory(vendorId);
-    let design = null;
+    let designs = [];
     let source = 'ai';
     try {
-        const prompt = `You are a ${profile.category} vendor in Pakistan designing a sellable package for a ${input.eventType || 'wedding'}.
-Theme: ${input.theme || 'open'}. Style: ${input.style || 'open'}. Colours wanted: ${(input.colors || []).join(', ') || 'your choice'}. Notes: ${input.notes || 'none'}.
-The whole design must cost at most ${budget}. List 4 to 7 concrete items with a cost each.
-Reply with JSON only: {"title":"string","summary":"two sentences","palette":["#hex",...4],"elements":[{"item":"string","description":"string","cost":number}]}`;
-        const res = await complete({ messages: [{ role: 'user', content: prompt }], temperature: 0.7, response_format: { type: 'json_object' } });
-        design = clean(JSON.parse(res.choices[0]?.message?.content || '{}'), budget);
+        const prompt = `You are a ${profile.category} vendor in Pakistan designing sellable decor packages for a ${input.eventType || 'wedding'}.
+Theme: ${input.theme || 'open'}. Style: ${input.style || 'open'}. Colours wanted: ${(input.colors || []).join(', ') || 'your choice'}.
+${idea ? `The client's own idea, follow it closely: ${idea}` : 'No extra idea from the client.'}
+Create ${n} clearly DIFFERENT design options for this theme (different layouts, props and moods, e.g. a classic take, a modern take and a grand take).
+Each option must cost at most ${budget} and list 4 to 6 concrete decor items (such as backdrop, entrance, cake or dessert table, table centrepieces, photo booth, ceiling or lighting), each with a cost.
+Reply with JSON only: {"designs":[{"title":"string","summary":"two sentences describing what it looks like","palette":["#hex",...4],"elements":[{"item":"string","description":"what it looks like","cost":number}]}]}`;
+        const res = await complete({ messages: [{ role: 'user', content: prompt }], temperature: 0.85, max_tokens: 1800, response_format: { type: 'json_object' } });
+        const parsed = JSON.parse(res.choices[0]?.message?.content || '{}');
+        const list = Array.isArray(parsed.designs) ? parsed.designs : [parsed];
+        designs = list.map((d) => clean(d, budget)).filter(Boolean).slice(0, n);
     } catch (err) {
         console.warn('[designs] AI unavailable:', err.message);
     }
-    if (!design) { design = template({ ...input, budget }); source = 'template'; }
-    if (!design.palette.length) design.palette = toHex(input.colors);
-    if (!design.palette.length) design.palette = PALETTES[0];
-    const created = await VendorDesign.create({
-        vendor: vendorId, eventType: input.eventType || 'Wedding', theme: input.theme, style: input.style,
-        image: isUrl(input.image) ? input.image : undefined, published: false, source, ...design,
-    });
-    // A picture of the décor when no photo was given. It takes a few seconds,
-    // so it runs in the background; the picture endpoint waits for it.
-    if (!created.image) renderImage(created).catch(() => {});
-    return created.toObject();
+    if (!designs.length) {
+        source = 'template';
+        designs = DIRECTIONS.slice(0, n).map((dir) => {
+            const t = template({ ...input, style: input.style || dir, budget });
+            return { ...t, title: `${dir} ${t.title}` };
+        });
+    }
+    const created = [];
+    for (const design of designs) {
+        if (!design.palette.length) design.palette = toHex(input.colors);
+        if (!design.palette.length) design.palette = PALETTES[0];
+        const doc = await VendorDesign.create({
+            vendor: vendorId, eventType: input.eventType || 'Wedding', theme: input.theme, style: input.style, idea: idea || undefined,
+            image: isUrl(input.image) ? input.image : undefined, published: false, source, ...design,
+        });
+        created.push(doc.toObject());
+    }
+    // Pictures take a while (the free image tier is slow), so they are made in
+    // the background, one design after another; the picture endpoint waits.
+    (async () => { for (const d of created) if (!d.image) await renderImage(d).catch(() => {}); })();
+    return created;
+}
+
+/** One design (used by the chat assistant). */
+async function generate(vendorId, raw = {}) {
+    return (await generateOptions(vendorId, raw, 1))[0];
 }
 
 const owned = async (vendorId, id) => {
@@ -167,11 +194,28 @@ const bytes = (d) => (d?.buffer ? Buffer.from(d.buffer) : d);
 const WAIT_MS = 20000;
 const within = (p) => Promise.race([p, new Promise((r) => setTimeout(() => r(null), WAIT_MS))]);
 
-/** The stored picture of a design; makes one first if it has none yet. */
-async function imageOf(id) {
+/** Makes (once) and stores one extra picture of a design, keyed in DesignRender. */
+async function partImage(key, design, part) {
+    const stored = await DesignRender.findOne({ key }).lean();
+    if (stored) return { data: bytes(stored.data), mime: stored.mime };
+    return within(once(key, async () => {
+        const img = await renderDecor(design, { part });
+        if (!img) return null;
+        await DesignRender.updateOne({ key }, { $set: { data: img.data, mime: img.mime } }, { upsert: true });
+        return img;
+    }));
+}
+
+/**
+ * A picture of a design; makes it first if it does not exist yet.
+ * Part 0 is the whole setup, parts 1..4 are its decor items.
+ */
+async function imageOf(id, part = 0) {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     let d = await VendorDesign.findById(id).select('+render.data +render.mime').lean();
     if (!d) return null;
+    const n = Math.floor(Number(part) || 0);
+    if (n > 0) return n < partsOf(d) ? partImage(`design:${id}:${n}`, d, n) : null;
     if (!d.render?.data) {
         if (!(await within(renderImage(d)))) return null;
         d = await VendorDesign.findById(id).select('+render.data +render.mime').lean();
@@ -179,10 +223,11 @@ async function imageOf(id) {
     return d?.render?.data ? { data: bytes(d.render.data), mime: d.render.mime } : null;
 }
 
-/** The picture of one of a booking's design concepts, made on first view. */
-async function conceptImage(bookingId, conceptId) {
+/** A picture of one of a booking's design concepts (part as above), made on first view. */
+async function conceptImage(bookingId, conceptId, part = 0) {
     if (![bookingId, conceptId].every((x) => mongoose.Types.ObjectId.isValid(x))) return null;
-    const key = `concept:${conceptId}`;
+    const n = Math.floor(Number(part) || 0);
+    const key = n > 0 ? `concept:${conceptId}:${n}` : `concept:${conceptId}`;
     const stored = await DesignRender.findOne({ key }).lean();
     if (stored) return { data: bytes(stored.data), mime: stored.mime };
     const booking = await Booking.findOne({ _id: bookingId, 'designConcepts._id': conceptId })
@@ -193,14 +238,11 @@ async function conceptImage(bookingId, conceptId) {
         ...concept,
         theme: booking.designBrief?.theme,
         style: booking.designBrief?.style,
+        idea: booking.designBrief?.notes,
         eventType: booking.eventDetails?.eventType || booking.eventId?.category || 'Wedding',
     };
-    return within(once(key, async () => {
-        const img = await renderDecor(design);
-        if (!img) return null;
-        await DesignRender.updateOne({ key }, { $set: { data: img.data, mime: img.mime } }, { upsert: true });
-        return img;
-    }));
+    if (n >= partsOf(design)) return null;
+    return partImage(key, design, n);
 }
 
 const mine = (vendorId) => VendorDesign.find({ vendor: vendorId }).sort({ createdAt: -1 }).lean();
@@ -247,4 +289,4 @@ async function book(customerId, id, { date, location, offerPrice, message } = {}
     return booking;
 }
 
-module.exports = { generate, update, remove, mine, browse, book, toHex, renderImage, rerender, imageOf, conceptImage };
+module.exports = { generate, generateOptions, update, remove, mine, browse, book, toHex, renderImage, rerender, imageOf, conceptImage };
