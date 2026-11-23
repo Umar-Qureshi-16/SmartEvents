@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const { emitToUser } = require('./socketManager');
+const pushService = require('./pushService');
 
 class NotificationService {
     async createNotification({ recipient, title, message, type, relatedId, priority = 'medium' }) {
@@ -23,6 +24,13 @@ class NotificationService {
                 priority,
                 createdAt: notification.createdAt
             });
+
+            // Phones with the app get a push too (when Firebase is configured).
+            pushService.sendToUser(recipient, {
+                title,
+                body: message,
+                data: { type, relatedId, notificationId: notification._id, ...(type === 'booking' && relatedId ? { bookingId: relatedId } : {}) },
+            }).catch((err) => console.warn('[push] not sent:', err.message));
 
             return notification;
         } catch (error) {

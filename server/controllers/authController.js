@@ -217,6 +217,18 @@ exports.removeFavorite = asyncHandler(async (req, res, next) => {
 
 // The socket server lives on another origin and cannot read the httpOnly
 // cookie, so the page asks for a short-lived token to present at the handshake.
+// Mobile app: register / remove this device for push notifications.
+exports.addPushToken = asyncHandler(async (req, res) => {
+    const ok = await require('../services/pushService').registerToken(req.user.id, req.body?.token, req.body?.platform);
+    if (!ok) return res.status(400).json({ success: false, message: 'A device token is required.' });
+    res.json({ success: true, message: 'This device will receive notifications.' });
+});
+
+exports.removePushToken = asyncHandler(async (req, res) => {
+    await require('../services/pushService').removeToken(req.user.id, req.body?.token);
+    res.json({ success: true, message: 'This device will no longer receive notifications.' });
+});
+
 exports.socketToken = asyncHandler(async (req, res) => {
     const socketToken = authService.generateSocketToken({ id: req.user.id, role: req.user.role });
     res.json({ success: true, socketToken });

@@ -27,6 +27,12 @@ const userSchema = new mongoose.Schema({
     verified: { type: Boolean, default: false }
   },
   favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  // Devices of the mobile app that receive push notifications (Firebase).
+  pushTokens: {
+    type: [{ token: String, platform: String, updatedAt: Date }],
+    select: false,
+    default: undefined,
+  },
   // Organizer profile (vendors keep theirs in VendorProfile).
   profile: {
     bio: { type: String, maxlength: 600 },

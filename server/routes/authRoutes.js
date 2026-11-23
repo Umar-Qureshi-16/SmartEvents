@@ -17,6 +17,8 @@ router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
 router.get('/me', auth, authController.me);
 router.get('/socket-token', auth, authController.socketToken);
+router.post('/push-token', auth, authController.addPushToken);
+router.delete('/push-token', auth, authController.removePushToken);
 router.post('/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
 
