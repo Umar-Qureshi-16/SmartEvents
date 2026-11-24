@@ -142,10 +142,38 @@ async function complete(params) {
         }
         return out;
     };
+    // The free models "think" before they answer, and the thinking counts
+    // towards max_tokens. With the paid model's budget a structured answer was
+    // cut off (finish_reason "length") or came back empty, so free calls get
+    // more room and are asked to keep the thinking short. A cut-off or empty
+    // JSON answer is treated as a failure, so the next free model is tried.
+    const freeParams = {
+        ...params,
+        max_tokens: Math.max((Number(params.max_tokens) || 1024) * 4, 8000),
+        reasoning: { effort: 'low' },
+    };
+    const runFree = async (m) => {
+        const out = await callOnce(freeParams, m);
+        const choice = out?.choices?.[0];
+        const content = choice?.message?.content;
+        if (params.response_format) {
+            if (!content || (choice?.finish_reason === 'length' && !/[}\]]\s*$/.test(String(content).trim()))) {
+                const err = new Error(`free model ${m} returned ${content ? 'a cut-off' : 'an empty'} answer`);
+                err.status = 502;
+                throw err;
+            }
+            choice.message.content = stripFences(content);
+        } else if (!content && !choice?.message?.tool_calls?.length) {
+            const err = new Error(`free model ${m} returned an empty answer`);
+            err.status = 502;
+            throw err;
+        }
+        return out;
+    };
     const tryFree = async (first) => {
         let last = first;
         for (const m of FREE_MODELS) {
-            try { return await run(m); } catch (err) {
+            try { return await runFree(m); } catch (err) {
                 last = classify(err);
                 console.error(`[AI] free model ${m} failed (${last.code}):`, detailOf(err));
             }

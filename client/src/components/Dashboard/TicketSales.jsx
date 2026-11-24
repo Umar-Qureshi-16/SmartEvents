@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Ticket } from 'lucide-react';
 import axios from '../../api/axios';
+import { formatMoney } from '../../utils/money';
 
 /** Ticket sales summary for an event, shown to the event's owner and admins. */
 export default function TicketSales({ eventId }) {
@@ -27,7 +28,7 @@ export default function TicketSales({ eventId }) {
                     ['Sold', summary.capacity ? `${summary.sold} / ${summary.capacity}` : summary.sold],
                     ['Checked in', summary.checkedIn],
                     ['Cancelled', summary.cancelled],
-                    ['Revenue', `$${summary.revenue.toLocaleString()}`],
+                    ['Revenue', `${formatMoney(summary.revenue)}`],
                 ].map(([label, value]) => (
                     <div key={label} className="rounded-xl bg-surface-2 p-3">
                         <div className="text-lg font-black text-fg">{value}</div>

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
-    CalendarCheck, CalendarDays, CheckCircle2, Circle, DollarSign, Heart, MapPin, MessageSquare, Pencil, Sparkles, Star, Ticket, X,
+    CalendarCheck, CalendarDays, CheckCircle2, Circle, Banknote, Heart, MapPin, MessageSquare, Pencil, Sparkles, Star, Ticket, X,
 } from 'lucide-react';
 import axios from '../../api/axios';
 import ProfileHeader, { StatButton } from '../../components/organizer/ProfileHeader';
@@ -169,7 +169,7 @@ export default function OrganizerProfile() {
                     <StatButton icon={CalendarDays} value={stats.bookings} label="All bookings" onClick={() => navigate('/bookings')} />
                     <StatButton icon={MessageSquare} value={stats.active} label="In negotiation" tone="warning" onClick={() => navigate('/bookings?status=negotiating')} />
                     <StatButton icon={CheckCircle2} value={stats.confirmed} label="Upcoming" tone="success" active={tab === 'upcoming'} onClick={() => go('upcoming')} />
-                    <StatButton icon={DollarSign} value={formatCurrency(stats.spent)} label="Committed" tone="success" active={tab === 'spending'} onClick={() => go('spending')} />
+                    <StatButton icon={Banknote} value={formatCurrency(stats.spent)} label="Committed" tone="success" active={tab === 'spending'} onClick={() => go('spending')} />
                     <StatButton icon={CalendarCheck} value={stats.plans} label="Event plans" active={tab === 'plans'} onClick={() => go('plans')} />
                     <StatButton icon={Heart} value={stats.following} label="Following" active={tab === 'following'} onClick={() => go('following')} />
                     <StatButton icon={Star} value={stats.reviews} label="Reviews written" active={tab === 'reviews'} onClick={() => go('reviews')} />

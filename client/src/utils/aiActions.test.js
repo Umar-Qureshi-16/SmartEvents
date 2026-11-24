@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseAssistantReply, describeAction, buildEventPayload, ACTION_TYPES } from './aiActions';
+import { formatMoney } from './money';
 
 describe('parseAssistantReply', () => {
     it('returns plain text when there is no action block', () => {
@@ -36,7 +37,8 @@ describe('describeAction', () => {
         const d = describeAction({ type: 'EVENT_CREATE', payload: { title: 'Gala', type: 'wedding', price: 12000 } });
         expect(d.summary).toBe('Gala');
         expect(d.details).toContain('Category: wedding');
-        expect(d.details).toContain('Price: $12,000');
+        // Shown in the viewer's currency (rupees by default).
+        expect(d.details).toContain(`Price: ${formatMoney(12000)}`);
     });
 
     it('describes a report request', () => {

@@ -1,3 +1,4 @@
+import { formatMoney } from './money';
 /**
  * Parses the action protocol defined in the Smartie system prompt
  * (server/services/aiService.js).
@@ -58,7 +59,7 @@ export function describeAction(action) {
             summary: title || 'New service',
             details: [
                 type && `Category: ${type}`,
-                price != null && `Price: $${Number(price).toLocaleString()}`,
+                price != null && `Price: ${formatMoney(price)}`,
             ].filter(Boolean),
             confirmLabel: 'Create service',
         };

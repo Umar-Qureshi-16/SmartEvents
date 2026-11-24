@@ -7,6 +7,7 @@
  *    prices or anything about the people booking.
  */
 const env = require('../config/env');
+const { lookFor } = require('../config/regions');
 
 // Hex -> a colour word the image model understands.
 const COLOUR_WORDS = {
@@ -34,23 +35,6 @@ function colourName(hex) {
     return best;
 }
 
-// What each kind of event usually looks like in Pakistan.
-const SCENES = {
-    mehndi: 'a Pakistani mehndi night stage with marigold garlands, a low swing or diwan, colourful drapes, brass lanterns and floor cushions',
-    nikah: 'an elegant Pakistani nikah stage with a floral arch, a white and gold sofa, sheer drapes and fresh flower arrangements',
-    walima: 'a refined Pakistani walima reception stage with a grand backdrop, crystal chandeliers, a couple sofa and tall floral centrepieces',
-    baraat: 'a royal Pakistani baraat wedding stage with a grand carved backdrop, red and gold drapes, chandeliers and rose arrangements',
-    wedding: 'a luxurious Pakistani wedding stage with a grand backdrop, couple sofa, floral arrangements and chandeliers',
-    birthday: 'a birthday party setup with a themed backdrop, balloon garland, cake table and fairy lights',
-    corporate: 'a corporate event stage with a branded backdrop panel, podium, lounge seating and clean modern lighting',
-    conference: 'a conference stage with a large screen, podium, modern truss lighting and neat seating rows',
-};
-function scene(eventType = '') {
-    const t = String(eventType).toLowerCase();
-    const key = Object.keys(SCENES).find((k) => t.includes(k));
-    return SCENES[key] || SCENES.wedding;
-}
-
 // How many pictures a design gets: the whole setup, then one per decor item.
 const MAX_PARTS = 4;
 const partsOf = (d = {}) => Math.min(MAX_PARTS, 1 + (d.elements || []).filter((e) => e?.item).length);
@@ -70,9 +54,12 @@ function buildPrompt(d = {}, part = 0) {
     const short = (t, n) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, n);
     const idea = short(d.idea, 140);
     const el = part > 0 ? (d.elements || []).filter((e) => e?.item)[part - 1] : null;
+    // The event's Pakistani look and the region's touch (see config/regions.js),
+    // so a walima looks like a walima and not like a Western wedding.
+    const look = lookFor(d.locale, d.eventType);
     const subject = el
-        ? `${themed} ${el.item.toLowerCase()} decoration${el.description ? `, ${short(el.description, 90)}` : ''}`
-        : `${themed} decoration${d.theme ? '' : `, ${scene(d.eventType)}`}`;
+        ? `${themed} ${el.item.toLowerCase()} decoration${el.description ? `, ${short(el.description, 90)}` : ''}, ${look.split(',').slice(0, 1)[0]}`
+        : `${themed} decoration, ${look}`;
     const items = el ? [] : (d.elements || []).map((e) => e.item.toLowerCase()).filter(Boolean).slice(0, 4);
     return [
         subject,
@@ -82,8 +69,8 @@ function buildPrompt(d = {}, part = 0) {
         idea || null,
         el ? 'close-up detail shot' : 'full wide shot of the whole setup, centred and symmetrical',
         'photorealistic 3D render of a real event decoration, professional event decor photography',
-        'soft cinematic lighting, sharp focus, highly detailed, rich textures, no people, no text, no watermark',
-    ].filter(Boolean).join(', ').slice(0, 640);
+        'soft cinematic lighting, sharp focus, highly detailed, rich textures, no people, no text, no watermark, no church, no altar, no alcohol',
+    ].filter(Boolean).join(', ').slice(0, 760);
 }
 
 async function fromOpenRouter(prompt) {

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Calendar, Users, MapPin, DollarSign, Brain, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { ShieldCheck, Calendar, Users, MapPin, Banknote, Brain, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import axios from '../../api/axios';
 
 const CHECK_ICONS = {
     'Core Metadata': <Brain size={12} />,
     'Logistics Definition': <MapPin size={12} />,
-    'Financial Guardrails': <DollarSign size={12} />,
+    'Financial Guardrails': <Banknote size={12} />,
     'Capacity Mapping': <Users size={12} />,
     'AI Optimization Depth': <ShieldCheck size={12} />,
 };

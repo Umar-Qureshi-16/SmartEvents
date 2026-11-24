@@ -1,7 +1,9 @@
 const { api, makeUser, auth, PASSWORD } = require('../helpers');
 const jwt = require('jsonwebtoken');
 
-const ORIGIN = 'http://localhost:5173';
+// A website the server trusts, from its own settings (a developer's .env may
+// list the deployed site instead of localhost).
+const ORIGIN = require('../../config/env').allowedOrigins[0];
 
 const cookieLogin = async (email) => {
     const res = await api().post('/api/v1/auth/login').set('X-Auth-Mode', 'cookie').send({ email, password: PASSWORD });

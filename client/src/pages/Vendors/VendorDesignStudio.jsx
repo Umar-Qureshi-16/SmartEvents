@@ -7,12 +7,13 @@ import axios from '../../api/axios';
 import { formatCurrency, useConfirm } from '../../components/ui';
 import DesignGallery from '../../components/design/DesignGallery';
 import DesignWizard from '../../components/design/DesignWizard';
+import { toBase, fromBase } from '../../utils/money';
 
 const field = 'w-full bg-surface-2 border border-border rounded-xl px-3 py-2 text-sm text-fg placeholder:text-muted';
 const isUrl = (u) => /^https?:\/\/\S+$/i.test(u);
 
 function DesignCard({ d, onChange, onDelete }) {
-    const [edit, setEdit] = useState({ title: d.title, totalCost: d.totalCost, image: d.image || '' });
+    const [edit, setEdit] = useState({ title: d.title, totalCost: fromBase(d.totalCost), image: d.image || '' });
     const [busy, setBusy] = useState(false);
     const addToGallery = async (part) => {
         try {
@@ -22,13 +23,13 @@ function DesignCard({ d, onChange, onDelete }) {
             toast.error(err.response?.data?.message || 'Could not add it to your gallery.');
         }
     };
-    const dirty = edit.title !== d.title || Number(edit.totalCost) !== d.totalCost || (edit.image || '') !== (d.image || '');
+    const dirty = edit.title !== d.title || Number(edit.totalCost) !== fromBase(d.totalCost) || (edit.image || '') !== (d.image || '');
 
     const save = async (extra = {}) => {
         if (edit.image && !isUrl(edit.image)) { toast.error('Photo must be a link starting with https://'); return; }
         setBusy(true);
         try {
-            const res = await axios.put(`/designs/${d._id}`, { ...edit, totalCost: Number(edit.totalCost), ...extra });
+            const res = await axios.put(`/designs/${d._id}`, { ...edit, totalCost: toBase(edit.totalCost), ...extra });
             onChange(res.data.data);
             toast.success(extra.published === true ? 'Published on your profile.' : extra.published === false ? 'Hidden from your profile.' : 'Saved.');
         } catch (err) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-    ArrowLeft, CheckCircle2, XCircle, Send, DollarSign, Clock, Check, X, MessageSquare,
+    ArrowLeft, CheckCircle2, XCircle, Send, Banknote, Clock, Check, X, MessageSquare,
     Pencil, TrendingDown, TrendingUp, Minus, Handshake, ShieldCheck, Loader2,
 } from 'lucide-react';
 import axios from '../../api/axios';
@@ -12,8 +12,9 @@ import { useWebSockets } from '../../context/WebSocketContext';
 import { useSelector } from 'react-redux';
 import DesignStudio from '../../components/design/DesignStudio';
 import { useConfirm } from '../../components/ui';
+import { formatMoney, toBase, fromBase } from '../../utils/money';
 
-const money = (n) => `$${Number(n || 0).toLocaleString()}`;
+const money = (n) => formatMoney(n);
 const idOf = (x) => (x?._id || x)?.toString();
 const dayLabel = (d) => new Date(d).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 const timeLabel = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -57,7 +58,7 @@ const NegotiationPage = () => {
             const res = await axios.get(`/bookings/${bookingId}`);
             if (res.data.success) {
                 setBooking(res.data.data);
-                setCounterPrice(res.data.data.offerPrice || res.data.data.totalAmount);
+                setCounterPrice(fromBase(res.data.data.offerPrice || res.data.data.totalAmount));
             }
         } catch {
             toast.error('Could not load this negotiation.');
@@ -131,14 +132,14 @@ const NegotiationPage = () => {
     const sendCounter = async (e) => {
         e?.preventDefault();
         if (isSubmitting || !validPrice()) return;
-        const ok = await run(() => axios.post(`/bookings/${bookingId}/negotiate`, { price: Number(counterPrice), message: note.trim() || undefined }), 'Counter-offer sent.');
+        const ok = await run(() => axios.post(`/bookings/${bookingId}/negotiate`, { price: toBase(counterPrice), message: note.trim() || undefined }), 'Counter-offer sent.');
         if (ok) setNote('');
     };
 
     const saveRevision = async (e) => {
         e?.preventDefault();
         if (isSubmitting || !validPrice()) return;
-        const ok = await run(() => axios.put(`/bookings/${bookingId}/offer`, { price: Number(counterPrice), message: note.trim() || undefined }), 'Your offer was updated.');
+        const ok = await run(() => axios.put(`/bookings/${bookingId}/offer`, { price: toBase(counterPrice), message: note.trim() || undefined }), 'Your offer was updated.');
         if (ok) { setEditing(false); setNote(''); }
     };
 
@@ -298,7 +299,7 @@ const NegotiationPage = () => {
                                             <p className="text-[10px] font-black uppercase tracking-widest text-muted pt-2">Or counter</p>
                                             <label className="relative block">
                                                 <span className="sr-only">Your price</span>
-                                                <DollarSign size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand" aria-hidden="true" />
+                                                <Banknote size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand" aria-hidden="true" />
                                                 <input type="number" min="1" value={counterPrice} onChange={(e) => setCounterPrice(e.target.value)} className={`${field} py-2.5 pl-8 pr-3 font-black`} />
                                             </label>
                                             <label className="block">
@@ -313,7 +314,7 @@ const NegotiationPage = () => {
                                 )}
 
                                 {open && !myTurn && last && !editing && (
-                                    <button type="button" onClick={() => { setEditing(true); setCounterPrice(last.price); setNote(last.message || ''); }}
+                                    <button type="button" onClick={() => { setEditing(true); setCounterPrice(fromBase(last.price)); setNote(last.message || ''); }}
                                         className="w-full py-2.5 rounded-xl border border-border text-fg hover:border-brand hover:text-brand flex items-center justify-center gap-1.5 font-bold text-xs transition">
                                         <Pencil size={14} aria-hidden="true" /> Change my offer
                                     </button>
@@ -324,7 +325,7 @@ const NegotiationPage = () => {
                                         <p className="text-[10px] font-black uppercase tracking-widest text-muted">Change your offer of {money(last?.price)}</p>
                                         <label className="relative block">
                                             <span className="sr-only">New price</span>
-                                            <DollarSign size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand" aria-hidden="true" />
+                                            <Banknote size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand" aria-hidden="true" />
                                             <input type="number" min="1" autoFocus value={counterPrice} onChange={(e) => setCounterPrice(e.target.value)} className={`${field} py-2.5 pl-8 pr-3 font-black`} />
                                         </label>
                                         <label className="block">
@@ -419,7 +420,7 @@ const NegotiationPage = () => {
                                                     {t.kind === 'offer' ? (
                                                         <div className={`max-w-[85%] sm:max-w-[70%] rounded-2xl overflow-hidden shadow-sm border ${mine ? 'border-brand/40 rounded-br-md' : 'border-border rounded-bl-md'}`}>
                                                             <div className={`px-4 py-2 flex items-center justify-between gap-4 text-[10px] font-black uppercase tracking-widest ${mine ? 'bg-brand text-white' : 'bg-surface-2 text-muted'}`}>
-                                                                <span className="flex items-center gap-1.5"><DollarSign size={11} aria-hidden="true" />{ACTION_LABEL[t.entry.action] || 'Offer'}</span>
+                                                                <span className="flex items-center gap-1.5"><Banknote size={11} aria-hidden="true" />{ACTION_LABEL[t.entry.action] || 'Offer'}</span>
                                                                 <span>{nameOf(t.by)}</span>
                                                             </div>
                                                             <div className="px-4 py-3 bg-surface">

@@ -6,6 +6,9 @@ import {
 } from 'lucide-react';
 import axios from '../../api/axios';
 import { formatCurrency } from '../ui';
+import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { fromBase, toBase, getMoney } from '../../utils/money';
 
 const EVENTS = [
     { name: 'Wedding', Icon: Heart }, { name: 'Nikah', Icon: Gem }, { name: 'Mehndi', Icon: Flower2 }, { name: 'Walima', Icon: Crown },
@@ -57,6 +60,9 @@ const Swatches = ({ palette, size = 'h-2.5' }) => (
  * pictures: the whole setup and its three main pieces.
  */
 export default function DesignWizard({ onCreated }) {
+    const locale = useSelector((s) => s.auth.user?.locale);
+    const country = locale?.country || 'PK';
+    const region = locale?.region;
     const [step, setStep] = useState(0);
     const [eventType, setEventType] = useState('');
     const [idea, setIdea] = useState('');
@@ -132,6 +138,9 @@ export default function DesignWizard({ onCreated }) {
                     <div>
                         <h2 className="text-base md:text-lg font-black text-fg leading-tight">Design with Smartie</h2>
                         <p className="text-[11px] text-muted">Theme, budget and guests. Smartie picks the colours and makes one design with 4 full HD pictures.</p>
+                        <Link to="/settings" className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-brand hover:underline">
+                            Designing for {region ? `${region}, ` : ''}{getMoney().countries[country]?.name || 'Pakistan'} traditions · prices in {getMoney().currency} · change
+                        </Link>
                     </div>
                 </div>
                 <ol className="hidden sm:flex items-center gap-1.5" aria-label="Progress">
@@ -220,7 +229,7 @@ export default function DesignWizard({ onCreated }) {
                                     <input id="wz-budget" type="range" min="100" max="20000" step="50" value={budget} onChange={(e) => setBudget(Number(e.target.value))} className="w-full mt-3 accent-[var(--color-brand,#7c3aed)]" />
                                     <div className="flex flex-wrap gap-1.5 mt-2">
                                         {BUDGETS.map((b) => <button key={b} type="button" onClick={() => setBudget(b)} className={`rounded-full px-3 py-1 text-xs font-bold border ${budget === b ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-fg'}`}>{formatCurrency(b)}</button>)}
-                                        <input type="number" min="100" value={budget} onChange={(e) => setBudget(Math.max(0, Number(e.target.value) || 0))} aria-label="Exact budget"
+                                        <input type="number" min="1" value={fromBase(budget)} onChange={(e) => setBudget(Math.max(0, toBase(e.target.value)))} aria-label="Exact budget"
                                             className="w-28 bg-surface border border-border rounded-full px-3 py-1 text-xs text-fg" />
                                     </div>
                                 </div>

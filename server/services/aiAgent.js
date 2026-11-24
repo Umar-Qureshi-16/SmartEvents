@@ -832,6 +832,17 @@ async function humanise(summary, args, actor) {
             const s = await Service.findById(args.serviceId).populate('vendorId', 'businessName').lean();
             if (s) out = out.replace(`package ${args.serviceId}`, `the "${s.title}" package from ${s.vendorId?.businessName || 'the vendor'}`);
         }
+        // Amounts in tool arguments are US dollars; show them on the card in
+        // the user's own currency, as the chat does (e.g. "PKR 140,000").
+        const amounts = ['price', 'offerPrice', 'budget'].map((k) => args[k]).filter((v) => typeof v === 'number' && v > 0);
+        if (amounts.length) {
+            const { COUNTRIES, normalise } = require('../config/regions');
+            const locale = normalise((await User.findById(actor.id).select('locale').lean())?.locale);
+            const currency = COUNTRIES[locale.country]?.currency || 'USD';
+            const rate = currency === 'USD' ? 1 : await require('./rates').rateFor(currency);
+            const fmt = (usd) => (currency === 'USD' ? `$${usd.toLocaleString('en-US')}` : `${currency} ${Math.round(usd * rate).toLocaleString('en-US')}`);
+            for (const v of amounts) out = out.replace(new RegExp(`(^|[^\\w.,])${String(v).replace('.', '\\.')}(?![\\w.,])`), (m, pre) => `${pre}${fmt(v)}`);
+        }
     } catch { /* keep the plain summary */ }
     return out;
 }
@@ -872,10 +883,34 @@ function memoryNote(userId) {
     return `Results of your recent tool calls for this user (use these ids for follow-ups such as "publish it" or "book them"):\n${list.map((r) => `- ${r.name}: ${r.text}`).join('\n')}`;
 }
 
+/**
+ * Where the user is: amounts in tools are US dollars, but the user thinks and
+ * talks in their own currency, and designs should follow their culture.
+ */
+async function localeNote(userId) {
+    try {
+        const { COUNTRIES, cultureFor, normalise } = require('../config/regions');
+        const locale = normalise((await User.findById(userId).select('locale').lean())?.locale);
+        const { currency } = COUNTRIES[locale.country];
+        const where = cultureFor(locale).label;
+        if (currency === 'USD') return `The user is in ${where}. Amounts are in US dollars.`;
+        const rate = await require('./rates').rateFor(currency);
+        const r = Math.round(rate * 100) / 100;
+        return [
+            `The user is in ${where} and uses ${currency}. 1 USD = ${r} ${currency}.`,
+            `All amounts in tool results and tool arguments are US dollars. Always show amounts to the user in ${currency} (multiply by ${r}, round sensibly, e.g. "${currency} ${Math.round(1500 * rate).toLocaleString('en-US')}" for 1500 USD).`,
+            `Amounts the user types are in ${currency}: divide by ${r} before passing them to a tool (e.g. ${currency} ${Math.round(1500 * rate).toLocaleString('en-US')} -> 1500).`,
+            `Designs and themes should follow ${where}'s culture and customs.`,
+        ].join(' ');
+    } catch { return null; }
+}
+
 async function chat(history, actor) {
     const note = memoryNote(actor.id);
+    const where = await localeNote(actor.id);
     const messages = [
         { role: 'system', content: systemPrompt(actor) },
+        ...(where ? [{ role: 'system', content: where }] : []),
         ...(note ? [{ role: 'system', content: note }] : []),
         ...history.slice(-MAX_HISTORY).map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content || '').slice(0, 4000) })),
     ];

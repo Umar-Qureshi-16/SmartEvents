@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
-    Calendar, DollarSign, MapPin, CheckCircle2, ArrowRight, MessageSquare, FileText,
+    Calendar, Banknote, MapPin, CheckCircle2, ArrowRight, MessageSquare, FileText,
     AlertTriangle, XCircle, Star, MoreHorizontal, FolderInput, CalendarCheck, Layers
 } from 'lucide-react';
 
@@ -342,7 +342,7 @@ export default function Bookings({ user }) {
                 <StatCard label="EVENTS" value={totals.events} icon={Layers} onClick={() => setParam('event', '')} />
                 <StatCard label="IN NEGOTIATION" value={totals.negotiating} icon={MessageSquare} onClick={() => setFilterStatus('negotiating')} />
                 <StatCard label="CONFIRMED" value={totals.confirmed} icon={CheckCircle2} onClick={() => setFilterStatus('confirmed')} />
-                <StatCard label="AGREED VALUE" value={formatCurrency(totals.value)} icon={DollarSign} onClick={() => navigate('/me?tab=spending')} />
+                <StatCard label="AGREED VALUE" value={formatCurrency(totals.value)} icon={Banknote} onClick={() => navigate('/me?tab=spending')} />
             </div>
 
             <div className="space-y-3">

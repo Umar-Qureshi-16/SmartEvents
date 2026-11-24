@@ -33,6 +33,12 @@ const userSchema = new mongoose.Schema({
     select: false,
     default: undefined,
   },
+  // Where the user is: sets the currency prices are shown in and the culture
+  // Smartie designs for. Defaults to Pakistan.
+  locale: {
+    country: { type: String, default: 'PK', maxlength: 2 },
+    region: { type: String, maxlength: 60 },
+  },
   // Organizer profile (vendors keep theirs in VendorProfile).
   profile: {
     bio: { type: String, maxlength: 600 },

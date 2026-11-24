@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
     ArrowRight, ChevronRight, ChevronLeft, ShieldCheck, Zap,
     Layers, Cpu, Globe, CheckCircle2, Building2, TrendingUp, Sparkles, Mail,
-    QrCode, DollarSign, UserCheck, Calendar, ArrowUpRight, HelpCircle, Star, MessageSquare
+    QrCode, Banknote, UserCheck, Calendar, ArrowUpRight, HelpCircle, Star, MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from '../api/axios';
+import { formatMoney } from '../utils/money';
 
 function Home({ user }) {
     const navigate = useNavigate();
@@ -197,15 +198,15 @@ function Home({ user }) {
                                 <div className="space-y-2 bg-surface-2 p-3.5 rounded-xl border border-border text-xs">
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted font-medium">Original Host Budget:</span>
-                                        <span className="font-mono text-muted line-through">$5,000</span>
+                                        <span className="font-mono text-muted line-through">{formatMoney(5000)}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted font-medium">Vendor Initial Quote:</span>
-                                        <span className="font-mono text-muted font-bold">$4,500</span>
+                                        <span className="font-mono text-muted font-bold">{formatMoney(4500)}</span>
                                     </div>
                                     <div className="flex justify-between items-center pt-1 border-t border-border/60">
                                         <span className="text-fg font-bold">Proposed Counter Price:</span>
-                                        <span className="font-mono text-base font-black text-success">$4,200</span>
+                                        <span className="font-mono text-base font-black text-success">{formatMoney(4200)}</span>
                                     </div>
                                 </div>
 
@@ -304,7 +305,7 @@ function Home({ user }) {
                         {[
                             { step: '01', title: 'Publish Event RFP', body: 'Hosts outline their requirements, location, estimated guest capacity, and initial budget parameters.', icon: Calendar },
                             { step: '02', title: 'AI Concierge Analysis', body: 'Our smart agent analyzes requirements, generates matching recommendations, and scopes realistic budgets.', icon: Sparkles },
-                            { step: '03', title: 'InDrive-Style Bidding', body: 'Negotiate pricing in real-time. Make counter-offers directly to vendors until both sides lock in the ideal price.', icon: DollarSign },
+                            { step: '03', title: 'InDrive-Style Bidding', body: 'Negotiate pricing in real-time. Make counter-offers directly to vendors until both sides lock in the ideal price.', icon: Banknote },
                             { step: '04', title: 'Escrow & QR Gate Passes', body: 'Funds are secured in escrow. Attendee tickets generate dynamic QR passes validated at gate terminals.', icon: QrCode }
                         ].map((item, idx) => {
                             const Icon = item.icon;
@@ -508,7 +509,7 @@ function Home({ user }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         {[
-                            { title: 'Real-Time Negotiation', desc: 'Secure the price you want through counter-offer history tracking and concurrency checks.', icon: DollarSign },
+                            { title: 'Real-Time Negotiation', desc: 'Secure the price you want through counter-offer history tracking and concurrency checks.', icon: Banknote },
                             { title: 'AI Concierge Planning', desc: 'Generative budget breakdowns and RFP scoper tools driven by vector embeddings.', icon: Sparkles },
                             { title: 'Verified Providers', desc: 'Vendor credentials and portfolio catalogs checked by platform moderators.', icon: UserCheck },
                             { title: 'Secure Escrow Process', desc: 'Escrow payment releases locked securely via Stripe ledgers.', icon: ShieldCheck }

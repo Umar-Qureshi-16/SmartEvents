@@ -149,6 +149,7 @@ app.get('/', (req, res) => {
     app.use('/api/v1/events', require('./routes/eventRoutes'));
     app.use('/api/v1/chatbot', require('./routes/chatbotRoutes'));
     app.use('/api/v1/vendor', require('./routes/vendorRoutes'));
+    app.use('/api/v1/locale', require('./routes/localeRoutes'));
     app.use('/api/v1/services', require('./routes/serviceRoutes'));
     app.use('/api/v1/requests', require('./routes/requestRoutes'));
     app.use('/api/v1/admin', require('./routes/adminRoutes'));

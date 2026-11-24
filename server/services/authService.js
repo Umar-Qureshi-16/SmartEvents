@@ -133,7 +133,8 @@ class AuthService {
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                isEmailVerified: user.isEmailVerified
+                isEmailVerified: user.isEmailVerified,
+                locale: user.locale
             }
         };
     }
@@ -167,7 +168,8 @@ class AuthService {
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                isEmailVerified: true
+                isEmailVerified: true,
+                locale: user.locale
             }
         };
     }
@@ -283,7 +285,8 @@ class AuthService {
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                isEmailVerified: true
+                isEmailVerified: true,
+                locale: user.locale
             }
         };
     }

@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Button, Badge, EmptyState, ErrorState, formatCurrency, BOOKING_STATUS } from './index';
+import { setMoneyLocale, toBase, fromBase } from '../../utils/money';
 
 describe('Button', () => {
     it('calls onClick', () => {
@@ -61,7 +62,17 @@ describe('ErrorState', () => {
 
 describe('helpers', () => {
     it('formats currency consistently', () => {
-        expect(formatCurrency(12500)).toContain('12,500');
+        setMoneyLocale({ country: 'US' });
+        expect(formatCurrency(12500)).toBe('$12,500');
+    });
+
+    it('shows dollar amounts in the viewer currency and converts typed amounts back', () => {
+        setMoneyLocale({ country: 'PK' });
+        expect(formatCurrency(1000)).toContain('280,000');
+        expect(formatCurrency(1000)).toMatch(/Rs|PKR/);
+        expect(fromBase(1000)).toBe(280000);
+        expect(toBase(280000)).toBe(1000);
+        setMoneyLocale({ country: 'US' });
     });
 
     it('labels every booking status the server can produce', () => {

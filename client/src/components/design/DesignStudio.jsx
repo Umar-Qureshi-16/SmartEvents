@@ -4,6 +4,7 @@ import { Palette, Sparkles, Save, Plus, Trash2, Check, Send, Loader2, Image as I
 import axios from '../../api/axios';
 import DesignGallery from './DesignGallery';
 import { useWebSockets } from '../../context/WebSocketContext';
+import { formatMoney, toBase, fromBase } from '../../utils/money';
 
 const STYLES = ['Traditional', 'Modern', 'Minimal', 'Royal', 'Rustic', 'Floral', 'Boho', 'Glam'];
 const TIER_TONE = {
@@ -11,7 +12,7 @@ const TIER_TONE = {
     Signature: 'bg-brand/10 text-brand border-brand/25',
     Luxe: 'bg-warning/10 text-warning border-warning/25',
 };
-const money = (n) => (Number.isFinite(Number(n)) ? `$${Number(n).toLocaleString()}` : '—');
+const money = (n) => (Number.isFinite(Number(n)) ? formatMoney(n) : '—');
 const field = 'w-full bg-surface-2 border border-border rounded-xl px-3.5 py-2.5 text-sm text-fg placeholder:text-muted outline-none focus:border-brand';
 
 /**
@@ -35,7 +36,7 @@ export default function DesignStudio({ bookingId, currentUserId }) {
         const b = data.brief || {};
         setBrief({
             theme: b.theme || '', style: b.style || '', colors: b.colors || [],
-            budget: b.budget ?? data.agreedPrice ?? '', guestCount: b.guestCount ?? '', notes: b.notes || '',
+            budget: (b.budget ?? data.agreedPrice) != null ? fromBase(b.budget ?? data.agreedPrice) : '', guestCount: b.guestCount ?? '', notes: b.notes || '',
             references: (b.references || []).map((r) => ({ url: r.url, caption: r.caption || '' })),
         });
         setDirty(false);
@@ -73,7 +74,7 @@ export default function DesignStudio({ bookingId, currentUserId }) {
         try {
             const payload = {
                 theme: brief.theme, style: brief.style, colors: brief.colors, notes: brief.notes,
-                budget: brief.budget === '' ? undefined : Number(brief.budget),
+                budget: brief.budget === '' ? undefined : toBase(brief.budget),
                 guestCount: brief.guestCount === '' ? undefined : Number(brief.guestCount),
                 references: brief.references.filter((r) => r.url.trim()),
             };
@@ -130,7 +131,7 @@ export default function DesignStudio({ bookingId, currentUserId }) {
         return <div className="flex-1 flex items-center justify-center text-muted text-sm"><Loader2 className="animate-spin mr-2" size={16} /> Loading the design studio…</div>;
     }
 
-    const budget = Number(brief.budget) || design.agreedPrice || 0;
+    const budget = toBase(brief.budget) || design.agreedPrice || 0;
 
     return (
         <div className="flex-1 overflow-y-auto space-y-6 pr-1">

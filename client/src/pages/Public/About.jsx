@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Cpu, DollarSign, Users, ArrowRight, Zap, Target } from 'lucide-react';
+import { ShieldCheck, Cpu, Banknote, Users, ArrowRight, Zap, Target } from 'lucide-react';
 
 export default function About() {
     const navigate = useNavigate();
@@ -22,7 +22,7 @@ export default function About() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-6">
                 <div className="adyen-card p-8 bg-surface border border-border rounded-3xl space-y-6">
                     <div className="w-12 h-12 rounded-2xl bg-success/10 border border-success/20 flex items-center justify-center text-success">
-                        <DollarSign size={24} />
+                        <Banknote size={24} />
                     </div>
                     <div className="space-y-2">
                         <h3 className="text-lg font-bold text-fg">Reverse-Bidding Engine</h3>

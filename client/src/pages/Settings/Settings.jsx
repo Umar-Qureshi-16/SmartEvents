@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
-import { Save, KeyRound, User as UserIcon, Palette } from 'lucide-react';
+import { Save, KeyRound, User as UserIcon, Palette, Globe2 } from 'lucide-react';
 
 import axios from '../../api/axios';
 import { setCredentials } from '../../store/slices/authSlice';
@@ -9,6 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Button, Card, Badge, Input } from '../../components/ui';
 import PasswordChecklist from '../../components/ui/PasswordChecklist';
 import { isStrongPassword } from '../../utils/passwordPolicy';
+import RegionPicker from '../../components/RegionPicker';
 
 /**
  * Account settings.
@@ -87,7 +88,7 @@ export default function Settings({ user }) {
             <header className="space-y-1 border-b border-border pb-6">
                 <Badge tone="brand">Account</Badge>
                 <h1 className="text-3xl md:text-4xl font-black tracking-tight">Settings</h1>
-                <p className="text-sm text-muted">Manage your profile, password and appearance.</p>
+                <p className="text-sm text-muted">Manage your profile, region and currency, password and appearance.</p>
             </header>
 
             {/* Profile */}
@@ -124,6 +125,14 @@ export default function Settings({ user }) {
                     />
                     <Button type="submit" icon={Save} loading={savingProfile}>Save changes</Button>
                 </form>
+            </Card>
+
+            {/* Region and currency */}
+            <Card className="p-8 space-y-4">
+                <h3 className="text-sm font-bold flex items-center gap-2">
+                    <Globe2 size={14} aria-hidden="true" /> Region and currency
+                </h3>
+                <RegionPicker />
             </Card>
 
             {/* Password */}

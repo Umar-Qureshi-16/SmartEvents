@@ -1,8 +1,9 @@
 import React from 'react';
 import { BarChart3, Download } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
+import { formatMoney } from '../../utils/money';
 
-const money = (n) => `$${Number(n || 0).toLocaleString()}`;
+const money = (n) => formatMoney(n);
 
 /**
  * Platform revenue pipeline.

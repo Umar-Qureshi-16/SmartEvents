@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Bell, Menu as MenuIcon, X, ChevronDown, User, LogOut,
-    LayoutDashboard, Package, CalendarDays, DollarSign, QrCode,
+    LayoutDashboard, Package, CalendarDays, Banknote, QrCode,
     Settings, Sparkles, Layers, Store, Compass, Ticket, ShieldCheck,
     MessageSquare, Heart, Star, Images
 } from 'lucide-react';
@@ -101,7 +101,7 @@ const NAV_BY_ROLE = {
             ],
         },
         {
-            label: 'Business', path: '/revenue', icon: DollarSign,
+            label: 'Business', path: '/revenue', icon: Banknote,
             subOptions: [
                 { label: 'Revenue', desc: 'Confirmed and completed bookings', path: '/revenue' },
                 { label: 'Ticket scanner', desc: 'Check guests in at the gate', path: '/staff/scanner' },

@@ -15,6 +15,8 @@ const vendorDesignSchema = new mongoose.Schema({
     idea: { type: String, maxlength: 600 },
     // Roughly how many guests the decor is sized for.
     guests: { type: Number, min: 0, max: 5000 },
+    // The vendor's country and region when it was made: its culture shapes the design and pictures.
+    locale: { country: { type: String, maxlength: 2 }, region: { type: String, maxlength: 60 } },
     summary: { type: String, maxlength: 800 },
     palette: [{ type: String, match: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i }],
     elements: [{

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { DollarSign, Sparkles, AlertTriangle, Plus, Trash2, PieChart as PieIcon, HelpCircle } from 'lucide-react';
+import { Banknote, Sparkles, AlertTriangle, Plus, Trash2, PieChart as PieIcon, HelpCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { formatMoney, toBase, fromBase, getMoney } from '../../utils/money';
 
 export default function BudgetTracker() {
     const [totalBudget, setTotalBudget] = useState(5000);
@@ -17,7 +18,7 @@ export default function BudgetTracker() {
     const handleAddItem = (e) => {
         e.preventDefault();
         if (!newItem.name || !newItem.cost) return;
-        setServices([...services, { name: newItem.name, cost: Number(newItem.cost) }]);
+        setServices([...services, { name: newItem.name, cost: toBase(newItem.cost) }]);
         setNewItem({ name: '', cost: '' });
     };
 
@@ -30,7 +31,7 @@ export default function BudgetTracker() {
         try {
             const res = await axios.post('/ai/budget/analyze', {
                 totalBudget,
-                services: services.map(s => `${s.name}: $${s.cost}`)
+                services: services.map(s => `${s.name}: USD ${s.cost}`)
             });
 
             if (res.data.success) {
@@ -78,13 +79,13 @@ export default function BudgetTracker() {
 
                         <div className="space-y-4 text-xs font-semibold">
                             <div>
-                                <label className="text-muted block mb-1">Total Target Budget ($)</label>
+                                <label className="text-muted block mb-1">Total Target Budget ({getMoney().currency})</label>
                                 <div className="relative">
-                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted font-bold">$</span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted font-bold text-[10px]">{getMoney().currency}</span>
                                     <input
                                         type="number"
-                                        value={totalBudget}
-                                        onChange={(e) => setTotalBudget(Number(e.target.value))}
+                                        value={fromBase(totalBudget)}
+                                        onChange={(e) => setTotalBudget(toBase(e.target.value))}
                                         className="w-full bg-bg border border-border rounded-xl pl-8 pr-3.5 py-2.5 outline-none focus:border-success font-mono text-sm font-bold"
                                     />
                                 </div>
@@ -95,7 +96,7 @@ export default function BudgetTracker() {
                                 <div className="flex justify-between font-mono font-bold text-[11px]">
                                     <span className="text-muted">Total Allocated:</span>
                                     <span className={currentSpent > totalBudget ? 'text-rose-600' : 'text-success'}>
-                                        ${currentSpent.toLocaleString()} / ${totalBudget.toLocaleString()}
+                                        {formatMoney(currentSpent)} / {formatMoney(totalBudget)}
                                     </span>
                                 </div>
                                 <div className="w-full bg-surface-2 h-2 rounded-full overflow-hidden">
@@ -140,7 +141,7 @@ export default function BudgetTracker() {
                                 <div key={idx} className="flex items-center justify-between py-2 text-xs font-semibold">
                                     <span className="text-fg">{item.name}</span>
                                     <div className="flex items-center gap-3">
-                                        <span className="font-mono text-muted">${item.cost.toLocaleString()}</span>
+                                        <span className="font-mono text-muted">{formatMoney(item.cost)}</span>
                                         <button onClick={() => handleDeleteItem(idx)} className="text-rose-500 hover:text-rose-700">
                                             <Trash2 size={14} />
                                         </button>

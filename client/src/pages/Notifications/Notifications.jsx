@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { Bell, CheckCheck, Trash2, Calendar, MessageSquare, DollarSign, ShieldAlert, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Bell, CheckCheck, Trash2, Calendar, MessageSquare, Banknote, ShieldAlert, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useWebSockets } from '../../context/WebSocketContext';
 import { useNavigate } from 'react-router-dom';
 
 const ICONS = {
     booking: <Calendar size={18} className="text-indigo-500" />,
     chat: <MessageSquare size={18} className="text-sky-500" />,
-    counter_offer: <DollarSign size={18} className="text-emerald-500" />,
-    payment: <DollarSign size={18} className="text-amber-500" />,
+    counter_offer: <Banknote size={18} className="text-emerald-500" />,
+    payment: <Banknote size={18} className="text-amber-500" />,
     system: <ShieldAlert size={18} className="text-rose-500" />,
 };
 

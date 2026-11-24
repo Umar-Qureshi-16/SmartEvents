@@ -12,6 +12,7 @@ import StarRating from '../../components/reviews/StarRating';
 import { formatCurrency } from '../../components/ui';
 import { DetailModal } from '../../components/vendor/ProfileDetails';
 import DesignGallery from '../../components/design/DesignGallery';
+import { toBase, fromBase } from '../../utils/money';
 
 const FIELD = {
     venue: 'Venue & hall', catering: 'Catering', decoration: 'Decoration & design',
@@ -208,7 +209,7 @@ export default function VendorProfilePage({ user }) {
         if (!user) { toast.error('Sign in as an organizer to send an offer.'); navigate('/login'); return; }
         if (user.role !== 'customer') { toast.error('Only organizer accounts can book vendors.'); return; }
         setOffer({
-            offerPrice: service?.price || '',
+            offerPrice: service?.price ? fromBase(service.price) : '',
             date: '',
             location: profile.location || '',
             eventType: service?.eventType && service.eventType !== 'general' ? service.eventType : 'Wedding',
@@ -219,7 +220,7 @@ export default function VendorProfilePage({ user }) {
     const openDesign = (design) => {
         if (!user) { toast.error('Sign in as an organizer to book a design.'); navigate('/login'); return; }
         if (user.role !== 'customer') { toast.error('Only organizer accounts can book vendors.'); return; }
-        setOffer({ offerPrice: design.totalCost, date: '', location: profile.location || '', eventType: design.eventType || 'Wedding', message: `Hello! I would like the "${design.title}" design.` });
+        setOffer({ offerPrice: fromBase(design.totalCost), date: '', location: profile.location || '', eventType: design.eventType || 'Wedding', message: `Hello! I would like the "${design.title}" design.` });
         setModal({ design });
     };
 
@@ -229,7 +230,7 @@ export default function VendorProfilePage({ user }) {
         setSending(true);
         try {
             if (modal.design) {
-                const r = await axios.post(`/designs/${modal.design._id}/book`, { date: offer.date, location: offer.location, offerPrice: Number(offer.offerPrice), message: offer.message });
+                const r = await axios.post(`/designs/${modal.design._id}/book`, { date: offer.date, location: offer.location, offerPrice: toBase(offer.offerPrice), message: offer.message });
                 toast.success('Design booked. It is waiting for you in the Design Studio.');
                 setModal(null);
                 navigate(`/negotiate/${r.data.data.bookingId}?view=design`);
@@ -238,7 +239,7 @@ export default function VendorProfilePage({ user }) {
             const res = await axios.post('/bookings', {
                 vendorId: vendorUserId,
                 ...(modal.service ? { serviceId: modal.service._id } : {}),
-                offerPrice: Number(offer.offerPrice),
+                offerPrice: toBase(offer.offerPrice),
                 eventDetails: { eventType: offer.eventType || 'Event', date: offer.date, location: offer.location || profile.location, message: offer.message },
                 message: offer.message,
             });

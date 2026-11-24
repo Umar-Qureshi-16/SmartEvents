@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-    AlertCircle, ArrowRight, ArrowUpRight, Calendar, CalendarCheck, CheckCircle2, DollarSign, Heart, MapPin,
+    AlertCircle, ArrowRight, ArrowUpRight, Calendar, CalendarCheck, CheckCircle2, Banknote, Heart, MapPin,
     MessageSquare, Sparkles, Star, Store, Ticket, UserCircle,
 } from 'lucide-react';
 
@@ -23,7 +23,7 @@ const QUICK_ACTIONS = [
     { label: 'Browse events', desc: 'Find something to make an offer on', path: '/events', icon: Calendar },
     { label: 'Find a vendor', desc: 'Profiles, packages and reviews', path: '/vendors', icon: Store },
     { label: 'My tickets', desc: 'QR passes for confirmed events', path: '/tickets', icon: Ticket },
-    { label: 'Budget tracker', desc: 'Split and check your spend', path: '/budget-tracker', icon: DollarSign },
+    { label: 'Budget tracker', desc: 'Split and check your spend', path: '/budget-tracker', icon: Banknote },
     { label: 'My profile', desc: 'Plans, following, reviews', path: '/me', icon: UserCircle },
 ];
 const FILTERS = [['all', 'All'], ['active', 'In negotiation'], ['confirmed', 'Confirmed'], ['completed', 'Completed']];
@@ -145,7 +145,7 @@ export default function CustomerDashboard({ user }) {
                 <StatCard label="TOTAL BOOKINGS" value={stats.total} icon={Calendar} subtext="Tap for the overview" onClick={() => setInsight('all')} />
                 <StatCard label="IN NEGOTIATION" value={stats.active} icon={MessageSquare} tone="warning" subtext="Reply, accept or counter" onClick={() => setInsight('negotiating')} />
                 <StatCard label="CONFIRMED" value={stats.confirmed} icon={CheckCircle2} tone="success" subtext="Countdown and next steps" onClick={() => setInsight('confirmed')} />
-                <StatCard label="TOTAL COMMITTED" value={formatCurrency(stats.spend)} icon={DollarSign} tone="success" subtext="Escrow and by vendor" onClick={() => setInsight('committed')} />
+                <StatCard label="TOTAL COMMITTED" value={formatCurrency(stats.spend)} icon={Banknote} tone="success" subtext="Escrow and by vendor" onClick={() => setInsight('committed')} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">

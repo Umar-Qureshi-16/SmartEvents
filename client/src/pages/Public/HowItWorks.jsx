@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { DollarSign, FileText, RefreshCw, ShieldCheck, ArrowRight, CheckCircle2, Play, Sparkles, Sliders, Lock } from 'lucide-react';
+import { Banknote, FileText, RefreshCw, ShieldCheck, ArrowRight, CheckCircle2, Play, Sparkles, Sliders, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { formatMoney, fromBase, toBase, useMoney } from '../../utils/money';
 
 export default function HowItWorks() {
+    // Demo amounts are kept in dollars and shown in the viewer's currency.
+    const { currency } = useMoney();
 
     // INTERACTIVE BIDDING SIMULATOR STATE
     const [simStep, setSimStep] = useState(1);
@@ -13,7 +16,7 @@ export default function HowItWorks() {
 
     const handleSendSimCounter = (e) => {
         e.preventDefault();
-        toast.success(`Simulated counter-offer of $${Number(simCounterInput).toLocaleString()} sent to vendor!`);
+        toast.success(`Simulated counter-offer of ${formatMoney(simCounterInput)} sent to vendor!`);
         setSimStep(4);
     };
 
@@ -135,8 +138,8 @@ export default function HowItWorks() {
                                             className="w-full accent-[#0ABF53]"
                                         />
                                         <div className="flex justify-between text-xs font-mono mt-1">
-                                            <span className="text-muted">Min: $2,500</span>
-                                            <span className="text-success font-bold font-mono text-base">${simBudgetMax.toLocaleString()}</span>
+                                            <span className="text-muted">Min: {formatMoney(2500)}</span>
+                                            <span className="text-success font-bold font-mono text-base">{formatMoney(simBudgetMax)}</span>
                                         </div>
                                     </div>
                                     <div className="p-3 rounded-xl bg-fg/5 border border-border text-xs text-muted">
@@ -155,7 +158,7 @@ export default function HowItWorks() {
                                     <div className="p-3.5 rounded-2xl bg-fg/10 border border-border space-y-2">
                                         <div className="flex justify-between items-center">
                                             <span className="text-xs font-bold text-fg">Apex Catering & Stages</span>
-                                            <span className="text-sm font-black text-success">${simVendorQuote.toLocaleString()}</span>
+                                            <span className="text-sm font-black text-success">{formatMoney(simVendorQuote)}</span>
                                         </div>
                                         <p className="text-[11px] text-muted">Includes 3-course dinner, LED stage rig, and 4K audio sound setup.</p>
                                     </div>
@@ -167,14 +170,14 @@ export default function HowItWorks() {
                                 <form onSubmit={handleSendSimCounter} className="space-y-4">
                                     <div className="flex items-center justify-between border-b border-border pb-3">
                                         <span className="text-xs font-bold text-fg uppercase">PROPOSE COUNTER-OFFER</span>
-                                        <span className="text-[10px] font-mono text-success">VENDOR QUOTE: ${simVendorQuote.toLocaleString()}</span>
+                                        <span className="text-[10px] font-mono text-success">VENDOR QUOTE: {formatMoney(simVendorQuote)}</span>
                                     </div>
                                     <div>
-                                        <label className="text-xs text-muted block mb-1">Enter Counter Amount ($)</label>
+                                        <label className="text-xs text-muted block mb-1">Enter Counter Amount ({currency})</label>
                                         <input
                                             type="number"
-                                            value={simCounterInput}
-                                            onChange={(e) => setSimCounterInput(e.target.value)}
+                                            value={fromBase(simCounterInput)}
+                                            onChange={(e) => setSimCounterInput(toBase(e.target.value))}
                                             className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 text-base font-bold font-mono text-success outline-none"
                                         />
                                     </div>
@@ -194,7 +197,7 @@ export default function HowItWorks() {
                                         {simEscrowLocked ? 'ESCROW LOCKED & CONTRACT CONFIRMED' : 'READY TO LOCK ESCROW'}
                                     </h4>
                                     <p className="text-xs text-muted max-w-sm mx-auto">
-                                        Agreed Amount: <strong className="text-success font-mono">${Number(simCounterInput).toLocaleString()}</strong>. Held safely in Stripe escrow.
+                                        Agreed Amount: <strong className="text-success font-mono">{formatMoney(simCounterInput)}</strong>. Held safely in escrow.
                                     </p>
 
                                     {!simEscrowLocked ? (
@@ -219,7 +222,7 @@ export default function HowItWorks() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
                 <div className="adyen-card p-8 space-y-4">
                     <div className="w-12 h-12 rounded-2xl bg-success/10 text-success flex items-center justify-center font-bold">
-                        <DollarSign size={24} />
+                        <Banknote size={24} />
                     </div>
                     <h3 className="text-xl font-bold text-fg">For Event Hosts & Organizers</h3>
                     <ul className="space-y-2 text-xs text-muted font-medium">

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Users, DollarSign, Lock, CheckCircle2, Percent, Search } from 'lucide-react';
+import { Users, Banknote, Lock, CheckCircle2, Percent, Search } from 'lucide-react';
 import axios from '../../api/axios';
 import { Badge, formatCurrency, formatDate, BOOKING_STATUS } from '../ui';
 
@@ -68,7 +68,7 @@ export default function BusinessOverview() {
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
                 <Kpi icon={Users} label="Accounts" value={accounts.total} sub={`${accounts.byRole.customer || 0} organizers · ${accounts.byRole.provider || 0} vendors`} />
                 <Kpi icon={CheckCircle2} label="Bookings" value={bookings.total} sub={`${bookings.open} open · ${bookings.byStatus.confirmed || 0} confirmed`} onClick={() => jump('all')} />
-                <Kpi icon={DollarSign} label="Gross value" value={formatCurrency(revenue.gross)} sub="confirmed + completed" onClick={() => jump('confirmed')} />
+                <Kpi icon={Banknote} label="Gross value" value={formatCurrency(revenue.gross)} sub="confirmed + completed" onClick={() => jump('confirmed')} />
                 <Kpi icon={Lock} label="Held in escrow" value={formatCurrency(revenue.heldInEscrow)} sub="until organizers confirm" onClick={() => jump('confirmed')} />
                 <Kpi icon={CheckCircle2} label="Released" value={formatCurrency(revenue.released)} sub={`${formatCurrency(revenue.refunded)} refunded`} onClick={() => jump('completed')} />
                 <Kpi icon={Percent} label={`Platform fee ${revenue.feeRate * 100}%`} value={formatCurrency(revenue.platformFee)} sub={`${formatCurrency(revenue.pendingFee)} more when escrow releases`} />

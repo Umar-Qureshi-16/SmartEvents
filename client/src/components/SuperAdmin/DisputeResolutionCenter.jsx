@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Gavel, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { formatMoney } from '../../utils/money';
 
-const money = (n) => `$${Number(n || 0).toLocaleString()}`;
+const money = (n) => formatMoney(n);
 
 /**
  * Mediation portal for disputed bookings.

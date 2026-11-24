@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Users, Calendar, DollarSign, AlertCircle, CheckCircle2, XCircle, Search, Filter, Download, UserPlus, Eye, Edit, Lock, Trash2, Sliders, Layers, FileText, Image, MessageSquare, History, BarChart } from 'lucide-react';
+import { ShieldCheck, Users, Calendar, Banknote, AlertCircle, CheckCircle2, XCircle, Search, Filter, Download, UserPlus, Eye, Edit, Lock, Trash2, Sliders, Layers, FileText, Image, MessageSquare, History, BarChart } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import StatCard from '../../components/common/StatCard';
 import DataTable from '../../components/common/DataTable';
@@ -183,7 +183,7 @@ export default function AdminPanel({ user }) {
             {/* StatCards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <StatCard label="ACCOUNTS" value={stats.totalUsers} icon={Users} subtext="Manage users" onClick={() => setTab('users')} />
-                <StatCard label="BOOKINGS" value={stats.totalBookings} icon={DollarSign} subtext="Money and bookings" onClick={() => setTab('business')} />
+                <StatCard label="BOOKINGS" value={stats.totalBookings} icon={Banknote} subtext="Money and bookings" onClick={() => setTab('business')} />
                 <StatCard label="EVENTS LISTED" value={stats.totalEvents} icon={Calendar} subtext="Browse events" onClick={() => { window.location.href = '/events'; }} />
                 <StatCard label="OPEN DISPUTES" value={disputesList.length} icon={AlertCircle} subtext="Resolve" onClick={() => setTab('disputes')} />
                 <StatCard label="VENDORS" value={usersList.filter(u => u.role === 'provider').length} icon={ShieldCheck} subtext="Verify vendors" onClick={() => setTab('verification')} />

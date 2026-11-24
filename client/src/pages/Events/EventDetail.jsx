@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Users, DollarSign, ArrowLeft, ShieldCheck, Clock, Send, CheckCircle2, XCircle, Star } from 'lucide-react';
+import { Calendar, MapPin, Users, Banknote, ArrowLeft, ShieldCheck, Clock, Send, CheckCircle2, XCircle, Star } from 'lucide-react';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
 import ReviewCard from '../../components/reviews/ReviewCard';
@@ -10,6 +10,7 @@ import ReviewForm from '../../components/reviews/ReviewForm';
 import EventReadiness from '../../components/Dashboard/EventReadiness';
 import { formatDateRange, dayCount } from '../../components/ui';
 import TicketSales from '../../components/Dashboard/TicketSales';
+import { formatMoney, toBase, fromBase } from '../../utils/money';
 
 const EventDetail = () => {
     const { id } = useParams();
@@ -95,7 +96,7 @@ const EventDetail = () => {
         try {
             const res = await axios.post('/bookings', {
                 eventId: id,
-                offerPrice: Number(offerPrice),
+                offerPrice: toBase(offerPrice),
                 message: message || "Interested in this event.",
                 ...(planId ? { planId } : {}),
             });
@@ -260,7 +261,7 @@ const EventDetail = () => {
                             >
                                 {buyingTicket
                                     ? 'Issuing your pass...'
-                                    : <>Get an entry pass &middot; {`$${(event.price || 0).toLocaleString()}`}</>}
+                                    : <>Get an entry pass &middot; {`${formatMoney(event.price || 0)}`}</>}
                             </button>
                             <p className="text-[11px] text-muted text-center">
                                 A pass admits you at the gate. Making an offer negotiates the service price.
@@ -349,7 +350,7 @@ const EventDetail = () => {
                             <div className="flex justify-between items-center bg-fg/5 p-4 rounded-2xl mb-6 border border-border">
                                 <div>
                                     <p className="text-[10px] font-black uppercase text-brand tracking-widest">Base Rate</p>
-                                    <p className="text-2xl font-black text-fg">${event.price}</p>
+                                    <p className="text-2xl font-black text-fg">{formatMoney(event.price)}</p>
                                 </div>
                             </div>
 
@@ -357,13 +358,13 @@ const EventDetail = () => {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-muted tracking-widest ml-1">Your Offer Price</label>
                                     <div className="relative">
-                                        <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" />
+                                        <Banknote size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" />
                                         <input
                                             type="number"
                                             value={offerPrice}
                                             onChange={(e) => setOfferPrice(e.target.value)}
                                             className="w-full bg-surface-2 border border-border rounded-2xl py-4 pl-12 pr-6 text-xl font-black text-fg placeholder:text-muted outline-none focus:ring-2 ring-indigo-500/50 transition-all"
-                                            placeholder={event.price}
+                                            placeholder={fromBase(event.price)}
                                             required
                                             min="1"
                                         />

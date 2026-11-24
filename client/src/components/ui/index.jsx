@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatMoney } from '../../utils/money';
 import PasswordField from './PasswordField';
 import { Link } from 'react-router-dom';
 import { Loader2, AlertTriangle, RefreshCw, Inbox } from 'lucide-react';
@@ -206,12 +207,9 @@ export function ErrorState({ message, onRetry }) {
 /* Formatting helpers — one place, so currency and dates stay consistent      */
 /* -------------------------------------------------------------------------- */
 
-export const formatCurrency = (amount, currency = 'USD') =>
-    new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency,
-        maximumFractionDigits: 0,
-    }).format(Number(amount) || 0);
+// Stored amounts are US dollars; they are shown in the viewer's own currency
+// (the country in their profile). See utils/money.js.
+export const formatCurrency = (amount) => formatMoney(amount);
 
 export const formatDate = (value, opts = {}) => {
     if (!value) return '—';

@@ -3,6 +3,7 @@ import axios from '../../api/axios';
 import { useConfirm } from '../../components/ui';
 import { toast } from 'react-hot-toast';
 import { Plus, Trash2, Calendar, Package, ArrowLeft, Star, Tag, Users, CheckCircle2 } from 'lucide-react';
+import { formatMoney, toBase } from '../../utils/money';
 
 const CATEGORY_MAP = {
     venue: 'Venue & Hall',
@@ -56,7 +57,7 @@ function Services() {
             const res = await axios.post('/vendor/services', {
                 title: newService.title,
                 category: newService.category,
-                price: Number(newService.price),
+                price: toBase(newService.price),
                 description: newService.description || 'Full professional service.',
                 eventType: newService.eventType,
                 location: newService.location
@@ -230,7 +231,7 @@ function Services() {
                             <div className="pt-3 border-t border-border flex items-center justify-between">
                                 <div>
                                     <span className="text-[10px] font-mono text-muted block uppercase font-bold">STARTING PRICE</span>
-                                    <span className="text-xl font-black text-success">${srv.price.toLocaleString()}</span>
+                                    <span className="text-xl font-black text-success">{formatMoney(srv.price)}</span>
                                 </div>
                                 <span className="text-xs text-muted font-semibold">{srv.location}</span>
                             </div>

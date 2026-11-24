@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { Calendar, DollarSign, MessageSquare, CheckCircle2, ArrowRight, ShieldCheck, Clock, MapPin } from 'lucide-react';
+import { Calendar, Banknote, MessageSquare, CheckCircle2, ArrowRight, ShieldCheck, Clock, MapPin } from 'lucide-react';
 import StatCard from '../../components/common/StatCard';
+import { formatMoney } from '../../utils/money';
 
 const STATUS_MAP = {
     pending: 'Pending Initial Quote',
@@ -43,7 +44,7 @@ export default function Leads({ user }) {
         const eventType = booking.eventDetails?.eventType || 'Event Service';
         const date = new Date(booking.eventDetails?.date || booking.createdAt).toLocaleDateString();
         const location = booking.eventDetails?.location || 'Main Ballroom';
-        const price = booking.offerPrice.toLocaleString();
+        const price = booking.offerPrice;
         const escrowLabel = { held: 'HELD IN ESCROW (SIMULATED)', released: 'RELEASED & SETTLED', refunded: 'REFUNDED TO CUSTOMER' }[booking.escrow?.status];
         const status = escrowLabel || 'PENDING SETTLEMENT';
 
@@ -104,13 +105,13 @@ export default function Leads({ user }) {
                                     <div style="font-weight: 800; font-size: 14px; color: #111827;">${eventType}</div>
                                     <div style="font-size: 11px; color: #6B7280; font-weight: 500; margin-top: 4px;">Location: ${location}</div>
                                 </td>
-                                <td style="text-align: right; font-size: 16px; font-weight: 800; color: #111827;">$${price}</td>
+                                <td style="text-align: right; font-size: 16px; font-weight: 800; color: #111827;">${formatMoney(price)}</td>
                             </tr>
                         </tbody>
                     </table>
                     <div class="total-box">
                         <span>LOCKED ESCROW AMOUNT:</span>
-                        <span class="total-val">$${price} USD</span>
+                        <span class="total-val">${formatMoney(price)}</span>
                     </div>
                     <div class="footer">
                         <p>Secured via SmartEvents Escrow Protocol. Payment is held in secure escrow vault until event completion verification.</p>
@@ -155,7 +156,7 @@ export default function Leads({ user }) {
                 <StatCard label="TOTAL PROPOSALS" value={leads.length} icon={MessageSquare} subtext="Show all" onClick={() => setFilterStatus('all')} />
                 <StatCard label="ACTIVE CHATS" value={leads.filter(l => ['pending', 'negotiating'].includes(l.status)).length} icon={Clock} subtext="Accept or counter" onClick={() => setFilterStatus('active')} />
                 <StatCard label="LOCKED ESCROWS" value={leads.filter(l => l.status === 'confirmed').length} icon={CheckCircle2} subtext="Confirmed deals" onClick={() => setFilterStatus('confirmed')} />
-                <StatCard label="POTENTIAL REVENUE" value={`$${leads.reduce((acc, l) => acc + l.offerPrice, 0).toLocaleString()}`} icon={DollarSign} subtext="Revenue and payouts" onClick={() => navigate('/revenue')} />
+                <StatCard label="POTENTIAL REVENUE" value={formatMoney(leads.reduce((acc, l) => acc + l.offerPrice, 0))} icon={Banknote} subtext="Revenue and payouts" onClick={() => navigate('/revenue')} />
             </div>
 
             {/* Status Filter Tab row */}
@@ -233,7 +234,7 @@ export default function Leads({ user }) {
                             <div className="pt-3 border-t border-border flex items-center justify-between">
                                 <div>
                                     <span className="text-[10px] font-mono text-muted block uppercase font-bold">PROPOSED PRICE</span>
-                                    <span className="text-xl font-black text-success">${lead.offerPrice.toLocaleString()}</span>
+                                    <span className="text-xl font-black text-success">{formatMoney(lead.offerPrice)}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {['confirmed', 'completed'].includes(lead.status) && (

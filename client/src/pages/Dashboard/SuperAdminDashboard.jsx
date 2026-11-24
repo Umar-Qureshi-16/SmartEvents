@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import {
     BarChart3, ShieldAlert, Gavel, Users, ScrollText, Activity,
-    RefreshCw, AlertTriangle, DollarSign, UserCheck, Loader2, KeyRound
+    RefreshCw, AlertTriangle, Banknote, UserCheck, Loader2, KeyRound
 } from 'lucide-react';
 
 import axios from '../../api/axios';
@@ -18,9 +18,10 @@ import SystemHealthMonitor from '../../components/SuperAdmin/SystemHealthMonitor
 import PlatformPulseFeed from '../../components/SuperAdmin/PlatformPulseFeed';
 import SignupCodeSettings from '../../components/SuperAdmin/SignupCodeSettings';
 import BusinessOverview from '../../components/Admin/BusinessOverview';
+import { formatMoney } from '../../utils/money';
 
 const TABS = [
-    { id: 'business', label: 'Business', icon: DollarSign },
+    { id: 'business', label: 'Business', icon: Banknote },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'fraud', label: 'Fraud', icon: ShieldAlert },
     { id: 'disputes', label: 'Disputes', icon: Gavel },
@@ -240,7 +241,7 @@ export default function SuperAdminDashboard({ user }) {
                 <section aria-label="Platform summary" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <Kpi onClick={() => setTab('providers')} icon={Users} label="Total Users" value={(stats.totalUsers ?? 0).toLocaleString()}
                          sub={`${stats.providers ?? 0} providers · ${stats.customers ?? 0} customers`} />
-                    <Kpi onClick={() => setTab('business')} icon={DollarSign} label="Gross Revenue" value={`$${(stats.revenue ?? 0).toLocaleString()}`}
+                    <Kpi onClick={() => setTab('business')} icon={Banknote} label="Gross Revenue" value={`${formatMoney(stats.revenue ?? 0)}`}
                          sub={`${stats.closedDeals ?? 0} closed deals`} tone="text-success" />
                     <Kpi onClick={() => setTab('business')} icon={UserCheck} label="Active Bookings" value={(stats.activeBookings ?? 0).toLocaleString()}
                          sub="pending, negotiating, confirmed" />

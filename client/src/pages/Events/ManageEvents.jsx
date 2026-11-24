@@ -9,6 +9,7 @@ import axios from '../../api/axios';
 import {
     Button, Card, Badge, Input, Textarea, Modal, SkeletonList, EmptyState, ErrorState,
     formatCurrency, formatDateRange, dayCount } from '../../components/ui';
+import { toBase, fromBase } from '../../utils/money';
 
 const CATEGORIES = ['Wedding', 'Corporate', 'Concert', 'Birthday', 'Conference', 'Exhibition'];
 
@@ -61,7 +62,7 @@ export default function ManageEvents() {
         setForm({
             title: event.title || '',
             category: event.category || 'Wedding',
-            price: String(event.price ?? ''),
+            price: event.price != null ? String(fromBase(event.price)) : '',
             location: event.location || '',
             description: event.description || '',
             capacity: String(event.capacity ?? 100),
@@ -94,7 +95,7 @@ export default function ManageEvents() {
             const payload = {
                 title: form.title.trim(),
                 category: form.category,
-                price: Number(form.price),
+                price: toBase(form.price),
                 location: form.location.trim(),
                 description: form.description.trim(),
                 capacity: Number(form.capacity),

@@ -3,7 +3,7 @@ import axios from '../../api/axios';
 import BudgetPlanner from '../../components/planner/BudgetPlanner';
 import AgentChat from '../../components/ai/AgentChat';
 import { toast } from 'react-hot-toast';
-import { Sparkles, Send, FileText, Calendar, DollarSign, ArrowRight, Bot, User, Cpu, Check, X, Loader2, Copy, ShieldCheck } from 'lucide-react';
+import { Sparkles, Send, FileText, Calendar, Banknote, ArrowRight, Bot, User, Cpu, Check, X, Loader2, Copy, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
@@ -192,7 +192,7 @@ export default function AIConcierge() {
                                 className="w-full flex items-center justify-between p-3 rounded-2xl bg-surface-2 border border-border hover:border-success text-fg hover:text-success transition-all"
                             >
                                 <div className="flex items-center gap-2">
-                                    <DollarSign size={16} />
+                                    <Banknote size={16} />
                                     <span>Event Budget Analyzer</span>
                                 </div>
                                 <ArrowRight size={14} />

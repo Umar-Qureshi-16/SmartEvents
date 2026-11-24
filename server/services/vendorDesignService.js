@@ -10,6 +10,7 @@ const Booking = require('../models/Booking');
 const User = require('../models/User');
 const { complete } = require('./groqClient');
 const { renderDecor, once, partsOf, toHd, HD } = require('./decorImage');
+const { cultureFor, normalise } = require('../config/regions');
 const DesignRender = require('../models/DesignRender');
 const { BadRequestError, ForbiddenError, NotFoundError } = require('../utils/AppError');
 
@@ -63,10 +64,10 @@ function template({ theme, style, eventType, budget, colors }) {
         ['Table centrepieces', 0.15, `${t} centrepieces for the guest tables`],
         ['Photo corner', 0.15, `${t} photo booth with props`],
     ] : [
-        ['Stage and backdrop', 0.35, `${style || 'Elegant'} stage with a ${t} backdrop`],
+        ['Couple stage and backdrop', 0.35, `${style || 'Elegant'} raised couple stage with a sofa and a ${t} fresh-flower backdrop`],
         ['Flowers and centrepieces', 0.25, 'Fresh arrangements for tables and entrance'],
-        ['Lighting', 0.2, 'Warm fairy lights and uplighting'],
-        ['Entrance and walkway', 0.12, 'Arch, aisle runner and lanterns'],
+        ['Lighting', 0.2, 'Crystal chandeliers, fairy lights and warm uplighting'],
+        ['Entrance and walkway', 0.12, 'Flower-lined entrance walkway with brass lanterns'],
         ['Table styling', 0.08, 'Linens, runners and place settings'],
     ];
     return {
@@ -76,6 +77,26 @@ function template({ theme, style, eventType, budget, colors }) {
         elements: items.map(([item, share, description]) => ({ item, description, cost: Math.floor(b * share) })),
         totalCost: items.reduce((t, [, share]) => t + Math.floor(b * share), 0),
     };
+}
+
+/**
+ * The designs in an AI reply. Free models do not always use the exact shape
+ * asked for: they may wrap the list under another key ("options"), return a
+ * bare list, a single design, or put the JSON inside a code fence.
+ */
+function designList(content) {
+    let text = String(content || '').trim();
+    const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text);
+    if (fenced) text = fenced[1];
+    const start = text.search(/[[{]/);
+    if (start > 0) text = text.slice(start);
+    let parsed;
+    try { parsed = JSON.parse(text); } catch { return []; }
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed?.designs)) return parsed.designs;
+    const list = Object.values(parsed || {}).find((v) => Array.isArray(v) && v.some((x) => x && typeof x === 'object' && Array.isArray(x.elements)));
+    if (list) return list;
+    return parsed?.elements ? [parsed] : [];
 }
 
 async function vendorCategory(vendorId) {
@@ -99,20 +120,24 @@ async function generateOptions(vendorId, raw = {}, count = 3) {
     const n = Math.min(Math.max(Number(count) || 1, 1), 3);
     const idea = String(input.idea || input.notes || '').trim().slice(0, 600);
     const profile = await vendorCategory(vendorId);
+    const locale = normalise((await User.findById(vendorId).select('locale').lean())?.locale);
+    const culture = cultureFor(locale, input.eventType);
     let designs = [];
     let source = 'ai';
     try {
-        const prompt = `You are a ${profile.category} vendor in Pakistan designing sellable decor packages for a ${input.eventType || 'wedding'}.
+        const prompt = `You are a ${profile.category} vendor based in ${culture.label} designing sellable decor packages for a ${input.eventType || 'wedding'}.
+How this event is set up in its culture, follow it closely: ${culture.event}.
+Regional touches to weave in (the event's own mood comes first): ${culture.place}.
+Never use elements foreign to this culture (no church altar, no chairs in rows facing an arch, no champagne or bar).
 Theme: ${input.theme || 'open'}. Style: ${input.style || 'open'}. ${input.colors?.length ? `Colours wanted: ${input.colors.join(', ')}.` : 'Pick a palette of 4 colours that suits this theme best (the theme\'s signature colours first).'}
 ${guests ? `Guests: about ${guests}, so size the seating, tables and centrepieces for that many people.` : ''}
 ${idea ? `The client's own idea, follow it closely: ${idea}` : 'No extra idea from the client.'}
 Create ${n} clearly DIFFERENT design options for this theme (different layouts, props and moods, e.g. a classic take, a modern take and a grand take).
-Each option must cost at most ${budget} (the whole decor) and list 4 to 6 concrete decor items, the three most eye-catching first, (such as backdrop, entrance, cake or dessert table, table centrepieces, photo booth, ceiling or lighting), each with a cost.
+Costs are in US dollars. Each option must cost at most ${budget} (the whole decor) and list 4 to 6 concrete decor items, the three most eye-catching first, (such as backdrop, entrance, cake or dessert table, table centrepieces, photo booth, ceiling or lighting), each with a cost.
 Reply with JSON only: {"designs":[{"title":"string","summary":"two sentences describing what it looks like","palette":["#hex",...4],"elements":[{"item":"string","description":"what it looks like","cost":number}]}]}`;
         const res = await complete({ messages: [{ role: 'user', content: prompt }], temperature: 0.85, max_tokens: 1800, response_format: { type: 'json_object' } });
-        const parsed = JSON.parse(res.choices[0]?.message?.content || '{}');
-        const list = Array.isArray(parsed.designs) ? parsed.designs : [parsed];
-        designs = list.map((d) => clean(d, budget)).filter(Boolean).slice(0, n);
+        designs = designList(res.choices[0]?.message?.content).map((d) => clean(d, budget)).filter(Boolean).slice(0, n);
+        if (!designs.length) console.warn('[designs] AI reply had no usable design');
     } catch (err) {
         console.warn('[designs] AI unavailable:', err.message);
     }
@@ -129,7 +154,7 @@ Reply with JSON only: {"designs":[{"title":"string","summary":"two sentences des
         if (!design.palette.length) design.palette = PALETTES[0];
         const doc = await VendorDesign.create({
             vendor: vendorId, eventType: input.eventType || 'Wedding', theme: input.theme, style: input.style, idea: idea || undefined,
-            guests: guests || undefined,
+            guests: guests || undefined, locale,
             image: isUrl(input.image) ? input.image : undefined, published: false, source, ...design,
         });
         created.push(doc.toObject());
@@ -169,10 +194,12 @@ const THEME_FALLBACK = {
  */
 async function suggestThemes(vendorId, { eventType = 'Wedding', idea = '' } = {}) {
     await vendorCategory(vendorId);
+    const culture = cultureFor((await User.findById(vendorId).select('locale').lean())?.locale, eventType);
     const party = /birthday|party|kid|baby|shower/i.test(eventType);
     const own = String(idea || '').trim().slice(0, 300);
     try {
-        const prompt = `Suggest 4 clearly different decor themes for a ${eventType} in Pakistan${own ? `, built around this idea: ${own}` : ''}.
+        const prompt = `Suggest 4 clearly different decor themes for a ${eventType} in ${culture.label}${own ? `, built around this idea: ${own}` : ''}.
+They must be true to how this event is celebrated there: ${culture.event}. The event's own mood and customs come first; the region only adds its crafts and touches: ${culture.place}.
 For each theme give a short name (2-3 words), one sentence on what the setup looks like, a style word, and a palette of 4 hex colours. The palette must be the theme's real signature colours that a professional decorator would use (for example Batman: black, golden yellow, charcoal grey; Mughal royal: maroon, antique gold, ivory, emerald), harmonious together, with no random or clashing colours.
 Reply with JSON only: {"themes":[{"name":"string","mood":"string","style":"string","palette":["#hex","#hex","#hex","#hex"]}]}`;
         const res = await complete({ messages: [{ role: 'user', content: prompt }], temperature: 0.9, max_tokens: 700, response_format: { type: 'json_object' } });
@@ -318,7 +345,7 @@ async function conceptImage(bookingId, conceptId, part = 0) {
     const stored = await DesignRender.findOne({ key }).lean();
     if (stored) return hd({ data: bytes(stored.data), mime: stored.mime }, (b) => DesignRender.updateOne({ key }, { $set: { data: b.data, mime: b.mime } }));
     const booking = await Booking.findOne({ _id: bookingId, 'designConcepts._id': conceptId })
-        .select('designConcepts designBrief eventDetails eventId').populate('eventId', 'category').lean();
+        .select('designConcepts designBrief eventDetails eventId vendorId').populate('eventId', 'category').populate('vendorId', 'locale').lean();
     const concept = booking?.designConcepts?.find((c) => String(c._id) === String(conceptId));
     if (!concept) return null;
     const design = {
@@ -327,6 +354,7 @@ async function conceptImage(bookingId, conceptId, part = 0) {
         style: booking.designBrief?.style,
         idea: booking.designBrief?.notes,
         eventType: booking.eventDetails?.eventType || booking.eventId?.category || 'Wedding',
+        locale: booking.vendorId?.locale,
     };
     if (n >= partsOf(design)) return null;
     return partImage(key, design, n);

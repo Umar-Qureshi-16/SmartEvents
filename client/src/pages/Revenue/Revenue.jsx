@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { Download, DollarSign, TrendingUp, Calendar, CreditCard, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Download, Banknote, TrendingUp, Calendar, CreditCard, ShieldCheck, ArrowRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { formatMoney } from '../../utils/money';
 
 export default function Revenue({ user }) {
     const [bookings, setBookings] = useState([]);
@@ -30,7 +31,7 @@ export default function Revenue({ user }) {
         const eventType = booking.eventDetails?.eventType || 'Event Service';
         const date = new Date(booking.eventDetails?.date || booking.createdAt).toLocaleDateString();
         const location = booking.eventDetails?.location || 'Main Ballroom';
-        const price = booking.offerPrice.toLocaleString();
+        const price = booking.offerPrice;
         const status = { held: 'HELD IN ESCROW (SIMULATED)', released: 'RELEASED & SETTLED', refunded: 'REFUNDED TO CUSTOMER' }[booking.escrow?.status] || 'PENDING SETTLEMENT';
 
         const printWindow = window.open('', '_blank');
@@ -90,13 +91,13 @@ export default function Revenue({ user }) {
                                     <div style="font-weight: 800; font-size: 14px; color: #111827;">${eventType}</div>
                                     <div style="font-size: 11px; color: #6B7280; font-weight: 500; margin-top: 4px;">Location: ${location}</div>
                                 </td>
-                                <td style="text-align: right; font-size: 16px; font-weight: 800; color: #111827;">$${price}</td>
+                                <td style="text-align: right; font-size: 16px; font-weight: 800; color: #111827;">${formatMoney(price)}</td>
                             </tr>
                         </tbody>
                     </table>
                     <div class="total-box">
                         <span>LOCKED ESCROW AMOUNT:</span>
-                        <span class="total-val">$${price} USD</span>
+                        <span class="total-val">${formatMoney(price)}</span>
                     </div>
                     <div class="footer">
                         <p>Secured via SmartEvents Escrow Protocol. Payment is held in secure escrow vault until event completion verification.</p>
@@ -180,17 +181,17 @@ export default function Revenue({ user }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="adyen-card p-6 space-y-2 bg-surface border border-border shadow-sm">
                     <span className="text-[10px] font-mono text-muted uppercase font-bold">TOTAL ESCROW VOLUME</span>
-                    <div className="text-3xl font-black text-success">${totalVolume.toLocaleString()}</div>
+                    <div className="text-3xl font-black text-success">{formatMoney(totalVolume)}</div>
                 </div>
 
                 <div className="adyen-card p-6 space-y-2 bg-surface border border-border shadow-sm">
                     <span className="text-[10px] font-mono text-muted uppercase font-bold">HELD IN ESCROW (PENDING)</span>
-                    <div className="text-3xl font-black text-fg">${pendingEscrow.toLocaleString()}</div>
+                    <div className="text-3xl font-black text-fg">{formatMoney(pendingEscrow)}</div>
                 </div>
 
                 <div className="adyen-card p-6 space-y-2 bg-surface border border-border shadow-sm">
                     <span className="text-[10px] font-mono text-muted uppercase font-bold">RELEASED TO YOU</span>
-                    <div className="text-3xl font-black text-cyan-600">${paidOut.toLocaleString()}</div>
+                    <div className="text-3xl font-black text-cyan-600">{formatMoney(paidOut)}</div>
                 </div>
             </div>
 
@@ -247,7 +248,7 @@ export default function Revenue({ user }) {
                                     <tr key={tx._id} className="hover:bg-surface-2 transition-colors">
                                         <td className="p-4 font-mono font-bold text-muted">{`TX-${tx._id.substring(18).toUpperCase()}`}</td>
                                         <td className="p-4 font-bold text-fg">{tx.customerId?.name || 'Client'}</td>
-                                        <td className="p-4 font-black font-mono text-success">${(tx.escrow.amount ?? tx.offerPrice).toLocaleString()}</td>
+                                        <td className="p-4 font-black font-mono text-success">{formatMoney((tx.escrow.amount ?? tx.offerPrice))}</td>
                                         <td className="p-4">
                                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase ${tx.escrow.status === 'released' ? 'bg-emerald-100 text-emerald-700' : tx.escrow.status === 'held' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
                                                 {{ held: 'Held in Escrow', released: 'Released Payout', refunded: 'Refunded' }[tx.escrow.status]}

@@ -262,6 +262,19 @@ describe('AI assistant: follows through on what it says it will do', () => {
     });
 });
 
+describe('AI assistant: amounts in the user currency', () => {
+    test('a confirmation card shows the amount in rupees for a user in Pakistan', async () => {
+        const cust = await makeUser('customer');
+        const provider = await makeUser('provider');
+        const event = await makeEvent(provider.id);
+        complete.mockResolvedValueOnce(toolCall('make_offer', { eventId: String(event._id), offerPrice: 500 }));
+        const res = await chat(cust.token, 'Offer PKR 140,000 on this event');
+        // Test runs use the fixed rate of 280 rupees to the dollar.
+        expect(res.body.data.pendingAction.summary).toContain('PKR 140,000');
+        expect(res.body.data.pendingAction.args.offerPrice).toBe(500);
+    });
+});
+
 describe('AI assistant: remembers what it just did', () => {
     test('the id of something just created reaches the next message, so "publish it" works', async () => {
         const vendor = await makeUser('provider');

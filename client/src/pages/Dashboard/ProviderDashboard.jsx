@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-    ArrowRight, CalendarDays, Palette, CheckCircle2, DollarSign, Images, Inbox, MessageSquare, Package, Plus,
+    ArrowRight, CalendarDays, Palette, CheckCircle2, Banknote, Images, Inbox, MessageSquare, Package, Plus,
     QrCode, ShieldCheck, Star, Store, Users,
 } from 'lucide-react';
 
@@ -21,7 +21,7 @@ const TOOLKIT = [
     { label: 'My events', path: '/my-events', icon: CalendarDays },
     { label: 'Public profile', path: '/my-profile', icon: Images },
     { label: 'Availability', path: '/calendar', icon: CalendarDays },
-    { label: 'Revenue', path: '/revenue', icon: DollarSign },
+    { label: 'Revenue', path: '/revenue', icon: Banknote },
     { label: 'Ticket scanner', path: '/staff/scanner', icon: QrCode },
     { label: 'Reviews', path: '/reviews', icon: Star },
 ];
@@ -155,7 +155,7 @@ export default function ProviderDashboard({ user }) {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard label="OPEN OFFERS" value={stats.open} icon={Inbox} tone="warning" subtext={stats.yourTurn ? `${stats.yourTurn} waiting on you` : 'Accept or counter'} onClick={() => setInsight('negotiating')} />
                 <StatCard label="UPCOMING JOBS" value={stats.upcoming} icon={CheckCircle2} tone="success" subtext="Countdown and design brief" onClick={() => setInsight('confirmed')} />
-                <StatCard label="REVENUE" value={formatCurrency(stats.revenue)} icon={DollarSign} tone="success" subtext={`${formatCurrency(stats.released)} released`} onClick={() => setInsight('committed')} />
+                <StatCard label="REVENUE" value={formatCurrency(stats.revenue)} icon={Banknote} tone="success" subtext={`${formatCurrency(stats.released)} released`} onClick={() => setInsight('committed')} />
                 <StatCard label="RATING" value={profile?.reviewsCount ? profile.rating.toFixed(1) : 'New'} icon={Star} subtext={`${profile?.reviewsCount || 0} reviews · trust ${profile?.trustScore ?? 70}`} onClick={() => navigate('/my-profile?section=reviews')} />
             </div>
 

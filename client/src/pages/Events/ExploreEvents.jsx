@@ -10,6 +10,7 @@ import axios from '../../api/axios';
 import {
     Button, Card, Badge, Input, Textarea, Modal, SkeletonList, EmptyState, ErrorState,
     formatCurrency, formatDateRange } from '../../components/ui';
+import { toBase } from '../../utils/money';
 
 // Must match the Event schema enum — the previous list used invented labels
 // ("Corporate Conferences", "Music Festivals") that no record could ever match.
@@ -71,8 +72,9 @@ export default function ExploreEvents({ user }) {
             if (category !== 'All') params.category = category;
             if (search) params.search = search;
             if (location) params.location = location;
-            if (minPrice) params.minPrice = minPrice;
-            if (maxPrice) params.maxPrice = maxPrice;
+            // Filters are typed in the viewer's currency; the server works in dollars.
+            if (minPrice) params.minPrice = toBase(minPrice);
+            if (maxPrice) params.maxPrice = toBase(maxPrice);
             if (sortBy) params.sortBy = sortBy;
 
             const res = await axios.get('/events', { params });
@@ -113,7 +115,7 @@ export default function ExploreEvents({ user }) {
     };
 
     const submitOffer = async () => {
-        const price = Number(offerPrice);
+        const price = toBase(offerPrice);
         if (!price || price <= 0) {
             toast.error('Enter an offer greater than zero.');
             return;
@@ -380,7 +382,7 @@ export default function ExploreEvents({ user }) {
                         onChange={(e) => setOfferPrice(e.target.value)}
                         hint={
                             offerTarget && Number(offerPrice) > 0
-                                ? `${Math.round((1 - Number(offerPrice) / offerTarget.price) * 100)}% below the asking price`
+                                ? `${Math.round((1 - toBase(offerPrice) / offerTarget.price) * 100)}% below the asking price`
                                 : 'Enter an amount greater than zero'
                         }
                     />

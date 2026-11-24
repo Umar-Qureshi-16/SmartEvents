@@ -3,10 +3,11 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
-    ArrowRight, Calendar, CheckCircle2, Clock, DollarSign, MessageSquare, Palette, Ticket, X,
+    ArrowRight, Calendar, CheckCircle2, Clock, Banknote, MessageSquare, Palette, Ticket, X,
 } from 'lucide-react';
 import axios from '../../api/axios';
 import { Badge, formatCurrency, formatDateRange, BOOKING_STATUS } from '../ui';
+import { toBase } from '../../utils/money';
 
 const DAY = 86400000;
 const titleOf = (b) => b.eventId?.title || b.serviceId?.title || b.designConcepts?.find((c) => c.selected)?.title || b.eventDetails?.eventType || 'Custom booking';
@@ -20,7 +21,7 @@ const META = {
     all: { title: 'All bookings', icon: Calendar, tone: 'bg-brand/10 text-brand' },
     negotiating: { title: 'In negotiation', icon: MessageSquare, tone: 'bg-warning/10 text-warning' },
     confirmed: { title: 'Confirmed', icon: CheckCircle2, tone: 'bg-success/10 text-success' },
-    committed: { title: 'Money committed', icon: DollarSign, tone: 'bg-success/10 text-success' },
+    committed: { title: 'Money committed', icon: Banknote, tone: 'bg-success/10 text-success' },
 };
 
 function Row({ b, children, right, role }) {
@@ -72,7 +73,7 @@ function Negotiation({ b, myId, onChanged, role }) {
             if (kind === 'accept') await axios.put(`/bookings/${b._id}/accept`);
             if (kind === 'counter') {
                 if (!(Number(price) > 0)) { toast.error('Enter your counter price.'); setBusy(null); return; }
-                await axios.post(`/bookings/${b._id}/negotiate`, { price: Number(price), message: `Counter offer of ${formatCurrency(Number(price))}` });
+                await axios.post(`/bookings/${b._id}/negotiate`, { price: toBase(price), message: `Counter offer of ${formatCurrency(toBase(price))}` });
             }
             toast.success(kind === 'accept' ? 'Accepted. The booking is confirmed.' : 'Counter offer sent.');
             setPrice('');

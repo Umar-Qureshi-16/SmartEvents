@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatMoney, useMoney } from '../utils/money';
 
 /**
  * AnimatedPrice
- * Renders a price value using JetBrains Mono (font-mono token).
+ * Renders a stored (US dollar) price in the viewer's own currency, using
+ * JetBrains Mono (font-mono token).
  * When the price prop changes, the old value slides/fades out with a
  * strike-through and the new value slides/fades in.
  *
  * @param {{ price: string|number, className?: string }} props
  */
 const AnimatedPrice = ({ price, className = '' }) => {
+  useMoney(); // re-render when the currency or rates change
   // Track [current, previous] so we can animate the transition
   const [displayState, setDisplayState] = useState({ current: price, previous: null });
 
@@ -40,7 +43,7 @@ const AnimatedPrice = ({ price, className = '' }) => {
             transition={{ duration: 0.35 }}
             className="absolute inset-0 flex items-center justify-end text-gray-400"
           >
-            ${previous}
+            {formatMoney(previous)}
           </motion.span>
         )}
       </AnimatePresence>
@@ -52,7 +55,7 @@ const AnimatedPrice = ({ price, className = '' }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
       >
-        ${current}
+        {formatMoney(current)}
       </motion.span>
     </span>
   );

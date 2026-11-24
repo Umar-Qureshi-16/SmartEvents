@@ -5,6 +5,7 @@ import { Wallet, Sparkles, MapPin, Package } from 'lucide-react';
 import axios from '../../api/axios';
 import StarRating from '../reviews/StarRating';
 import { formatCurrency } from '../ui';
+import { toBase, fromBase } from '../../utils/money';
 
 const TYPES = ['Nikah', 'Wedding', 'Mehndi', 'Walima', 'Birthday', 'Corporate', 'Conference'];
 const FIELD = { venue: 'Venue', catering: 'Catering', decoration: 'Decoration', photography: 'Photography', music: 'Music & sound', makeup: 'Makeup' };
@@ -28,7 +29,7 @@ export default function BudgetPlanner({ compact = false }) {
         if (!(Number(form.budget) > 0)) { toast.error('Enter your total budget.'); return; }
         setBusy('plan');
         try {
-            const res = await axios.post('/plans/budget', { budget: Number(form.budget), eventType: form.eventType, city: form.city || undefined });
+            const res = await axios.post('/plans/budget', { budget: toBase(form.budget), eventType: form.eventType, city: form.city || undefined });
             setResult(res.data.data);
             setChoice(Object.fromEntries(res.data.data.items.map((i) => [i.field, i.package?._id || ''])));
         } catch (err) {
@@ -74,7 +75,7 @@ export default function BudgetPlanner({ compact = false }) {
             <form onSubmit={plan} className={`grid gap-2.5 ${compact ? 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-6' : 'grid-cols-2 lg:grid-cols-4 xl:grid-cols-7'} items-end`}>
                 <div>
                     <label htmlFor="bp-budget" className="text-[11px] font-bold text-fg block mb-1">Total budget</label>
-                    <input id="bp-budget" type="number" min="1" value={form.budget} onChange={set('budget')} placeholder="1500" className={field} />
+                    <input id="bp-budget" type="number" min="1" value={form.budget} onChange={set('budget')} placeholder={String(fromBase(1500))} className={field} />
                 </div>
                 <div>
                     <label htmlFor="bp-type" className="text-[11px] font-bold text-fg block mb-1">Event</label>

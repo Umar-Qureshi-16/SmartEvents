@@ -8,6 +8,8 @@
  * relies on the document version for optimistic concurrency.
  */
 const Booking = require('../models/Booking');
+const User = require('../models/User');
+const { cultureFor } = require('../config/regions');
 const socketManager = require('./socketManager');
 const notificationService = require('./notificationService');
 const { complete, isConfigured } = require('./groqClient');
@@ -164,6 +166,9 @@ function sanitiseConcept(raw, budget, fallbackPalette) {
 
 async function aiConcepts(booking) {
     const budget = budgetFor(booking);
+    const vendorId = booking.vendorId?._id || booking.vendorId;
+    const culture = cultureFor((await User.findById(vendorId).select('locale').lean())?.locale,
+        booking.eventId?.category || booking.eventDetails?.eventType);
     const brief = booking.designBrief || {};
     const facts = {
         event: booking.eventId?.title, category: booking.eventId?.category || booking.eventDetails?.eventType,
@@ -171,6 +176,7 @@ async function aiConcepts(booking) {
         budget, guestCount: brief.guestCount, theme: brief.theme, style: brief.style, colors: brief.colors, notes: brief.notes,
         references: (brief.references || []).map((r) => r.caption).filter(Boolean),
         recentDiscussion: (booking.designMessages || []).slice(-8).map((m) => m.text),
+        culture: `${culture.event}. Regional style: ${culture.place}. Costs in US dollars.`,
     };
     const res = await complete({
         response_format: { type: 'json_object' },
