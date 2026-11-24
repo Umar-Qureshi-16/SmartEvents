@@ -3,8 +3,9 @@
  *
  * Turned on by setting FIREBASE_SERVICE_ACCOUNT to the Firebase service-account
  * key (the JSON from Firebase console -> Project settings -> Service accounts),
- * either as raw JSON or base64. Without it every call here does nothing, so the
- * server works exactly as before.
+ * either as raw JSON or base64, or FIREBASE_SERVICE_ACCOUNT_FILE to the path of
+ * that JSON file (handy on a developer machine: the key stays in its file).
+ * Without either, every call here does nothing, so the server works as before.
  */
 const User = require('../models/User');
 
@@ -15,12 +16,17 @@ function getMessaging() {
     if (tried) return messaging;
     tried = true;
     const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-    if (!raw || process.env.NODE_ENV === 'test') return null;
+    const file = process.env.FIREBASE_SERVICE_ACCOUNT_FILE;
+    if ((!raw && !file) || process.env.NODE_ENV === 'test') return null;
     try {
-        const json = raw.trim().startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8');
-        const admin = require('firebase-admin');
-        const app = admin.apps.length ? admin.app() : admin.initializeApp({ credential: admin.credential.cert(JSON.parse(json)) });
-        messaging = admin.messaging(app);
+        const json = raw
+            ? (raw.trim().startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8'))
+            : require('fs').readFileSync(file, 'utf8');
+        // Modular API: firebase-admin 12+ no longer has admin.apps / admin.messaging().
+        const { initializeApp, getApps, cert } = require('firebase-admin/app');
+        const { getMessaging: messagingFor } = require('firebase-admin/messaging');
+        const app = getApps()[0] || initializeApp({ credential: cert(JSON.parse(json)) });
+        messaging = messagingFor(app);
         console.log('[push] Firebase Cloud Messaging is on');
     } catch (err) {
         console.warn('[push] Firebase is not configured:', err.message);
