@@ -18,8 +18,11 @@ const DRIVER_OPTIONS = { runtimeAdapters: { os: require('os') } };
  *
  * Override the target with MONGO_TEST_URI.
  */
+// Each run gets its own database name (tests/globalSetup.js), so runs at the
+// same time never clear each other's data.
 const TEST_URI =
-    process.env.MONGO_TEST_URI || 'mongodb://127.0.0.1:27017/smartevents_test';
+    process.env.MONGO_TEST_URI ||
+    `mongodb://127.0.0.1:27017/${process.env.SMARTEVENTS_TEST_DB || 'smartevents_test'}`;
 
 let memoryServer;
 

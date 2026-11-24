@@ -1,6 +1,9 @@
 module.exports = {
     testEnvironment: 'node',
+    setupFiles: ['<rootDir>/tests/env.js'],
     setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+    globalSetup: '<rootDir>/tests/globalSetup.js',
+    globalTeardown: '<rootDir>/tests/globalTeardown.js',
     testMatch: ['<rootDir>/tests/**/*.test.js'],
     // The legacy end-to-end script needs a running server; it is invoked via
     // `npm run test:e2e`, not by Jest.
