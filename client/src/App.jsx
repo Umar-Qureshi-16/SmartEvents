@@ -50,6 +50,7 @@ const AIConcierge          = lazy(() => import('./pages/AI/AIConcierge'));
 const Favorites            = lazy(() => import('./pages/Favorites/Favorites'));
 const ProfileManager       = lazy(() => import('./pages/Vendors/ProfileManager'));
 const VendorDesignStudio   = lazy(() => import('./pages/Vendors/VendorDesignStudio'));
+const DesignLab            = lazy(() => import('./pages/DesignLab/DesignLab'));
 const OrganizerProfile     = lazy(() => import('./pages/Organizer/OrganizerProfile'));
 const OrganizerCard        = lazy(() => import('./pages/Organizer/OrganizerCard'));
 const ProviderReviews      = lazy(() => import('./pages/Reviews/ProviderReviews'));
@@ -193,6 +194,8 @@ function App() {
                       <Route path="/organizer/:id" element={<OrganizerCard />} />
                       <Route path="/planner" element={user?.role === 'customer' ? <EventPlanner /> : <Navigate to="/dashboard" replace />} />
                       <Route path="/ai-concierge" element={<AIConcierge />} />
+                      {/* Design Lab: kind = user (a vendor's own lab, id "me"), design or booking. */}
+                      <Route path="/design-lab/:kind/:id" element={<DesignLab />} />
                     </Route>
 
                     {/* ---------- Providers (and admins, for support) ---------- */}

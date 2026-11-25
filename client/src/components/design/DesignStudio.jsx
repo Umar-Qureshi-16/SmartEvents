@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Palette, Sparkles, Save, Plus, Trash2, Check, Send, Loader2, Image as ImageIcon, Users, Wallet } from 'lucide-react';
+import { Palette, Sparkles, Save, Plus, Trash2, Check, Send, Loader2, Image as ImageIcon, Users, Wallet, PenTool } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import axios from '../../api/axios';
 import DesignGallery from './DesignGallery';
 import { useWebSockets } from '../../context/WebSocketContext';
@@ -135,6 +136,18 @@ export default function DesignStudio({ bookingId, currentUserId }) {
 
     return (
         <div className="flex-1 overflow-y-auto space-y-6 pr-1">
+            {/* Design Lab: shared canvas for this booking, built from inspiration pictures. */}
+            <section className="bg-gradient-to-r from-brand/15 via-brand/5 to-transparent border border-brand/30 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center gap-4" aria-label="Design Lab">
+                <div className="w-11 h-11 rounded-2xl bg-brand text-white grid place-items-center shrink-0"><PenTool size={20} aria-hidden="true" /></div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-black text-fg">Design Lab</p>
+                    <p className="text-xs text-muted">Find real decor pictures for this event and its culture, pin the ones you like, cut out the pieces you want and build your own design on a canvas. Both of you can open and edit it.</p>
+                </div>
+                <Link to={`/design-lab/booking/${bookingId}?eventType=${encodeURIComponent(design.event?.category || '')}&theme=${encodeURIComponent(brief.theme || '')}`}
+                    className="inline-flex items-center justify-center gap-1.5 bg-brand text-white hover:opacity-90 text-sm font-bold rounded-xl px-4 py-2.5 shrink-0">
+                    <PenTool size={15} aria-hidden="true" />Open Design Lab
+                </Link>
+            </section>
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 {/* ---------------- Brief ---------------- */}
                 <section className="lg:col-span-2 bg-surface border border-border rounded-3xl p-5 space-y-4" aria-labelledby="brief-heading">

@@ -43,6 +43,8 @@ function createApp() {
     }));
     app.use(cookieParser());
 
+    // Design Lab boards carry a canvas and its exported picture (checked again in the service).
+    app.use('/api/v1/designs/boards', express.json({ limit: '9mb' }));
     app.use(express.json({ limit: '1mb' }));
     app.use(express.urlencoded({ extended: true, limit: '1mb' }));
     app.use(sanitize);

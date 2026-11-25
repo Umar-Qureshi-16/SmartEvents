@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
-import { Eye, EyeOff, Palette, Sparkles, Trash2, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { Eye, EyeOff, Palette, Sparkles, Trash2, ExternalLink, Image as ImageIcon, PenTool } from 'lucide-react';
 import axios from '../../api/axios';
 import { formatCurrency, useConfirm } from '../../components/ui';
 import DesignGallery from '../../components/design/DesignGallery';
@@ -88,6 +88,10 @@ function DesignCard({ d, onChange, onDelete }) {
                     }} disabled={busy} className="inline-flex items-center gap-1 border border-border text-fg hover:bg-fg/5 text-xs font-bold rounded-xl px-3 py-2">
                         <ImageIcon size={13} aria-hidden="true" />New picture
                     </button>
+                    <Link to={`/design-lab/design/${d._id}?eventType=${encodeURIComponent(d.eventType || '')}&theme=${encodeURIComponent(d.theme || '')}`}
+                        className="inline-flex items-center gap-1 border border-border text-fg hover:border-brand hover:text-brand text-xs font-bold rounded-xl px-3 py-2">
+                        <PenTool size={13} aria-hidden="true" />Design Lab
+                    </Link>
                     <button onClick={() => onDelete(d)} aria-label={`Delete ${d.title}`} className="ml-auto text-muted hover:text-danger p-2"><Trash2 size={15} /></button>
                 </div>
             </div>
@@ -125,7 +129,10 @@ export default function VendorDesignStudio() {
                     <h1 className="text-2xl md:text-3xl font-black flex items-center gap-2"><Palette className="text-brand" aria-hidden="true" />Design studio</h1>
                     <p className="text-sm text-muted">Smartie designs with you step by step: each design comes with 4 full HD pictures and links to real examples on Google. Set your price, publish it on your profile, and organizers can book it directly.</p>
                 </div>
-                {me && <Link to={`/vendor/${me._id || me.id}`} className="inline-flex items-center gap-1.5 border border-border text-fg hover:bg-fg/5 text-sm font-bold rounded-xl px-4 py-2.5 shrink-0"><ExternalLink size={15} aria-hidden="true" />See it on my profile ({published})</Link>}
+                <div className="flex flex-wrap gap-2 shrink-0">
+                    <Link to="/design-lab/user/me" className="inline-flex items-center gap-1.5 bg-brand text-white hover:opacity-90 text-sm font-bold rounded-xl px-4 py-2.5"><PenTool size={15} aria-hidden="true" />Open Design Lab</Link>
+                    {me && <Link to={`/vendor/${me._id || me.id}`} className="inline-flex items-center gap-1.5 border border-border text-fg hover:bg-fg/5 text-sm font-bold rounded-xl px-4 py-2.5"><ExternalLink size={15} aria-hidden="true" />See it on my profile ({published})</Link>}
+                </div>
             </header>
 
             <DesignWizard onCreated={(made) => setDesigns((list) => [...made, ...(list || [])])} />

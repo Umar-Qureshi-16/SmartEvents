@@ -19,6 +19,24 @@ const sendImage = (find) => async (req, res, next) => {
         res.set('Cache-Control', 'public, max-age=86400').type(img.mime).send(img.data);
     } catch (err) { next(err); }
 };
+// Design Lab (before the "/:id/..." routes, so "inspiration" is never read as an id).
+const lab = require('../services/designLab');
+// Inspiration pictures for an event type, theme or own words, following the user's culture.
+router.get('/inspiration', verifyToken, wrap((req) => lab.inspiration(req.user.id, req.query)));
+// The pictures themselves, through our server so the canvas can use and export them.
+// Only links this server signed are fetched; <img> requests carry no token, so this is public.
+router.get('/inspiration/image', async (req, res, next) => {
+    try {
+        const img = await lab.proxyImage(String(req.query.u || ''), String(req.query.s || ''));
+        res.set({ 'Cache-Control': 'public, max-age=86400', 'Cross-Origin-Resource-Policy': 'cross-origin' }).type(img.mime).send(img.data);
+    } catch (err) { next(err); }
+});
+// Boards: pinned pictures and the canvas. kind = user (id "me") | design | booking.
+router.get('/boards/:kind/:id', verifyToken, wrap((req) => lab.getBoard(req.params.kind, req.params.id, req.user.id)));
+router.put('/boards/:kind/:id', verifyToken, wrap((req) => lab.saveBoard(req.params.kind, req.params.id, req.user.id, req.body || {})));
+router.put('/boards/:kind/:id/preview', verifyToken, wrap((req) => lab.savePreview(req.params.kind, req.params.id, req.user.id, req.body?.dataUrl)));
+router.get('/boards/:kind/:id/preview', verifyToken, sendImage((req) => lab.previewOf(req.params.kind, req.params.id, req.user.id)));
+
 router.get('/:id/image', sendImage((req) => designs.imageOf(req.params.id, req.query.part)));
 router.get('/concepts/:bookingId/:conceptId/image', sendImage((req) => designs.conceptImage(req.params.bookingId, req.params.conceptId, req.query.part)));
 
