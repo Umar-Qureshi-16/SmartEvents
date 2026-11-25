@@ -20,9 +20,11 @@ const DRIVER_OPTIONS = { runtimeAdapters: { os: require('os') } };
  */
 // Each run gets its own database name (tests/globalSetup.js), so runs at the
 // same time never clear each other's data.
+// With parallel workers (plain `npx jest`), each worker gets its own database
+// too, because every test file clears the database after each test.
 const TEST_URI =
     process.env.MONGO_TEST_URI ||
-    `mongodb://127.0.0.1:27017/${process.env.SMARTEVENTS_TEST_DB || 'smartevents_test'}`;
+    `mongodb://127.0.0.1:27017/${process.env.SMARTEVENTS_TEST_DB || 'smartevents_test'}_w${process.env.JEST_WORKER_ID || 1}`;
 
 let memoryServer;
 

@@ -31,7 +31,8 @@ const RULES = [
  */
 function passwordProblems(password, context = {}) {
     const p = String(password ?? '');
-    const problems = RULES.filter((r) => !r.test(p)).map((r) => `Password needs: ${r.label.toLowerCase()}`);
+    // Lower-case only the first letter, so "(A-Z)" stays as written.
+    const problems = RULES.filter((r) => !r.test(p)).map((r) => `Password needs: ${r.label[0].toLowerCase()}${r.label.slice(1)}`);
 
     const lower = p.toLowerCase();
     const emailName = String(context.email ?? '').split('@')[0].toLowerCase();
